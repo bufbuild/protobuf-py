@@ -1,0 +1,9 @@
+* text=auto eol=lf
+*.binpb binary
+
+# Ignore generated files in GitHub diffs by default
+**/*_pb.py linguist-generated=true
+**/*_rpc.py linguist-generated=true
+
+packages/bench/src/bench/gen/**/* linguist-generated=true
+packages/bench/proto/**/* linguist-generated=true

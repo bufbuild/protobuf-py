@@ -1,0 +1,56 @@
+// Copyright 2025 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+// buf:lint:ignore PACKAGE_VERSION_SUFFIX
+// buf:lint:ignore PACKAGE_DIRECTORY_MATCH
+package hyperpb.rsb;
+
+import "google/protobuf/descriptor.proto";
+
+message MessageOptions {
+    optional int32 max_depth = 1;
+}
+
+// Options for generating a field value.
+message FieldOptions {
+    double p = 1; // Probability of being set.
+
+    message Int {
+        optional sint64 min = 1;
+        optional sint64 max = 2;
+    }
+    Int int = 2;
+
+    message Uint {
+        optional uint64 min = 1;
+        optional uint64 max = 2;
+    }
+    Uint uint = 3;
+
+    message Len {
+        optional int32 min = 1;
+        optional int32 max = 2;
+    }
+    Len len = 10;
+}
+
+extend google.protobuf.MessageOptions {
+    MessageOptions m = 777777;
+}
+
+extend google.protobuf.FieldOptions {
+    FieldOptions f = 777777;
+}

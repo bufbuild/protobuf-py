@@ -1,0 +1,13 @@
+// BenchmarkDataset wrapper from Google's protobuf benchmark infrastructure.
+// Each dataset contains multiple payloads of the same message type for
+// realistic branch prediction behavior during benchmarking.
+
+syntax = "proto3";
+
+package benchmarks;
+
+message BenchmarkDataset {
+  string name = 1;
+  string message_name = 2;
+  repeated bytes payload = 3;
+}

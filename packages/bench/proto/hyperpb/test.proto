@@ -1,0 +1,365 @@
+// Copyright 2025 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+// buf:lint:ignore PACKAGE_VERSION_SUFFIX
+// buf:lint:ignore PACKAGE_DIRECTORY_MATCH
+package hyperpb.test;
+
+enum Enum {
+  ENUM_UNSPECIFIED = 0;
+  ENUM_1 = 1;
+  ENUM_2 = 2;
+  ENUM_3 = 3;
+}
+
+message Scalars {
+  int32 a1 = 1;
+  int64 a2 = 2;
+  uint32 a3 = 3;
+  uint64 a4 = 4;
+  sint32 a5 = 5;
+  sint64 a6 = 6;
+  fixed32 a7 = 7;
+  fixed64 a8 = 8;
+  sfixed32 a9 = 9;
+  sfixed64 a10 = 10;
+  float a11 = 11;
+  double a12 = 12;
+  bool a13 = 13;
+  string a14 = 14;
+  bytes a15 = 15;
+
+  optional int32 b1 = 21;
+  optional int64 b2 = 22;
+  optional uint32 b3 = 23;
+  optional uint64 b4 = 24;
+  optional sint32 b5 = 25;
+  optional sint64 b6 = 26;
+  optional fixed32 b7 = 27;
+  optional fixed64 b8 = 28;
+  optional sfixed32 b9 = 29;
+  optional sfixed64 b10 = 30;
+  optional float b11 = 31;
+  optional double b12 = 32;
+  optional bool b13 = 33;
+  optional string b14 = 34;
+  optional bytes b15 = 35;
+}
+
+message Numbers {
+    // This message exercises every possible varint format that tags can come in.
+
+    int32 a1 = 0x1; // 0x08
+    int32 a2 = 0xf; // 0x78
+
+    int32 a3 = 0x10; // 0x0180 
+    int32 a4 = 0x7ff; // 0x7ff8 
+
+    int32 a5 = 0x800; // 0x018080
+    int32 a6 = 0x3ffff; // 0x7ffff8
+    
+    int32 a7 = 0x40000; // 0x01808080
+    int32 a8 = 0x1ffffff; // 0x7ffffff8
+
+    int32 a9 = 0x2000000; // 0x0180808080
+    int32 aa = 0x1fffffff; // 0x0ffffffff6
+}
+
+message Repeated {
+  repeated int32 r1 = 1;
+  repeated int64 r2 = 2;
+  repeated sint32 r3 = 3;
+  repeated sint64 r4 = 4;
+  repeated fixed32 r5 = 5;
+  repeated fixed64 r6 = 6;
+  repeated string r7 = 7;
+  repeated bytes r8 = 8;
+}
+
+message Graph {
+  int32 v = 1;
+  Graph s = 2;
+  repeated Graph r = 3;
+}
+
+message Oneof {
+  oneof single {
+    int32 s1 = 1;
+  }
+
+  oneof multi {
+    int32 m1 = 11;
+    int64 m2 = 12;
+    sint32 m3 = 13;
+    sint64 m4 = 14;
+    fixed32 m5 = 15;
+    fixed64 m6 = 16;
+    bool m7 = 17;
+    string m8 = 18;
+    bytes m9 = 19;
+    Oneof m10 = 20;
+  }
+
+  int32 tail = 30;
+}
+
+message Maps {
+  map<int32, int32> m10 = 0x10;
+  map<int32, int64> m11 = 0x11;
+  map<int32, uint32> m12 = 0x12;
+  map<int32, uint64> m13 = 0x13;
+  map<int32, sint32> m14 = 0x14;
+  map<int32, sint64> m15 = 0x15;
+  map<int32, fixed32> m16 = 0x16;
+  map<int32, fixed64> m17 = 0x17;
+  map<int32, sfixed32> m18 = 0x18;
+  map<int32, sfixed64> m19 = 0x19;
+  map<int32, float> m1a = 0x1a;
+  map<int32, double> m1b = 0x1b;
+  map<int32, bool> m1c = 0x1c;
+  map<int32, Enum> m1d = 0x1d;
+  map<int32, string> m1e = 0x1e;
+  map<int32, bytes> m1f = 0x1f;
+
+  map<int64, int32> m20 = 0x20;
+  map<int64, int64> m21 = 0x21;
+  map<int64, uint32> m22 = 0x22;
+  map<int64, uint64> m23 = 0x23;
+  map<int64, sint32> m24 = 0x24;
+  map<int64, sint64> m25 = 0x25;
+  map<int64, fixed32> m26 = 0x26;
+  map<int64, fixed64> m27 = 0x27;
+  map<int64, sfixed32> m28 = 0x28;
+  map<int64, sfixed64> m29 = 0x29;
+  map<int64, float> m2a = 0x2a;
+  map<int64, double> m2b = 0x2b;
+  map<int64, bool> m2c = 0x2c;
+  map<int64, Enum> m2d = 0x2d;
+  map<int64, string> m2e = 0x2e;
+  map<int64, bytes> m2f = 0x2f;
+
+  map<uint32, int32> m30 = 0x30;
+  map<uint32, int64> m31 = 0x31;
+  map<uint32, uint32> m32 = 0x32;
+  map<uint32, uint64> m33 = 0x33;
+  map<uint32, sint32> m34 = 0x34;
+  map<uint32, sint64> m35 = 0x35;
+  map<uint32, fixed32> m36 = 0x36;
+  map<uint32, fixed64> m37 = 0x37;
+  map<uint32, sfixed32> m38 = 0x38;
+  map<uint32, sfixed64> m39 = 0x39;
+  map<uint32, float> m3a = 0x3a;
+  map<uint32, double> m3b = 0x3b;
+  map<uint32, bool> m3c = 0x3c;
+  map<uint32, Enum> m3d = 0x3d;
+  map<uint32, string> m3e = 0x3e;
+  map<uint32, bytes> m3f = 0x3f;
+
+  map<uint64, int32> m40 = 0x40;
+  map<uint64, int64> m41 = 0x41;
+  map<uint64, uint32> m42 = 0x42;
+  map<uint64, uint64> m43 = 0x43;
+  map<uint64, sint32> m44 = 0x44;
+  map<uint64, sint64> m45 = 0x45;
+  map<uint64, fixed32> m46 = 0x46;
+  map<uint64, fixed64> m47 = 0x47;
+  map<uint64, sfixed32> m48 = 0x48;
+  map<uint64, sfixed64> m49 = 0x49;
+  map<uint64, float> m4a = 0x4a;
+  map<uint64, double> m4b = 0x4b;
+  map<uint64, bool> m4c = 0x4c;
+  map<uint64, Enum> m4d = 0x4d;
+  map<uint64, string> m4e = 0x4e;
+  map<uint64, bytes> m4f = 0x4f;
+
+  map<sint32, int32> m50 = 0x50;
+  map<sint32, int64> m51 = 0x51;
+  map<sint32, uint32> m52 = 0x52;
+  map<sint32, uint64> m53 = 0x53;
+  map<sint32, sint32> m54 = 0x54;
+  map<sint32, sint64> m55 = 0x55;
+  map<sint32, fixed32> m56 = 0x56;
+  map<sint32, fixed64> m57 = 0x57;
+  map<sint32, sfixed32> m58 = 0x58;
+  map<sint32, sfixed64> m59 = 0x59;
+  map<sint32, float> m5a = 0x5a;
+  map<sint32, double> m5b = 0x5b;
+  map<sint32, bool> m5c = 0x5c;
+  map<sint32, Enum> m5d = 0x5d;
+  map<sint32, string> m5e = 0x5e;
+  map<sint32, bytes> m5f = 0x5f;
+
+  map<sint64, int32> m60 = 0x60;
+  map<sint64, int64> m61 = 0x61;
+  map<sint64, uint32> m62 = 0x62;
+  map<sint64, uint64> m63 = 0x63;
+  map<sint64, sint32> m64 = 0x64;
+  map<sint64, sint64> m65 = 0x65;
+  map<sint64, fixed32> m66 = 0x66;
+  map<sint64, fixed64> m67 = 0x67;
+  map<sint64, sfixed32> m68 = 0x68;
+  map<sint64, sfixed64> m69 = 0x69;
+  map<sint64, float> m6a = 0x6a;
+  map<sint64, double> m6b = 0x6b;
+  map<sint64, bool> m6c = 0x6c;
+  map<sint64, Enum> m6d = 0x6d;
+  map<sint64, string> m6e = 0x6e;
+  map<sint64, bytes> m6f = 0x6f;
+
+  map<fixed32, int32> m70 = 0x70;
+  map<fixed32, int64> m71 = 0x71;
+  map<fixed32, uint32> m72 = 0x72;
+  map<fixed32, uint64> m73 = 0x73;
+  map<fixed32, sint32> m74 = 0x74;
+  map<fixed32, sint64> m75 = 0x75;
+  map<fixed32, fixed32> m76 = 0x76;
+  map<fixed32, fixed64> m77 = 0x77;
+  map<fixed32, sfixed32> m78 = 0x78;
+  map<fixed32, sfixed64> m79 = 0x79;
+  map<fixed32, float> m7a = 0x7a;
+  map<fixed32, double> m7b = 0x7b;
+  map<fixed32, bool> m7c = 0x7c;
+  map<fixed32, Enum> m7d = 0x7d;
+  map<fixed32, string> m7e = 0x7e;
+  map<fixed32, bytes> m7f = 0x7f;
+
+  map<fixed64, int32> m80 = 0x80;
+  map<fixed64, int64> m81 = 0x81;
+  map<fixed64, uint32> m82 = 0x82;
+  map<fixed64, uint64> m83 = 0x83;
+  map<fixed64, sint32> m84 = 0x84;
+  map<fixed64, sint64> m85 = 0x85;
+  map<fixed64, fixed32> m86 = 0x86;
+  map<fixed64, fixed64> m87 = 0x87;
+  map<fixed64, sfixed32> m88 = 0x88;
+  map<fixed64, sfixed64> m89 = 0x89;
+  map<fixed64, float> m8a = 0x8a;
+  map<fixed64, double> m8b = 0x8b;
+  map<fixed64, bool> m8c = 0x8c;
+  map<fixed64, Enum> m8d = 0x8d;
+  map<fixed64, string> m8e = 0x8e;
+  map<fixed64, bytes> m8f = 0x8f;
+
+  map<sfixed32, int32> m90 = 0x90;
+  map<sfixed32, int64> m91 = 0x91;
+  map<sfixed32, uint32> m92 = 0x92;
+  map<sfixed32, uint64> m93 = 0x93;
+  map<sfixed32, sint32> m94 = 0x94;
+  map<sfixed32, sint64> m95 = 0x95;
+  map<sfixed32, fixed32> m96 = 0x96;
+  map<sfixed32, fixed64> m97 = 0x97;
+  map<sfixed32, sfixed32> m98 = 0x98;
+  map<sfixed32, sfixed64> m99 = 0x99;
+  map<sfixed32, float> m9a = 0x9a;
+  map<sfixed32, double> m9b = 0x9b;
+  map<sfixed32, bool> m9c = 0x9c;
+  map<sfixed32, Enum> m9d = 0x9d;
+  map<sfixed32, string> m9e = 0x9e;
+  map<sfixed32, bytes> m9f = 0x9f;
+
+  map<sfixed64, int32> ma0 = 0xa0;
+  map<sfixed64, int64> ma1 = 0xa1;
+  map<sfixed64, uint32> ma2 = 0xa2;
+  map<sfixed64, uint64> ma3 = 0xa3;
+  map<sfixed64, sint32> ma4 = 0xa4;
+  map<sfixed64, sint64> ma5 = 0xa5;
+  map<sfixed64, fixed32> ma6 = 0xa6;
+  map<sfixed64, fixed64> ma7 = 0xa7;
+  map<sfixed64, sfixed32> ma8 = 0xa8;
+  map<sfixed64, sfixed64> ma9 = 0xa9;
+  map<sfixed64, float> maa = 0xaa;
+  map<sfixed64, double> mab = 0xab;
+  map<sfixed64, bool> mac = 0xac;
+  map<sfixed64, Enum> mad = 0xad;
+  map<sfixed64, string> mae = 0xae;
+  map<sfixed64, bytes> maf = 0xaf;
+
+  map<bool, int32> mb0 = 0xb0;
+  map<bool, int64> mb1 = 0xb1;
+  map<bool, uint32> mb2 = 0xb2;
+  map<bool, uint64> mb3 = 0xb3;
+  map<bool, sint32> mb4 = 0xb4;
+  map<bool, sint64> mb5 = 0xb5;
+  map<bool, fixed32> mb6 = 0xb6;
+  map<bool, fixed64> mb7 = 0xb7;
+  map<bool, sfixed32> mb8 = 0xb8;
+  map<bool, sfixed64> mb9 = 0xb9;
+  map<bool, float> mba = 0xba;
+  map<bool, double> mbb = 0xbb;
+  map<bool, bool> mbc = 0xbc;
+  map<bool, Enum> mbd = 0xbd;
+  map<bool, string> mbe = 0xbe;
+  map<bool, bytes> mbf = 0xbf;
+
+  map<string, int32> mc0 = 0xc0;
+  map<string, int64> mc1 = 0xc1;
+  map<string, uint32> mc2 = 0xc2;
+  map<string, uint64> mc3 = 0xc3;
+  map<string, sint32> mc4 = 0xc4;
+  map<string, sint64> mc5 = 0xc5;
+  map<string, fixed32> mc6 = 0xc6;
+  map<string, fixed64> mc7 = 0xc7;
+  map<string, sfixed32> mc8 = 0xc8;
+  map<string, sfixed64> mc9 = 0xc9;
+  map<string, float> mca = 0xca;
+  map<string, double> mcb = 0xcb;
+  map<string, bool> mcc = 0xcc;
+  map<string, Enum> mcd = 0xcd;
+  map<string, string> mce = 0xce;
+  map<string, bytes> mcf = 0xcf;
+}
+
+message MessageMaps {
+  Scalars scalars = 1;
+
+  map<int32, MessageMaps> m1 = 0x11;
+  map<int64, MessageMaps> m2 = 0x12;
+  map<uint32, MessageMaps> m3 = 0x13;
+  map<uint64, MessageMaps> m4 = 0x14;
+  map<sint32, MessageMaps> m5 = 0x15;
+  map<sint64, MessageMaps> m6 = 0x16;
+  map<fixed32, MessageMaps> m7 = 0x17;
+  map<fixed64, MessageMaps> m8 = 0x18;
+  map<sfixed32, MessageMaps> m9 = 0x19;
+  map<sfixed64, MessageMaps> ma = 0x1a;
+  map<string, MessageMaps> mc = 0x1c;
+}
+
+// A message with a repeated message field that has many, many fields, but
+// only one of which winds up being set.
+message Pathological {
+  message Inner {
+    int32 x1 = 0x1;
+    int32 x2 = 0x2;
+    int32 x3 = 0x3;
+    int32 x4 = 0x4;
+    int32 x5 = 0x5;
+    int32 x6 = 0x6;
+    int32 x7 = 0x7;
+    int32 x8 = 0x8;
+    int32 x9 = 0x9;
+    int32 xa = 0xa;
+    int32 xb = 0xb;
+    int32 xc = 0xc;
+    int32 xd = 0xd;
+    int32 xe = 0xe;
+    int32 xf = 0xf;
+
+    string actual = 100;
+  }
+
+  repeated Inner x = 1;
+}

@@ -1,0 +1,178 @@
+// Copyright (c) 2025-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+edition = "2023";
+
+import "enums.proto";
+
+// Various field types.
+// It is recommended to choose one of the more exhaustive specialized messages
+// instead, e.g. message Scalars, Lists, ImplicitFields.
+message MixedFields {
+  int32 explicit_field = 1;
+  int32 implicit_field = 2 [features.field_presence = IMPLICIT];
+  repeated string repeated_field = 4;
+  Bar message_field = 5;
+  int32 field_with_default = 6 [default = 42];
+  map<string, int32> map_field = 7;
+  oneof oneof_group {
+    string oneof_field = 8;
+    int32 oneof_baz = 9;
+  }
+  E implicit_enum_field = 10 [features.field_presence = IMPLICIT];
+  E explicit_enum_field = 11;
+  enum E {
+    E_UNSPECIFIED = 0;
+    ONE = 1;
+    TWO = 2;
+  }
+  message Bar {
+    string value = 1;
+  }
+}
+
+// Various field types - including LEGACY_REQUIRED,
+// which means it isn't possible to serialize this message.
+// It is recommended to choose one of the more exhaustive specialized messages
+// instead, e.g. message Scalars, or LegacyRequiredFields.
+message MixedFieldsWithRequired {
+  int32 explicit_field = 1;
+  int32 implicit_field = 2 [features.field_presence = IMPLICIT];
+  string legacy_required_field = 3 [features.field_presence = LEGACY_REQUIRED];
+  repeated string repeated_field = 4;
+  Bar message_field = 5;
+  int32 field_with_default = 6 [default = 42];
+  map<string, int32> map_field = 7;
+  oneof oneof_group {
+    string oneof_field = 8;
+    int32 oneof_baz = 9;
+  }
+  E implicit_enum_field = 10 [features.field_presence = IMPLICIT];
+  E explicit_enum_field = 11;
+  enum E {
+    E_UNSPECIFIED = 0;
+    ONE = 1;
+    TWO = 2;
+  }
+  message Bar {
+    string value = 1;
+  }
+}
+
+// All fields with implicit presence.
+message ImplicitFields {
+  double double_field = 1 [features.field_presence = IMPLICIT];
+  float float_field = 2 [features.field_presence = IMPLICIT];
+  int32 int32_field = 3 [features.field_presence = IMPLICIT];
+  int64 int64_field = 4 [features.field_presence = IMPLICIT];
+  uint32 uint32_field = 5 [features.field_presence = IMPLICIT];
+  uint64 uint64_field = 6 [features.field_presence = IMPLICIT];
+  sint32 sint32_field = 7 [features.field_presence = IMPLICIT];
+  sint64 sint64_field = 8 [features.field_presence = IMPLICIT];
+  fixed32 fixed32_field = 9 [features.field_presence = IMPLICIT];
+  fixed64 fixed64_field = 10 [features.field_presence = IMPLICIT];
+  sfixed32 sfixed32_field = 11 [features.field_presence = IMPLICIT];
+  sfixed64 sfixed64_field = 12 [features.field_presence = IMPLICIT];
+  bool bool_field = 13 [features.field_presence = IMPLICIT];
+  string string_field = 14 [features.field_presence = IMPLICIT];
+  bytes bytes_field = 15 [features.field_presence = IMPLICIT];
+  Color enum_field = 16 [features.field_presence = IMPLICIT];
+  repeated string repeated_field = 17;
+  map<string, int32> map_field = 18;
+}
+
+// All fields with explicit presence.
+message ExplicitFields {
+  double double_field = 1;
+  float float_field = 2;
+  int32 int32_field = 3;
+  int64 int64_field = 4;
+  uint32 uint32_field = 5;
+  uint64 uint64_field = 6;
+  sint32 sint32_field = 7;
+  sint64 sint64_field = 8;
+  fixed32 fixed32_field = 9;
+  fixed64 fixed64_field = 10;
+  sfixed32 sfixed32_field = 11;
+  sfixed64 sfixed64_field = 12;
+  bool bool_field = 13;
+  string string_field = 14;
+  bytes bytes_field = 15;
+  Color enum_field = 16;
+  message Msg {
+    string value = 1;
+  }
+  Msg message_field = 17;
+  oneof oneof_group {
+    string oneof_string = 18;
+  }
+}
+
+// Superset of ExplicitFields for easy verification of unknown fields.
+message ExplicitFieldsWithUnknowns {
+  double double_field = 1;
+  float float_field = 2;
+  int32 int32_field = 3;
+  int64 int64_field = 4;
+  uint32 uint32_field = 5;
+  uint64 uint64_field = 6;
+  sint32 sint32_field = 7;
+  sint64 sint64_field = 8;
+  fixed32 fixed32_field = 9;
+  fixed64 fixed64_field = 10;
+  sfixed32 sfixed32_field = 11;
+  sfixed64 sfixed64_field = 12;
+  bool bool_field = 13;
+  string string_field = 14;
+  bytes bytes_field = 15;
+  Color enum_field = 16;
+  message Msg {
+    string value = 1;
+  }
+  Msg message_field = 17;
+  oneof oneof_group {
+    string oneof_string = 18;
+  }
+
+  double unknown_double_field = 9990;
+  Color unknown_enum_field = 9991;
+  repeated string unknown_repeated_field = 9992;
+  map<string, int32> unknown_map_field = 9993;
+  Msg unknown_message_field = 9994;
+}
+
+// All fields with legacy required presence.
+message LegacyRequiredFields {
+  double double_field = 1 [features.field_presence = LEGACY_REQUIRED];
+  float float_field = 2 [features.field_presence = LEGACY_REQUIRED];
+  int32 int32_field = 3 [features.field_presence = LEGACY_REQUIRED];
+  int64 int64_field = 4 [features.field_presence = LEGACY_REQUIRED];
+  uint32 uint32_field = 5 [features.field_presence = LEGACY_REQUIRED];
+  uint64 uint64_field = 6 [features.field_presence = LEGACY_REQUIRED];
+  sint32 sint32_field = 7 [features.field_presence = LEGACY_REQUIRED];
+  sint64 sint64_field = 8 [features.field_presence = LEGACY_REQUIRED];
+  fixed32 fixed32_field = 9 [features.field_presence = LEGACY_REQUIRED];
+  fixed64 fixed64_field = 10 [features.field_presence = LEGACY_REQUIRED];
+  sfixed32 sfixed32_field = 11 [features.field_presence = LEGACY_REQUIRED];
+  sfixed64 sfixed64_field = 12 [features.field_presence = LEGACY_REQUIRED];
+  bool bool_field = 13 [features.field_presence = LEGACY_REQUIRED];
+  string string_field = 14 [features.field_presence = LEGACY_REQUIRED];
+  bytes bytes_field = 15 [features.field_presence = LEGACY_REQUIRED];
+  Color enum_field = 16 [features.field_presence = LEGACY_REQUIRED];
+}
+
+message Recursive {
+  Recursive recursive = 1;
+  repeated Recursive repeated_recursive = 2;
+  map<string, Recursive> map_recursive = 3;
+}

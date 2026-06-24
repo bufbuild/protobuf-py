@@ -1,0 +1,64 @@
+// Copyright (c) 2025-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package comments;
+
+// Documentation of message 1
+// other line 1
+
+// Documentation of message 2
+// other line 2
+// A comment with backslashes \ and triple quotes """
+// Simple quotes are not escaped "
+message MessageWithComments { // Documentation of message 3
+  // Documentation of field 1
+  // other line 1
+
+  // Documentation of field 2
+  // other line 2
+  uint32 x = 1; // Documentation of field 3
+
+  // Documentation of oneof 1 / other line 1
+  // Documentation of oneof 2 / other line 2
+  oneof oneof_example { // Documentation of oneof 3
+    // Documentation of oneof field 1 / other line 1
+    // Documentation of oneof field 2 / other line 2
+    int32 a = 2; // Documentation of oneof field 3
+  }
+
+  // Documentation of nested message 1 / other line 1
+  // Documentation of nested message 2 / other line 2
+  message NestedMessage { // Documentation of nested message 3
+    // Documentation of nested field 1 / other line 1
+    // Documentation of nested field 2 / other line 2
+    string name = 1; // Documentation of nested field 3
+  }
+
+  // Documentation of nested enum 1 / other line 1
+  // Documentation of nested enum 2 / other line 2
+  enum NestedEnum { // Documentation of nested enum 3
+    // Documentation of nested variant 1 / other line 1
+    // Documentation of nested variant 2 / other line 2
+    Enum_Variant = 0; // Documentation of nested variant 3
+  }
+}
+
+// Documentation of enum 1 / other line 1
+// Documentation of enum 2 / other line 2
+enum EnumWithComments { // Documentation of enum 3
+  // Documentation of variant 1 / other line 1
+  // Documentation of variant 2 / other line 2
+  Enum_Variant = 0; // Documentation of variant 3
+}

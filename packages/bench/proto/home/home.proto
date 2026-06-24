@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package home;
+
+import "google/protobuf/timestamp.proto";
+
+message GetUserProfileRequest {
+  string user_id = 1;
+}
+
+message Profile {
+  string user_id = 1;
+  string name = 2;
+  string email = 3;
+  string profile_picture_url = 4;
+  string bio = 5;
+}
+
+message GetUserProfileResponse {
+  Profile profile = 1;
+}
+
+message GetTimelineRequest {
+  string user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message TimelineItem {
+  string item_id = 1;
+
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    TYPE_POST = 1;
+    TYPE_SHARE = 2;
+  }
+  Type type = 2;
+
+  string user_id = 3;
+  string content = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+message GetTimelineResponse {
+  repeated TimelineItem items = 1;
+}
+
+message GetNotificationsRequest {
+  string user_id = 1;
+}
+
+message Notification {
+  string notification_id = 1;
+
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    TYPE_FOLLOW = 1;
+    TYPE_LIKE = 2;
+    TYPE_COMMENT = 3;
+    TYPE_MESSAGE = 4;
+  }
+  Type type = 2;
+
+  string from_user_id = 3;
+  string content = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+message GetNotificationsResponse {
+  repeated Notification notifications = 1;
+}
+
+message GetUserHomeRequest {
+  string user_id = 1;
+}
+
+message GetUserHomeResponse {
+  Profile profile = 1;
+  repeated TimelineItem timeline = 2;
+  repeated Notification notifications = 3;
+}

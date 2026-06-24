@@ -1,0 +1,3 @@
+src/protoc/_bin
+src/protoc/include
+vendor-licenses/protobuf.txt

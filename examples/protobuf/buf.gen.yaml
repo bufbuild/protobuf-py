@@ -1,0 +1,11 @@
+# Learn more: https://buf.build/docs/configuration/v2/buf-gen-yaml
+version: v2
+# When clean is set to true, delete the directories, zip files, and/or jar files specified in the
+# "out" field for all plugins before running code generation. Defaults to false.
+# Optional.
+clean: true
+inputs:
+  - directory: proto
+plugins:
+  - local: protoc-gen-py
+    out: src/example/gen

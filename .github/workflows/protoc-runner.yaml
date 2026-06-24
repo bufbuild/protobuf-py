@@ -1,0 +1,66 @@
+name: Build protoc-runner
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/protoc-runner/**"
+      - .github/workflows/protoc-runner.yaml
+  pull_request:
+    paths:
+      - "packages/protoc-runner/**"
+      - .github/workflows/protoc-runner.yaml
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  attestations: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: ubuntu-24.04
+          - runner: ubuntu-24.04-arm
+          - runner: macos-26
+          - runner: macos-26-intel
+          - runner: windows-2025-vs2026
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+
+      - run: uv sync --frozen
+        working-directory: packages/protoc-runner
+
+      - run: uv run poe build
+        working-directory: packages/protoc-runner
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wheels-${{ matrix.platform.runner }}
+          path: packages/protoc-runner/dist
+
+  release:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment: ${{ github.event_name != 'pull_request' && 'protoc-release' || null }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: packages/protoc-runner/dist
+          merge-multiple: true
+
+      - name: Publish to PyPI
+        if: github.event_name != 'pull_request'
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          skip-existing: true
+          packages-dir: packages/protoc-runner/dist

@@ -1,0 +1,35 @@
+// Copyright (c) 2025-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+edition = "2023";
+
+option features.message_encoding = DELIMITED;
+
+message DelimitedEncoding {
+  message Msg {
+    int32 value = 1;
+    Msg child = 2;
+  }
+
+  string name = 1;
+  Msg singular = 2;
+  repeated Msg repeated = 3;
+  Msg length_prefixed = 4 [features.message_encoding = LENGTH_PREFIXED];
+  map<string, Msg> message_map = 5;
+  map<string, int32> scalar_map = 6;
+
+  oneof choice {
+    string choice_string = 7;
+    Msg choice_message = 8;
+  }
+}

@@ -1,0 +1,9 @@
+version: v2
+clean: true
+plugins:
+  - local: protoc-gen-py
+    out: src/bench/gen
+  - remote: buf.build/protocolbuffers/python:v34.1
+    out: src/bench/gen
+  - remote: buf.build/protocolbuffers/pyi:v34.1
+    out: src/bench/gen

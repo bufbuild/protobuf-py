@@ -1,0 +1,521 @@
+[project]
+name = "protobuf-py"
+version = "0.1.1"
+description = "Idiomatic Protocol Buffers for Python."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = ["protobuf"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Free Threading",
+  "Topic :: File Formats",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Documentation = "https://protobufpy.com/"
+Homepage = "https://github.com/bufbuild/protobuf-py"
+Issues = "https://github.com/bufbuild/protobuf-py/issues"
+Source = "https://github.com/bufbuild/protobuf-py"
+
+[dependency-groups]
+dev = [
+  # Prevent local packages from being uninstalled when syncing
+  "example",
+  "example-plugin",
+  "license-header",
+  "protoc-gen-grpc-py",
+  "protoc-gen-py",
+  "upstream-protobuf",
+
+  "buf-bin==1.71.0",
+  "poethepoet==0.46.0",
+  "protoc-runner==35.1",
+  "pyright==1.1.410",
+  "pytest==9.1.1",
+  "pytest-benchmark==5.2.3",
+  "pytest-cov==7.1.0",
+  "ruff==0.15.18",
+  "tombi==1.1.4",
+  "ty==0.0.51",
+
+  # dev dependencies only used in subprojects. Optimal structure would include these
+  # in the subproject itself, but then `uv sync` does not install them from the
+  # workspace root. We strategically keep them here instead so the entire workspace
+  # is ready for editing in an IDE with a simple sync command.
+  # If the below issue is resolved, we can move them back to subprojects and configure
+  # our default sync setting as --all-packages.
+  # https://github.com/astral-sh/uv/issues/5737
+  "PyYAML==6.0.3",
+  "fix-protobuf-imports==0.1.7",
+  "maturin==1.14.1",
+  "protobuf==7.35.1",
+  "protobuf-py-bench",
+  "pytest-asyncio==1.4.0",
+]
+docs = ["mkdocstrings-python==2.0.5", "zensical==0.0.46"]
+
+# grpcio ships no wheels for PyPy or free-threaded CPython, so we do not include
+# dependencies on it in the default sync.
+grpc = [
+  "example-grpc",
+  "grpcio==1.81.1 ; platform_python_implementation != 'PyPy'",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.2,<0.12"]
+build-backend = "uv_build"
+
+## License headers
+[tool.licenseheader]
+copyright-holder = "Buf Technologies, Inc."
+year-range = "2025-2026"
+ignore = [
+  "**/bench/proto/**",  # External protos
+  "**/bench/src/bench/gen/**",  # Generated from external protos
+  "**/example_grpc/_eliza.py",  # Ported third-party code (see file header)
+  "**/examples/grpc/proto/**",  # Third-party protos (connectrpc eliza)
+  "**/protoc-gen-grpc-py/proto/**",  # Third-party protos (haberdasher)
+]
+
+## Poe
+[tool.poe.tasks.all]
+help = "Run all tasks"
+sequence = [
+  "generate",
+  "test",
+  "format",
+  "lint",
+  "bootstrap",
+]
+
+## Generate
+[tool.poe.tasks.generate]
+help = "Generate all proto files (except well-known types - see bootstrap)"
+sequence = [
+  "generate-test",
+  "generate-conformance",
+  "generate-grpc-py",
+  "generate-example",
+  "generate-example-grpc",
+  "generate-example-plugin"
+]
+
+[tool.poe.tasks.generate-test]
+help = "Generate tests/proto"
+sequence = [
+  { cmd = "generate_protos tests/proto tests/gen" },
+  { cmd = "buf generate", cwd = "tests" },
+  { cmd = "license-header tests/gen tests/gen_buf" },
+]
+
+[tool.poe.tasks.generate-conformance]
+help = "Generate conformance protos to tests/conformance/gen"
+sequence = [
+  { cmd = "generate_conformance tests/conformance/gen" },
+  { cmd = "license-header tests/conformance/gen" },
+]
+
+[tool.poe.tasks.generate-grpc-py]
+help = "Generate the protoc-gen-grpc-py test protos (haberdasher) with buf"
+sequence = [
+  { shell = "buf generate", cwd = "packages/protoc-gen-grpc-py" },
+  { cmd = "license-header packages/protoc-gen-grpc-py/tests/gen" },
+]
+
+[tool.poe.tasks.generate-example]
+help = "Generate examples/protobuf/proto with buf"
+# buf generate does not add license headers
+sequence = [
+  { shell = "buf generate", cwd = "examples/protobuf" },
+  { cmd = "license-header examples/protobuf/src/example/gen" },
+]
+
+[tool.poe.tasks.generate-example-grpc]
+help = "Generate examples/grpc/proto with buf"
+sequence = [
+  { shell = "buf generate", cwd = "examples/grpc" },
+  { cmd = "license-header examples/grpc/src/example_grpc/gen" },
+]
+
+[tool.poe.tasks.generate-example-plugin]
+help = "Generate examples/plugin/proto with buf"
+sequence = [
+  { shell = "buf generate", cwd = "examples/plugin" },
+  { cmd = "license-header examples/plugin/tests/gen" },
+]
+
+## Tests
+[tool.poe.tasks.test]
+help = "Run all tests"
+sequence = [
+  "test-lib",
+  "test-bench",
+  "test-example",
+  "test-example-plugin",
+]
+
+# grpcio has no PyPy/free-threaded wheels, so the grpc tests are a separate task
+[tool.poe.tasks.test-grpc]
+help = "Run the grpc stub tests and example"
+sequence = ["test-grpc-py", "test-example-grpc"]
+
+[tool.poe.tasks.test-grpc-py]
+help = "Run the protoc-gen-grpc-py stub tests"
+cwd = "packages/protoc-gen-grpc-py"
+# Use uv run to ensure packages are built before running
+cmd = "uv run pytest"
+
+[tool.poe.tasks.test-bench]
+help = "Run unit tests for the bench harness. We run a subset of useful tests that aren't too slow."
+cmd = "pytest -k test_fleetbench"
+cwd = "packages/bench"
+
+[tool.poe.tasks.test-lib]
+help = "Run unit tests for the runtime"
+cmd = "pytest"
+
+[tool.poe.tasks.test-example]
+help = "Run unit tests for the example"
+cwd = "examples/protobuf"
+# Use uv run to ensure package is built before running
+cmd = "uv run pytest"
+
+[tool.poe.tasks.test-example-grpc]
+help = "Run unit tests for the grpc example"
+cwd = "examples/grpc"
+# Use uv run to ensure package is built before running
+cmd = "uv run pytest"
+
+[tool.poe.tasks.test-example-plugin]
+help = "Run unit tests for the example-plugin"
+cwd = "examples/plugin"
+# Use uv run to ensure package is built before running
+cmd = "uv run pytest"
+
+[tool.poe.tasks.test-conformance]
+help = "Run conformance tests"
+cmd = "conformance_test_runner --failure_list tests/conformance/failing_tests.txt --output_dir tests/conformance --enforce_recommended tests/conformance/run-conformance.sh"
+
+## Format
+[tool.poe.tasks.format]
+help = "Format source code, sort imports, add license headers (does not format protos, see format-test-protos)"
+sequence = ["format-license-header", "format-python", "format-toml"]
+
+[tool.poe.tasks.format-python]
+help = "Format Python files with ruff"
+sequence = [
+  { cmd = "ruff check --fix --unsafe-fixes --exit-zero ." },
+  { cmd = "ruff format" }
+]
+
+[tool.poe.tasks.format-license-header]
+help = "Add/update license headers in source files"
+cmd = "license-header"
+
+[tool.poe.tasks.format-toml]
+help = "Format TOML files with tombi"
+cmd = "tombi format"
+
+[tool.poe.tasks.format-test-protos]
+help = "Format tests/proto with buf (does not run with format because we may need newer editions)"
+cmd = "buf format -w tests/proto"
+
+## Lint
+[tool.poe.tasks.lint]
+help = "Check that source code is formatted, imports sorted, license headers present, and passes the linter"
+sequence = [
+  "lint-ruff-check",
+  "lint-types",
+  "lint-ruff-format",
+  "lint-toml-format",
+  "lint-toml-lint",
+  "lint-license-header",
+]
+
+[tool.poe.tasks.lint-ruff-check]
+help = "Lint Python files with ruff"
+cmd = "ruff check"
+
+[tool.poe.tasks.lint-types]
+help = "Lint types with Pyright and ty"
+sequence = ["lint-types-pyright", "lint-types-ty"]
+
+[tool.poe.tasks.lint-types-pyright]
+help = "Lint types with Pyright"
+cmd = "pyright"
+
+[tool.poe.tasks.lint-types-ty]
+help = "Lint types with ty"
+# Workaround lack of monorepo support by running in each project explicitly.
+# https://docs.astral.sh/ty/reference/typing-faq/#does-ty-support-monorepos
+# https://github.com/astral-sh/ty/issues/819
+sequence = [
+  { cmd = "ty check --project examples/protobuf" },
+  { cmd = "ty check --project examples/grpc" },
+  { cmd = "ty check --project examples/plugin" },
+  { cmd = "ty check --project packages/bench" },
+  { cmd = "ty check --project packages/license-header" },
+  { cmd = "ty check --project packages/protoc-gen-py" },
+  { cmd = "ty check --project packages/protoc-gen-grpc-py" },
+  { cmd = "ty check --project packages/upstream-protobuf" },
+  { cmd = "ty check" },
+]
+
+[tool.poe.tasks.lint-ruff-format]
+help = "Check Python file formatting with ruff"
+cmd = "ruff format --diff"
+
+[tool.poe.tasks.lint-toml-format]
+help = "Check TOML file formatting with tombi"
+cmd = "tombi format --check"
+
+[tool.poe.tasks.lint-toml-lint]
+help = "Lint TOML files with tombi"
+cmd = "tombi lint"
+
+[tool.poe.tasks.lint-license-header]
+help = "Check license headers in source files"
+cmd = "license-header --check"
+
+## Docs
+[tool.poe.tasks.docs-serve]
+cmd = "uv run --group docs zensical serve"
+help = "Serve documentation locally"
+
+[tool.poe.tasks.docs-build]
+help = "Build documentation site into site/"
+cmd = "uv run --group docs zensical build --clean --strict"
+
+## Bootstrap
+[tool.poe.tasks.bootstrap]
+help = "Generate well-known types and bootstrap constants - run after updating upstream protobuf"
+sequence = ["generate-wkt", "generate-bootstrap"]
+
+[tool.poe.tasks.generate-wkt]
+help = "Generate well-known types"
+sequence = [
+  { cmd = "generate_wkt src/protobuf/wkt/_gen" },
+  "format-python",
+]
+
+[tool.poe.tasks.generate-bootstrap]
+help = "Generate bootstrap constants"
+sequence = [
+  { cmd = "generate_bootstrap src/protobuf/_bootstrap.py" },
+  { cmd = "license-header src/protobuf" },
+]
+
+[tool.poe.tasks.generate-bench]
+help = "Generate benchmark suite (requires Go)"
+sequence = [
+  { script = "scripts.generate:protos" },
+  { script = "scripts.generate:suite" },
+  { script = "scripts.generate:home_timeline" },
+]
+cwd = "packages/bench"
+
+## Native extension
+[tool.poe.tasks.ext-build]
+help = "Build native extension (requires Rust)"
+cmd = "uv run maturin build --release --out ../../dist ${MATURIN_ARGS}"
+cwd = "packages/protobuf-py-ext"
+
+[tool.poe.tasks.ext-format]
+help = "Format native extension code (requires Rust)"
+sequence = [
+  { cmd = "cargo clippy --fix --allow-dirty" },
+  { cmd = "cargo fmt" },
+]
+cwd = "packages/protobuf-py-ext"
+
+[tool.poe.tasks.ext-lint]
+help = "Lint native extension code (requires Rust)"
+sequence = [
+  { cmd = "cargo clippy" },
+  { cmd = "cargo fmt --check" },
+]
+cwd = "packages/protobuf-py-ext"
+
+## Diffcheck
+[tool.poe.tasks.diffcheck]
+help = "Check for uncommitted or untracked files (guards against codegen regressions)"
+shell = "test -z \"$(git status --porcelain | tee /dev/stderr)\""
+
+## Clean
+[tool.poe.tasks.clean]
+cmd = "git clean -Xdf"
+help = "Remove all git-ignored files"
+
+## Benchmark
+[tool.poe.tasks.bench]
+cmd = "uv run pytest --benchmark-enable --benchmark-only --benchmark-autosave"
+help = "Run full benchmark suite and save results to .benchmarks/ for later comparison"
+cwd = "packages/bench"
+
+[tool.poe.tasks.bench-compare]
+cmd = "pytest-benchmark compare --group-by=func,param:_id --sort=name"
+help = "Compare saved benchmark runs (run benchmark on each branch first)"
+cwd = "packages/bench"
+
+## Pyright
+[tool.pyright]
+include = ["src", "tests", "packages", "examples"]
+exclude = [
+  "**/node_modules",
+  "**/__pycache__",
+  "**/.*",
+  ".venv",
+  "**/*_pb2.py",
+  "**/*_pb2.pyi"
+]
+# Allow type-checking without actually building the extension module.
+extraPaths = ["packages/protobuf-py-ext"]
+reportMissingModuleSource = false
+
+## Pytest
+[tool.pytest]
+addopts = [
+  "--benchmark-disable",
+  "--benchmark-group-by=func,param:_id",
+  "--doctest-modules"
+]
+# Turn all warnings into errors
+filterwarnings = ["error"]
+norecursedirs = ["_gen", "gen"]
+testpaths = ["src/protobuf", "tests"]
+
+## Ruff
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.format]
+skip-magic-trailing-comma = true
+docstring-code-format = true
+
+[tool.ruff.lint]
+typing-extensions = false
+select = ["ALL"]
+ignore = [
+  # Rules recommended to ignore when using ruff formatting
+  # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "E501",
+  "D206",
+  "D300",
+  "Q",
+  "COM812",
+  "COM819",
+
+  "TRY003",  # Avoid specifying long messages outside the exception class
+  "SLF001",  # Private member accessed
+  "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed
+  "PLR2004",  # Magic value used in comparison - not helpful to name obvious constants
+  # Complexity rules: humans reviewing code can judge whether complexity is justified.
+  "C901",  # McCabe complexity
+  "PLR0911",  # Too many return statements
+  "PLR0912",  # Too many branches
+  "PLR0913",  # Too many arguments in function definition
+  "PLR0914",  # Too many local variables
+  "PLR0915",  # Too many statements
+  "PLR0916",  # Too many boolean expressions
+  "PLR1702",  # Too many nested blocks
+
+  # TODO rules
+  "TD",
+  "FIX002",  # Line contains TODO, consider resolving the issue
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**/*.py" = [
+  # missing docstrings; unnecessary in tests.
+  "D1",
+
+  "INP001",  # File is part of an implicit namespace package
+
+  "FBT001",  # boolean positional args are fine in tests
+  "FBT002",  # boolean default positional args are fine in tests
+  "FBT003",  # boolean positional values are fine in tests
+  "S101",  # assert is expected in tests
+]
+"examples/**/*.py" = ["D100", "D104"]
+# Service implementations override generated, already-documented base methods and
+# are not required to use the gRPC context argument.
+"examples/grpc/src/example_grpc/eliza_service*.py" = ["ARG002", "D102", "D107"]
+"packages/protoc-gen-grpc-py/tests/test_haberdasher.py" = ["ARG002"]
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+combine-as-imports = true
+known-first-party = ["tests", "bufbuild", "protobuf", "protoplugin"]
+known-third-party = []
+split-on-trailing-comma = false
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ty.environment]
+# Allow type-checking without actually building the extension module.
+extra-paths = ["packages/protobuf-py-ext"]
+
+[tool.ty.src]
+# Workaround lack of monorepo support by excluding subproject code from top-level project.
+# https://docs.astral.sh/ty/reference/typing-faq/#does-ty-support-monorepos
+# https://github.com/astral-sh/ty/issues/819
+exclude = [
+  "examples",
+  "packages/bench",
+  "packages/license-header",
+  "packages/protoc-gen-py",
+  "packages/protoc-gen-grpc-py",
+  "packages/upstream-protobuf",
+]
+
+# Workaround uv caching the package without building it first.
+# https://github.com/astral-sh/uv/issues/11390
+[tool.uv]
+reinstall-package = ["protobuf-py-ext"]
+no-build-isolation-package = ["protobuf-py-ext"]
+
+[tool.uv.build-backend]
+module-name = ["protobuf"]
+
+[tool.uv.sources]
+protobuf-py = { workspace = true }
+protoc-gen-py = { workspace = true }
+protoc-gen-grpc-py = { workspace = true }
+upstream-protobuf = { workspace = true }
+example = { workspace = true }
+example-grpc = { workspace = true }
+example-plugin = { workspace = true }
+license-header = { workspace = true }
+protobuf-py-ext = { workspace = true }
+protobuf-py-bench = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+  "packages/protobuf-py-ext",
+  "packages/protoc-gen-py",
+  "packages/protoc-gen-grpc-py",
+  "packages/bench",
+  "packages/upstream-protobuf",
+  "packages/license-header",
+  "examples/protobuf",
+  "examples/grpc",
+  "examples/plugin",
+]

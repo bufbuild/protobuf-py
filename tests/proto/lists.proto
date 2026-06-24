@@ -1,0 +1,41 @@
+// Copyright (c) 2025-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+edition = "2023";
+
+import "enums.proto";
+
+message Lists {
+  message Msg {
+    string value = 1;
+  }
+
+  repeated double double_list = 1;
+  repeated float float_list = 2;
+  repeated int32 int32_list = 3;
+  repeated int64 int64_list = 4;
+  repeated uint32 uint32_list = 5;
+  repeated uint64 uint64_list = 6;
+  repeated sint32 sint32_list = 7;
+  repeated sint64 sint64_list = 8;
+  repeated fixed32 fixed32_list = 9;
+  repeated fixed64 fixed64_list = 10;
+  repeated sfixed32 sfixed32_list = 11;
+  repeated sfixed64 sfixed64_list = 12;
+  repeated bool bool_list = 13;
+  repeated string string_list = 14;
+  repeated bytes bytes_list = 15;
+  repeated Color enum_list = 16;
+  repeated Msg msg_list = 17;
+  repeated Lists recursive_list = 18;
+}

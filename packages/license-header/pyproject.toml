@@ -1,0 +1,15 @@
+[project]
+name = "license-header"
+version = "0.0.1"
+requires-python = ">=3.10"
+dependencies = ["tomli==2.4.1"]
+
+[project.scripts]
+license-header = "license_header:main"
+
+[build-system]
+requires = ["uv_build>=0.11.2,<0.12"]
+build-backend = "uv_build"
+
+[tool.pytest]
+filterwarnings = ["error"]

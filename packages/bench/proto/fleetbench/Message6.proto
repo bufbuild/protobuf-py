@@ -1,0 +1,142 @@
+// Copyright 2025 The Fleetbench Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License" );
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// WARNING: DO NOT EDIT! This file is auto-generated.
+syntax = "proto2";
+
+package fleetbench.proto;
+
+message Message6 {
+  optional string f_0 = 1;
+  optional double f_1 = 2;
+  optional int64 f_2 = 3;
+  message M1 {
+    optional int64 f_0 = 2;
+    optional string f_1 = 3;
+    optional int32 f_2 = 4;
+    optional int32 f_3 = 5;
+    optional string f_4 = 7;
+    message M2 {
+      optional string f_0 = 1;
+    }
+    optional M2 f_8 = 8;
+    message M3 {
+      repeated string f_0 = 1;
+      message M4 {
+        enum E1 {
+          E1_UNSPECIFIED = 0;
+          E1_CONST_1 = 105;
+          E1_CONST_2 = 46;
+          E1_CONST_3 = 112;
+          E1_CONST_4 = 110;
+          E1_CONST_5 = 24;
+        }
+        optional E1 f_0 = 1;
+        message M6 {
+          optional int64 f_0 = 1;
+        }
+        optional M6 f_2 = 2;
+      }
+      optional M4 f_2 = 2;
+      message M5 {
+        optional float f_0 = 2;
+        message M7 {
+          optional string f_0 = 1;
+          optional int32 f_1 = 3;
+          optional bytes f_2 = 4;
+          optional int64 f_3 = 5;
+          optional int32 f_4 = 6;
+          optional int64 f_5 = 7;
+          enum E2 {
+            E2_UNSPECIFIED = 0;
+            E2_CONST_1 = 117;
+            E2_CONST_2 = 81;
+            E2_CONST_3 = 62;
+            E2_CONST_4 = 17;
+            E2_CONST_5 = 51;
+          }
+          optional E2 f_6 = 8;
+          optional double f_7 = 9;
+          enum E3 {
+            E3_UNSPECIFIED = 0;
+            E3_CONST_1 = 126;
+            E3_CONST_2 = 36;
+            E3_CONST_3 = 72;
+            E3_CONST_4 = 18;
+            E3_CONST_5 = 13;
+          }
+          optional E3 f_8 = 11;
+          message M8 {
+            optional int64 f_0 = 1;
+            optional int64 f_1 = 4;
+            optional bytes f_2 = 6;
+            optional uint64 f_3 = 7;
+            optional string f_4 = 8;
+            message M9 {
+              enum E4 {
+                E4_UNSPECIFIED = 0;
+                E4_CONST_1 = 28;
+                E4_CONST_2 = 6;
+                E4_CONST_3 = 53;
+                E4_CONST_4 = 40;
+                E4_CONST_5 = 108;
+              }
+              optional E4 f_0 = 1;
+            }
+            repeated M9 f_9 = 9;
+            message M10 {
+              enum E5 {
+                E5_UNSPECIFIED = 0;
+                E5_CONST_1 = 61;
+                E5_CONST_2 = 48;
+                E5_CONST_3 = 96;
+                E5_CONST_4 = 20;
+                E5_CONST_5 = 47;
+              }
+              optional E5 f_0 = 1;
+              message M11 {
+                optional float f_0 = 1;
+                optional int64 f_1 = 2;
+                message M12 {
+                  optional string f_0 = 1;
+                  enum E6 {
+                    E6_UNSPECIFIED = 0;
+                    E6_CONST_1 = 21;
+                    E6_CONST_2 = 23;
+                    E6_CONST_3 = 31;
+                    E6_CONST_4 = 26;
+                    E6_CONST_5 = 57;
+                  }
+                  optional E6 f_1 = 3;
+                  message M13 {
+                    optional int32 f_0 = 1;
+                  }
+                  repeated M13 f_4 = 4;
+                }
+                repeated M12 f_3 = 3;
+              }
+              optional M11 f_2 = 2;
+            }
+            repeated M10 f_10 = 10;
+          }
+          optional M8 f_12 = 12;
+        }
+        repeated M7 f_3 = 3;
+      }
+      optional M5 f_3 = 3;
+    }
+    optional M3 f_11 = 11;
+  }
+  repeated M1 f_5 = 5;
+}

@@ -1,0 +1,39 @@
+[project]
+name = "protoc-runner"
+version = "35.1"
+description = "Packaged protoc and conformance_test_runner for internal testing."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE", "vendor-licenses/*"]
+keywords = ["protobuf"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Typing :: Typed",
+]
+
+[project.scripts]
+conformance_test_runner = "protoc._main:conformance_test_runner"
+protoc = "protoc._main:protoc"
+
+[dependency-groups]
+dev = ["license-header", "poethepoet==0.46.0", "wheel==0.47.0"]
+
+[build-system]
+requires = ["uv_build>=0.11.2,<0.12"]
+build-backend = "uv_build"
+
+[tool.poe.tasks.build]
+script = "scripts.build:main()"
+
+[tool.uv.build-backend]
+module-name = ["protoc"]
+
+[tool.uv.sources]
+license-header = { path = "../license-header" }

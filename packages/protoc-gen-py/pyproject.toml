@@ -1,0 +1,47 @@
+[project]
+name = "protoc-gen-py"
+version = "0.1.1"
+description = ""
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = ["protobuf"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Environment :: Plugins",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Free Threading",
+  "Topic :: File Formats",
+  "Topic :: Software Development :: Code Generators",
+]
+dependencies = [
+  "protobuf-py==0.1.1",
+]
+
+[project.urls]
+Documentation = "https://protobufpy.com/"
+Homepage = "https://github.com/bufbuild/protobuf-py"
+Issues = "https://github.com/bufbuild/protobuf-py/issues"
+Source = "https://github.com/bufbuild/protobuf-py"
+
+[project.scripts]
+protoc-gen-py = "protoc_gen_py:main"
+
+[dependency-groups]
+dev = [
+  "upstream-protobuf",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.2,<0.12"]
+build-backend = "uv_build"

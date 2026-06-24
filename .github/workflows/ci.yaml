@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - "**"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / ${{ matrix.python-version }} / ${{ matrix.native-ext && 'ext' || 'standard' }}
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [Ubuntu, MacOS, Windows]
+        python-version:
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+          - "3.14"
+          - "3.14t"
+        native-ext: [true, false]
+    env:
+      # When bumping, also bump top-level env in release.yaml
+      MATURIN_ARGS: ${{ (matrix.python-version == '3.10' || matrix.python-version == '3.11') && '--features pyo3/abi3-py310' || '' }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Install uv with Python ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.23"
+          python-version: ${{ matrix.python-version }}
+      - name: Setup rust
+        if: matrix.native-ext
+        run: rustup update
+      - run: uv sync --locked
+      - name: lint protobuf-py-ext
+        if: matrix.native-ext
+        run: uv run poe ext-lint
+      - name: build protobuf-py-ext
+        if: matrix.native-ext
+        run: uv run poe ext-build
+      - run: uv run poe test
+        env:
+          ASSERT_MARSHALER_IMPLEMENTATION: ${{ matrix.native-ext && 'native' || 'python' }}
+      # grpcio has no free-threaded wheels and there is no marker to exclude it
+      # If in the future they publish free-threaded wheels or uv supports a marker
+      # for it, we can merge this to the main task
+      - name: grpc tests
+        if: matrix.python-version != '3.14t'
+        run: |
+          uv run poe test-grpc
+
+  test-pypy:
+    name: ${{ matrix.os }} / ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # PyPy seems to have possible flaky hangs on Windows related to subprocess invocation
+        # which many of our tests use. We go ahead and skip Windows for now.
+        os: [Ubuntu, MacOS]
+        python-version:
+          - "pypy3.11"
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Install uv with Python ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.23"
+          python-version: ${{ matrix.python-version }}
+      - run: uv sync --locked
+      - run: uv run poe test
+        env:
+          ASSERT_MARSHALER_IMPLEMENTATION: python
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.23"
+          python-version: "3.10"
+      # grpc group so pyright/ty resolve grpc imports in the example and stub tests.
+      - run: uv sync --locked --all-groups
+      - run: uv run poe lint
+      - run: uv run poe format
+      - run: uv run poe generate
+      - run: uv run poe bootstrap
+      - run: uv run poe diffcheck

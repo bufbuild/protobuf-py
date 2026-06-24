@@ -1,0 +1,53 @@
+// Copyright 2025 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+// This schema is taken from the Rust Serialization Benchmark. It is
+// additionally covered by the following license:
+//
+// Copyright 2023-2025 David Koloski
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the “Software”), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+
+// buf:lint:ignore PACKAGE_VERSION_SUFFIX
+// buf:lint:ignore PACKAGE_DIRECTORY_MATCH
+package hyperpb.rsb.mesh;
+
+import "rsb/options.proto";
+
+message Vector3 {
+    float x = 1 [(f).p = 1.0];
+    float y = 2 [(f).p = 1.0];
+    float z = 3 [(f).p = 1.0];
+}
+
+message Triangle {
+    Vector3 v0 = 1 [(f).p = 1.0];
+    Vector3 v1 = 2 [(f).p = 1.0];
+    Vector3 v2 = 3 [(f).p = 1.0];
+    Vector3 normal = 4 [(f).p = 1.0];
+}
+
+message Mesh {
+    repeated Triangle triangles = 1 [(f).p = 1.0, (f).len = {min: 100000, max: 100000}];
+}

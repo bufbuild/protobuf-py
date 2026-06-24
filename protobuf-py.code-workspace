@@ -1,0 +1,86 @@
+{
+  "folders": [
+    {
+      "name": "/",
+      "path": ".",
+    },
+    {
+      "name": "bench",
+      "path": "./packages/bench",
+    },
+    {
+      "name": "example-grpc",
+      "path": "./examples/grpc",
+    },
+    {
+      "name": "example-plugin",
+      "path": "./examples/plugin",
+    },
+    {
+      "name": "example-protobuf",
+      "path": "./examples/protobuf",
+    },
+    {
+      "name": "license-header",
+      "path": "./packages/license-header",
+    },
+    {
+      "name": "protoc-gen-grpc-py",
+      "path": "./packages/protoc-gen-grpc-py",
+    },
+    {
+      "name": "protoc-gen-py",
+      "path": "./packages/protoc-gen-py",
+    },
+    {
+      "name": "protobuf-py-ext",
+      "path": "./packages/protobuf-py-ext",
+    },
+    {
+      "name": "upstream-protobuf",
+      "path": "./packages/upstream-protobuf",
+    },
+  ],
+  "extensions": {
+    "recommendations": [
+      "bufbuild.vscode-buf",
+      "charliermarsh.ruff",
+      "esbenp.prettier-vscode",
+      "github.vscode-github-actions",
+      "ms-python.python",
+      "ms-python.vscode-pylance",
+      "tombi-toml.tombi",
+    ],
+  },
+  "settings": {
+    "editor.formatOnSave": true,
+    "files.insertFinalNewline": true,
+    "python.analysis.typeCheckingMode": "basic",
+    "python.defaultInterpreterPath": "${workspaceFolder:/}/.venv/bin/python",
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": ["tests"],
+    "python.testing.unittestEnabled": false,
+    "[github-actions-workflow]": {
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "debugpy.debugJustMyCode": false,
+    "[python]": {
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit",
+        "source.organizeImports": "explicit",
+      },
+      "editor.defaultFormatter": "charliermarsh.ruff",
+    },
+    "[json][jsonc]": {
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "yaml.format.enable": false,
+    "[yaml]": {
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+  },
+}

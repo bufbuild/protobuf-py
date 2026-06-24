@@ -1,0 +1,36 @@
+[project]
+name = "protobuf-py-bench"
+version = "0.0.1"
+requires-python = ">=3.10"
+dependencies = [
+  "PyYAML==6.0.3",
+  "buf-bin==1.71.0",
+  "fix-protobuf-imports==0.1.7",
+  "protobuf==7.35.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.2,<0.12"]
+build-backend = "uv_build"
+
+[tool.pytest]
+addopts = [
+  "--benchmark-disable",
+  "--benchmark-group-by=func,param:_id",
+]
+testpaths = ["tests"]
+
+[tool.ruff]
+extend-exclude = ["**/*_pb2.*"]
+
+[tool.ruff.lint]
+ignore = ["D"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/*_pb2.*" = [
+  "E",
+  "F",
+]
+
+[tool.uv.build-backend]
+module-name = ["bench"]

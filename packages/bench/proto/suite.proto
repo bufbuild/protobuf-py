@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+// A single benchmark case.
+message Case {
+    // The name of the case.
+    string name = 1;
+    // The Protobuf message type name.
+    string typename = 2;
+    // The serialized Protobuf message.
+    bytes payload = 3;
+}
+
+// A suite of benchmark cases.
+message Suite {
+    // The cases in the suite.
+    repeated Case cases = 1;
+}

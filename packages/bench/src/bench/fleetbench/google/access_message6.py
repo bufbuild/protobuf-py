@@ -1,0 +1,390 @@
+# Copyright (c) 2025-2026 Buf Technologies, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Generated from fleetbench access_message6.cc by _fleetbench.py. DO NOT EDIT.
+#
+# Derived from github.com/google/fleetbench
+# Copyright 2025 The Fleetbench Authors
+# SPDX-License-Identifier: Apache-2.0
+# ruff: noqa: F841
+# pyright: reportUnusedExpression=false
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bench.gen.fleetbench.Message6_pb2 import Message6
+
+
+class Message6Access:
+    if TYPE_CHECKING:
+        # Provided by the Access subclass, which wires the
+        # backend's classes; never assigned on the mixin itself.
+        Message6_M1_M3_M4: type[Message6.M1.M3.M4]
+        Message6_M1_M3_M5_M7: type[Message6.M1.M3.M5.M7]
+        Message6_M1_M3_M5_M7_M8_M10: type[Message6.M1.M3.M5.M7.M8.M10]
+        Message6_M1_M3_M5_M7_M8_M10_M11_M12: type[Message6.M1.M3.M5.M7.M8.M10.M11.M12]
+        Message6_M1_M3_M5_M7_M8_M9: type[Message6.M1.M3.M5.M7.M8.M9]
+
+    def message6_set_1(self, message: Message6, s: str, b: bytes) -> None:
+        Message6_M1_M3_M5_M7 = self.Message6_M1_M3_M5_M7
+        Message6_M1_M3_M5_M7_M8_M10 = self.Message6_M1_M3_M5_M7_M8_M10
+        Message6_M1_M3_M5_M7_M8_M10_M11_M12 = self.Message6_M1_M3_M5_M7_M8_M10_M11_M12
+        message.f_1 = 0.905219
+        message.f_0 = s[0:6]
+        message.f_2 = 0x164A3B177F480
+        v0_0 = message.f_5.add()
+        v0_0.f_1 = s[0:15]
+        v1 = v0_0.f_11
+        v1.f_0.append(s[0:18])
+        v2 = v1.f_3
+        v3_0 = v2.f_3.add()
+        v3_0.f_5 = 0x7E74883
+        v3_0.f_6 = Message6_M1_M3_M5_M7.E2_CONST_1
+        v4 = v3_0.f_12
+        v4.f_0 = 0x1A864C
+        v5_0 = v4.f_10.add()
+        v6 = v5_0.f_2
+        v6.f_1 = 0xD0818531BB837D
+        v6.f_0 = 0.017473
+        v5_1 = v4.f_10.add()
+        v5_1.f_0 = Message6_M1_M3_M5_M7_M8_M10.E5_CONST_2
+        v7 = v5_1.f_2
+        v7.SetInParent()
+        v3_1 = v2.f_3.add()
+        v3_1.f_0 = s[0:20]
+        v3_1.f_1 = 0x4E978
+        v8 = v3_1.f_12
+        v8.f_2 = b[0:17]
+        v8.f_0 = 0x941CEFA55F2B77
+        v9_0 = v8.f_10.add()
+        v10 = v9_0.f_2
+        v11_0 = v10.f_3.add()
+        v11_0.f_1 = Message6_M1_M3_M5_M7_M8_M10_M11_M12.E6_CONST_2
+        v10.f_0 = 0.208412
+        v8.f_4 = s[0:3]
+        v3_1.f_6 = Message6_M1_M3_M5_M7.E2_CONST_5
+        v3_1.f_4 = 0x50E
+        v12 = v0_0.f_8
+        v12.f_0 = s[0:1]
+        v0_0.f_0 = 0x3B62
+
+    def message6_set_2(self, message: Message6, s: str, b: bytes) -> None:
+        Message6_M1_M3_M5_M7 = self.Message6_M1_M3_M5_M7
+        Message6_M1_M3_M5_M7_M8_M10 = self.Message6_M1_M3_M5_M7_M8_M10
+        Message6_M1_M3_M5_M7_M8_M9 = self.Message6_M1_M3_M5_M7_M8_M9
+        message.f_0 = s[0:6]
+        v0_0 = message.f_5.add()
+        v0_0.f_0 = 0x8E3D9DFD5846D0
+        v0_0.f_3 = 0x5B
+        v0_0.f_2 = 0x1E
+        v1 = v0_0.f_11
+        v2 = v1.f_3
+        v3_0 = v2.f_3.add()
+        v4 = v3_0.f_12
+        v4.f_3 = 0xCF40BA99599921
+        v4.f_1 = 0x6AE7594B027780
+        v5_0 = v4.f_10.add()
+        v5_0.f_0 = Message6_M1_M3_M5_M7_M8_M10.E5_CONST_4
+        v6 = v5_0.f_2
+        v6.f_0 = 0.643093
+        v7_0 = v6.f_3.add()
+        v7_0.f_0 = s[0:7]
+        v4.f_0 = 0x56
+        v3_0.f_0 = s[0:6]
+        v3_0.f_6 = Message6_M1_M3_M5_M7.E2_CONST_1
+        v3_0.f_7 = 0.380619
+        v3_0.f_8 = Message6_M1_M3_M5_M7.E3_CONST_1
+        v3_0.f_4 = 0x396A
+        v3_1 = v2.f_3.add()
+        v3_1.f_0 = s[0:23]
+        v8 = v3_1.f_12
+        v8.f_3 = 0x72
+        v9_0 = v8.f_9.add()
+        v9_0.f_0 = Message6_M1_M3_M5_M7_M8_M9.E4_CONST_2
+        v10_0 = v8.f_10.add()
+        v11 = v10_0.f_2
+        v12_0 = v11.f_3.add()
+        v12_0.f_0 = s[0:5]
+        v8.f_2 = b[0:341]
+        v3_1.f_5 = 0xE9E1CAB
+        v3_1.f_7 = 0.754160
+        v3_1.f_8 = Message6_M1_M3_M5_M7.E3_CONST_4
+        message.f_2 = 0x11E72F3E0C6FF
+
+    def message6_set_3(self, message: Message6, s: str, b: bytes) -> None:
+        Message6_M1_M3_M5_M7_M8_M10 = self.Message6_M1_M3_M5_M7_M8_M10
+        Message6_M1_M3_M5_M7_M8_M10_M11_M12 = self.Message6_M1_M3_M5_M7_M8_M10_M11_M12
+        Message6_M1_M3_M5_M7_M8_M9 = self.Message6_M1_M3_M5_M7_M8_M9
+        v0_0 = message.f_5.add()
+        v0_0.f_2 = 0x13BD0F5
+        v1 = v0_0.f_11
+        v2 = v1.f_3
+        v2.f_0 = 0.254072
+        v3_0 = v2.f_3.add()
+        v3_0.f_1 = 0x30
+        v3_0.f_7 = 0.157737
+        v4 = v3_0.f_12
+        v5_0 = v4.f_10.add()
+        v6 = v5_0.f_2
+        v6.f_1 = 0x269D95A6A03099
+        v7_0 = v6.f_3.add()
+        v7_0.f_1 = Message6_M1_M3_M5_M7_M8_M10_M11_M12.E6_CONST_2
+        v8_0 = v7_0.f_4.add()
+        v8_0.f_0 = 0x26
+        v7_0.f_0 = s[0:58]
+        v5_0.f_0 = Message6_M1_M3_M5_M7_M8_M10.E5_CONST_4
+        v5_1 = v4.f_10.add()
+        v9 = v5_1.f_2
+        v9.f_0 = 0.995871
+        v10_0 = v9.f_3.add()
+        v10_0.f_1 = Message6_M1_M3_M5_M7_M8_M10_M11_M12.E6_CONST_1
+        v10_0.f_0 = s[0:6]
+        v11_0 = v4.f_9.add()
+        v11_0.f_0 = Message6_M1_M3_M5_M7_M8_M9.E4_CONST_1
+        v0_0.f_0 = 0xE26CD9B39BC724
+        v0_0.f_3 = 0x2D
+
+    def message6_set_4(self, message: Message6, s: str, b: bytes) -> None:
+        Message6_M1_M3_M4 = self.Message6_M1_M3_M4
+        Message6_M1_M3_M5_M7_M8_M10_M11_M12 = self.Message6_M1_M3_M5_M7_M8_M10_M11_M12
+        v0_0 = message.f_5.add()
+        v1 = v0_0.f_8
+        v1.SetInParent()
+        v2 = v0_0.f_11
+        v2.f_0.append(s[0:5])
+        v2.f_0.append(s[0:4])
+        v2.f_0.append(s[0:8])
+        v2.f_0.append(s[0:37])
+        v3 = v2.f_3
+        v3.f_0 = 0.326377
+        v4_0 = v3.f_3.add()
+        v4_0.f_0 = s[0:4]
+        v5 = v4_0.f_12
+        v6_0 = v5.f_10.add()
+        v7 = v6_0.f_2
+        v8_0 = v7.f_3.add()
+        v8_0.f_1 = Message6_M1_M3_M5_M7_M8_M10_M11_M12.E6_CONST_4
+        v5.f_3 = 0xE22B4205105D0
+        v5.f_2 = b[0:112]
+        v5.f_0 = 0x2158
+        v4_0.f_7 = 0.197611
+        v4_0.f_4 = 0x1450
+        v4_0.f_2 = b[0:259]
+        v4_0.f_3 = 0xC923452CC1F538
+        v9 = v2.f_2
+        v9.f_0 = Message6_M1_M3_M4.E1_CONST_5
+        v10 = v9.f_2
+        v10.SetInParent()
+        v0_0.f_2 = 0x3D
+
+    def message6_get_1(self, message: Message6) -> None:
+        message.f_1
+        for v0 in message.f_5:
+            v0.f_1
+            v0.f_2
+            v0.f_0
+            v1 = v0.f_8
+            v1.f_0
+            v0.f_3
+            v2 = v0.f_11
+            for i in range(len(v2.f_0)):
+                v2.f_0[i]
+            v3 = v2.f_3
+            v3.f_0
+            for v4 in v3.f_3:
+                v5 = v4.f_12
+                v5.f_1
+                for v6 in v5.f_10:
+                    v7 = v6.f_2
+                    for v8 in v7.f_3:
+                        for v9 in v8.f_4:
+                            v9.f_0
+                        v8.f_1
+                        v8.f_0
+                    v7.f_1
+                    v7.f_0
+                    v6.f_0
+                v5.f_3
+                v5.f_0
+                v5.f_2
+                v5.f_4
+                for v10 in v5.f_9:
+                    v10.f_0
+                v4.f_6
+                v4.f_5
+                v4.f_0
+                v4.f_7
+                v4.f_2
+                v4.f_4
+                v4.f_3
+                v4.f_1
+                v4.f_8
+            v11 = v2.f_2
+            v11.f_0
+            v12 = v11.f_2
+            v12.f_0
+            v0.f_4
+        message.f_0
+        message.f_2
+
+    def message6_get_2(self, message: Message6) -> None:
+        for v0 in message.f_5:
+            v0.f_3
+            v0.f_1
+            v1 = v0.f_8
+            v1.f_0
+            v0.f_0
+            v0.f_2
+            v2 = v0.f_11
+            v3 = v2.f_2
+            v4 = v3.f_2
+            v4.f_0
+            v3.f_0
+            v5 = v2.f_3
+            for v6 in v5.f_3:
+                v6.f_2
+                v6.f_0
+                v6.f_6
+                v6.f_3
+                v7 = v6.f_12
+                v7.f_0
+                v7.f_2
+                v7.f_3
+                for v8 in v7.f_9:
+                    v8.f_0
+                v7.f_4
+                for v9 in v7.f_10:
+                    v10 = v9.f_2
+                    v10.f_0
+                    for v11 in v10.f_3:
+                        v11.f_1
+                        for v12 in v11.f_4:
+                            v12.f_0
+                        v11.f_0
+                    v10.f_1
+                    v9.f_0
+                v7.f_1
+                v6.f_7
+                v6.f_1
+                v6.f_5
+                v6.f_8
+                v6.f_4
+            v5.f_0
+            for i in range(len(v2.f_0)):
+                v2.f_0[i]
+            v0.f_4
+        message.f_2
+        message.f_1
+        message.f_0
+
+    def message6_get_3(self, message: Message6) -> None:
+        message.f_2
+        message.f_1
+        message.f_0
+        for v0 in message.f_5:
+            v0.f_1
+            v1 = v0.f_8
+            v1.f_0
+            v0.f_2
+            v2 = v0.f_11
+            v3 = v2.f_2
+            v4 = v3.f_2
+            v4.f_0
+            v3.f_0
+            v5 = v2.f_3
+            for v6 in v5.f_3:
+                v6.f_0
+                v7 = v6.f_12
+                v7.f_0
+                v7.f_1
+                v7.f_4
+                v7.f_2
+                v7.f_3
+                for v8 in v7.f_9:
+                    v8.f_0
+                for v9 in v7.f_10:
+                    v10 = v9.f_2
+                    for v11 in v10.f_3:
+                        for v12 in v11.f_4:
+                            v12.f_0
+                        v11.f_1
+                        v11.f_0
+                    v10.f_1
+                    v10.f_0
+                    v9.f_0
+                v6.f_2
+                v6.f_4
+                v6.f_8
+                v6.f_6
+                v6.f_5
+                v6.f_7
+                v6.f_3
+                v6.f_1
+            v5.f_0
+            for i in range(len(v2.f_0)):
+                v2.f_0[i]
+            v0.f_4
+            v0.f_0
+            v0.f_3
+
+    def message6_get_4(self, message: Message6) -> None:
+        for v0 in message.f_5:
+            v0.f_2
+            v1 = v0.f_11
+            for i in range(len(v1.f_0)):
+                v1.f_0[i]
+            v2 = v1.f_3
+            for v3 in v2.f_3:
+                v3.f_1
+                v3.f_3
+                v3.f_2
+                v3.f_7
+                v3.f_0
+                v3.f_5
+                v3.f_4
+                v4 = v3.f_12
+                v4.f_4
+                v4.f_3
+                v4.f_0
+                v4.f_2
+                for v5 in v4.f_9:
+                    v5.f_0
+                v4.f_1
+                for v6 in v4.f_10:
+                    v6.f_0
+                    v7 = v6.f_2
+                    v7.f_1
+                    v7.f_0
+                    for v8 in v7.f_3:
+                        v8.f_0
+                        for v9 in v8.f_4:
+                            v9.f_0
+                        v8.f_1
+                v3.f_8
+                v3.f_6
+            v2.f_0
+            v10 = v1.f_2
+            v11 = v10.f_2
+            v11.f_0
+            v10.f_0
+            v0.f_1
+            v0.f_0
+            v0.f_3
+            v0.f_4
+            v12 = v0.f_8
+            v12.f_0
+        message.f_0
+        message.f_2
+        message.f_1

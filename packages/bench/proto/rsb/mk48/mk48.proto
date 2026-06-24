@@ -1,0 +1,101 @@
+// Copyright 2025 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+// This schema is taken from the Rust Serialization Benchmark. It is
+// additionally covered by the following license:
+//
+// Copyright 2023-2025 David Koloski
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the “Software”), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+
+// buf:lint:ignore PACKAGE_VERSION_SUFFIX
+// buf:lint:ignore PACKAGE_DIRECTORY_MATCH
+package hyperpb.rsb.mk48;
+
+import "rsb/options.proto";
+
+// buf:lint:ignore ENUM_VALUE_PREFIX
+// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+enum EntityType {
+    ARLEIGH_BURKE = 0;
+    BISMARCK = 1;
+    CLEMENCEAU = 2;
+    FLETCHER = 3;
+    G5 = 4;
+    IOWA = 5;
+    KOLKATA = 6;
+    OSA = 7;
+    YASEN = 8;
+    ZUBR = 9;
+}
+
+message Vector2f {
+    float x = 1 [(f).p = 1.0];
+    float y = 2 [(f).p = 1.0];
+}
+
+message Transform {
+    int32 altitude = 1;
+    uint32 angle = 2;
+    Vector2f position = 3;
+    int32 velocity = 4;
+}
+
+message Guidance {
+    uint32 angle = 1;
+    bool submerge = 2;
+    int32 velocity = 3;
+}
+
+message Contact {
+    uint32 damage = 1 [(f).p = 1.0];
+    uint32 entity_id = 2 [(f).p = 1.0];
+    optional EntityType entity_type = 3 [(f).p = 1.0];
+    Guidance guidance = 4;
+    optional uint32 player_id = 5;
+    repeated bool reloads = 6;
+    Transform transform = 7;
+    repeated uint32 turret_angles = 8;
+}
+
+message ChunkId {
+    int32 x = 1;
+    int32 y = 2;
+}
+
+message TerrainUpdate {
+    ChunkId chunk_id = 1;
+    bytes data = 2;
+}
+
+message Update {
+    repeated Contact contacts = 1;
+    uint32 score = 2;
+    float world_radius = 3;
+    repeated TerrainUpdate terrain_updates = 4;
+}
+
+message Updates {
+    repeated Update updates = 1 [(f).p = 1.0, (f).len = {min: 1000, max: 1000}];
+}

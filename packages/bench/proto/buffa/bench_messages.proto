@@ -1,0 +1,92 @@
+// Benchmark message types for buffa performance testing.
+//
+// These messages represent common real-world patterns:
+// - ApiResponse: flat message with mixed scalars (typical REST/gRPC response)
+// - LogRecord: string-heavy message (structured log entry)
+// - AnalyticsEvent: deeply nested message with repeated sub-messages
+
+syntax = "proto3";
+
+package bench;
+
+// A typical REST/gRPC response with mixed scalar types.
+// Target payload: ~200-500 bytes.
+message ApiResponse {
+  int64 request_id = 1;
+  int32 status_code = 2;
+  string message = 3;
+  double latency_ms = 4;
+  bool cached = 5;
+  optional string trace_id = 6;
+  optional int64 retry_after_ms = 7;
+  repeated string tags = 8;
+}
+
+// A structured log entry. String-heavy to test allocation overhead.
+// Target payload: ~1-5KB.
+message LogRecord {
+  int64 timestamp_nanos = 1;
+  string service_name = 2;
+  string instance_id = 3;
+
+  enum Severity {
+    UNSPECIFIED = 0;
+    DEBUG = 1;
+    INFO = 2;
+    WARN = 3;
+    ERROR = 4;
+  }
+  Severity severity = 4;
+  string message = 5;
+  map<string, string> labels = 6;
+  string trace_id = 7;
+  string span_id = 8;
+
+  message Context {
+    string file = 1;
+    int32 line = 2;
+    string function = 3;
+  }
+  optional Context source = 9;
+}
+
+// Deeply nested message with repeated sub-messages.
+// Tests cached-size benefit and recursive decode.
+// Target payload: ~10-50KB with 3-4 levels of nesting.
+message AnalyticsEvent {
+  string event_id = 1;
+  int64 timestamp = 2;
+  string user_id = 3;
+
+  message Property {
+    string key = 1;
+    oneof value {
+      string string_value = 2;
+      int64 int_value = 3;
+      double double_value = 4;
+      bool bool_value = 5;
+    }
+  }
+  repeated Property properties = 4;
+
+  message Nested {
+    string name = 1;
+    repeated Property attributes = 2;
+    repeated Nested children = 3;
+  }
+  repeated Nested sections = 5;
+}
+
+// Binary-payload-heavy message: exercises the `bytes` field type, both as a
+// single large blob and as repeated / mapped sub-blobs. Used to contrast
+// prost's `prost-build`'s `.bytes(["."])` zero-copy substitution with buffa
+// views.
+// Target payload: ~3-25KB.
+message MediaFrame {
+  string frame_id = 1;
+  int64 timestamp_nanos = 2;
+  string content_type = 3;
+  bytes body = 4;                     // primary payload, ~1-10 KB
+  repeated bytes chunks = 5;          // 2-6 sub-chunks, ~200-2000 bytes each
+  map<string, bytes> attachments = 6; // 0-4 named sub-blobs
+}

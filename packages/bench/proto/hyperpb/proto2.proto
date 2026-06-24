@@ -1,0 +1,76 @@
+// Copyright 2025 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+// buf:lint:ignore PACKAGE_VERSION_SUFFIX
+// buf:lint:ignore PACKAGE_DIRECTORY_MATCH
+package hyperpb.test;
+
+message Extensions {
+  extensions 1 to max;
+}
+
+extend Extensions {
+  optional int32 b1 = 21;
+  optional int64 b2 = 22;
+  optional uint32 b3 = 23;
+  optional uint64 b4 = 24;
+  optional sint32 b5 = 25;
+  optional sint64 b6 = 26;
+  optional fixed32 b7 = 27;
+  optional fixed64 b8 = 28;
+  optional sfixed32 b9 = 29;
+  optional sfixed64 b10 = 30;
+  optional float b11 = 31;
+  optional double b12 = 32;
+  optional bool b13 = 33;
+  optional string b14 = 34;
+  optional bytes b15 = 35;
+
+  repeated Extensions z = 50;
+}
+
+message Required {
+  message Empty {}
+
+  // buf:lint:ignore FIELD_NOT_REQUIRED
+  required int32 x = 1;
+  optional Required y = 2;
+  // buf:lint:ignore FIELD_NOT_REQUIRED
+  required Empty z = 3;
+}
+
+message DependsOnRequired {
+  optional Required a = 1;
+  repeated Required b = 2;
+  map<int32, Required> c = 3;
+}
+
+message Groups {
+  optional group Singular = 1 {
+    optional int32 a = 1;
+    optional int32 b = 2;
+
+    optional Groups g = 3;
+
+    optional group Nested = 4 {
+      optional int32 a = 1;
+    }
+  }
+  repeated group Repeated = 2 {
+    optional int32 a = 1;
+    optional int32 b = 2;
+  }
+}

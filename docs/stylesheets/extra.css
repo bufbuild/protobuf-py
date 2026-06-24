@@ -1,0 +1,15 @@
+/* Make entire card clickable */
+.grid.cards > ul > li {
+  position: relative;
+}
+
+.grid.cards > ul > li > p:first-child > a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.md-typeset .comparison table th {
+  white-space: nowrap;
+}

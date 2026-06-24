@@ -1,0 +1,134 @@
+[project]
+site_name = "protobuf-py"
+site_url = "https://protobufpy.com/"
+site_description = "Idiomatic Protocol Buffers for Python"
+site_author = "Buf Technologies"
+copyright = "&copy; Buf Technologies"
+repo_url = "https://github.com/bufbuild/protobuf-py"
+nav = [
+  { "About" = "index.md" },
+  { "Getting Started" = [
+    "getting-started/installation.md",
+    "getting-started/quickstart.md"
+  ] },
+  { "Generated Code" = [
+    "generated-code/index.md",
+    "generated-code/field-types.md",
+    "generated-code/features.md"
+  ] },
+  "messages.md",
+  "enums.md",
+  "serialization.md",
+  "well-known-types.md",
+  "extensions.md",
+  { "Reflection" = [
+    "reflection/index.md",
+    "reflection/descriptors.md",
+    "reflection/registry.md",
+    "reflection/dynamic-messaging.md",
+    "reflection/custom-options.md"
+  ] },
+  { "Writing Plugins" = [
+    "writing-plugins/index.md",
+    "writing-plugins/generating-files.md",
+    "writing-plugins/options.md"
+  ] },
+  "tutorial.md",
+  { "FAQs" = "faq.md" },
+  { "API Reference" = [
+    "api/index.md",
+    "api/protobuf.md",
+    "api/wkt.md",
+    "api/plugin.md"
+  ] }
+]
+
+extra_css = ["stylesheets/extra.css"]
+
+[project.validation]
+# mkdocstrings autorefs (`[`ClassName`][module.ClassName]`) are reported as
+# unresolved references by zensical; this is a known limitation.
+# https://github.com/zensical/zensical/issues/600
+unresolved_references = false
+
+[project.theme]
+features = ["navigation.indexes", "content.code.copy"]
+favicon = "images/favicon.svg"
+logo = "images/logos/buf.svg"
+custom_dir = "docs/_overrides"
+
+[project.theme.icon]
+repo = "fontawesome/brands/github"
+
+[project.markdown_extensions.admonition]
+
+[project.markdown_extensions.attr_list]
+
+[project.markdown_extensions.md_in_html]
+
+[project.markdown_extensions.pymdownx.blocks.caption]
+
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+line_spans = "__span"
+pygments_lang_class = true
+
+[project.markdown_extensions.pymdownx.inlinehilite]
+
+[project.markdown_extensions.pymdownx.snippets]
+
+[project.markdown_extensions.pymdownx.superfences]
+
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true
+
+[project.plugins.mkdocstrings.handlers.python]
+inventories = ["https://docs.python.org/3/objects.inv"]
+paths = ["src"]
+
+[project.plugins.mkdocstrings.handlers.python.options]
+docstring_options = { ignore_init_summary = true }
+docstring_style = "google"
+# WKT classes inherit from both Message and a *Mixin class. We want mixin
+# methods to appear in the docs, but not all of Message's methods — those are
+# already documented on Message itself and would be noisy if repeated on every
+# generated class. A list here means: show inherited members only if their
+# name matches; non-inherited (directly defined) members are always shown.
+inherited_members = [
+  # AnyMixin
+  "pack",
+  "is_type",
+  "unpack",
+  # DurationMixin
+  "from_nanos",
+  "from_timedelta",
+  "to_timedelta",
+  "to_nanos",
+  "to_seconds",
+  "from_seconds",
+  # ListValueMixin
+  "from_python",
+  "to_python",
+  # StructMixin
+  "from_python",
+  "to_python",
+  # ValueMixin
+  "from_python",
+  "to_python",
+  # TimestampMixin
+  "now",
+  "from_datetime",
+  "to_datetime",
+  # FileDescriptorSetMixin
+  "to_registry",
+]
+members_order = "source"
+merge_init_into_class = true
+overloads_only = true
+relative_crossrefs = true
+scoped_crossrefs = true
+separate_signature = true
+signature_crossrefs = true
+show_root_heading = true
+show_signature = true
+show_source = false

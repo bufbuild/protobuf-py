@@ -1,0 +1,38 @@
+// Copyright (c) 2025-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+edition = "2023";
+
+enum Color {
+  COLOR_UNSPECIFIED = 0;
+  COLOR_RED = 1;
+  COLOR_GREEN = 2;
+  COLOR_BLUE = 3;
+}
+
+enum ClosedColor {
+  option features.enum_type = CLOSED;
+  CLOSED_COLOR_UNSPECIFIED = 0;
+  CLOSED_COLOR_RED = 1;
+  CLOSED_COLOR_GREEN = 2;
+  CLOSED_COLOR_BLUE = 3;
+}
+
+message EnumMessage {
+  Color color_field = 1;
+  ClosedColor closed_color_field = 2;
+  repeated Color color_list = 3;
+  repeated ClosedColor closed_color_list = 4;
+  map<string, Color> string_to_color = 5;
+  map<string, ClosedColor> string_to_closed_color = 6;
+}

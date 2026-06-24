@@ -1,0 +1,246 @@
+// Copyright (c) 2025-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+edition = "2023";
+package escaping;
+
+import "google/protobuf/descriptor.proto";
+
+// ## Top-level declarations from specs/2026-03-26 escaping problem.md
+
+// No issues
+message MyMessage {}
+enum MyEnum {
+  MY_ENUM_UNSPECIFIED = 0;
+}
+extend google.protobuf.MessageOptions {
+  string my_ext = 1000;
+}
+
+// Soft keyword should not cause problems
+message match {}
+
+// Shadows built-in type list
+message list {
+  repeated string repeated_field = 1;
+}
+
+// Clashes with imported protobuf.Message
+message Message {}
+
+// Shadows imported protobuf._codegen.file_desc
+message file_desc {}
+
+// class is a keyword
+message class {}
+
+// for is a keyword
+enum for {
+  for_UNSPECIFIED = 0;
+}
+
+// from is a keyword
+extend google.protobuf.MessageOptions {
+  string from = 1001;
+}
+
+// Overrides module dunder
+extend google.protobuf.MessageOptions {
+  string __all__ = 1002;
+}
+
+// Overlaps with generated ext_ prefix
+extend google.protobuf.MessageOptions {
+  string ext_foo = 1003;
+}
+
+// Class becomes private
+message _Foo {}
+
+// Clashes with file descriptor function
+message desc {}
+
+// ## Message members from specs/2026-03-26 escaping problem.md
+
+message MessageMembers {
+  // No issues
+  string name = 1;
+
+  // No issues
+  int32 count = 2;
+
+  // No issues
+  google.protobuf.FileOptions msg = 3;
+
+  // No issues
+  oneof my_oneof {
+    string oneof_field = 4;
+  }
+
+  // Shadows builtin in class scope, but no issues
+  string type = 5;
+
+  // from is a keyword
+  string from = 6;
+
+  // class is a keyword
+  bool class = 7;
+
+  // import is a keyword
+  oneof import {
+    string foo = 8;
+  }
+
+  // Shadows Message.desc()
+  string desc = 9;
+
+  // Shadows Message.to_json()
+  string to_json = 10;
+
+  // Shadows Message.__init__
+  string __init__ = 11;
+
+  // Shadows Message.__eq__
+  string __eq__ = 12;
+
+  // Shadows Message.__hash__
+  string __hash__ = 13;
+
+  // Attribute becomes private
+  string _foo = 14;
+
+  // Shadows self parameter in constructor
+  string self = 15;
+}
+
+// ## Nested declarations from specs/2026-03-26 escaping problem.md
+message MessageNested {
+  // No issues
+  message Bar {}
+
+  // No issues
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+  }
+
+  // class is a keyword
+  message class {
+    // Nested extension in escaped class
+    extend google.protobuf.MessageOptions {
+      string bar = 1004;
+    }
+  }
+
+  // Shadows built-in type list
+  message list {
+    repeated string repeated_field = 1;
+  }
+
+  // Clashes with imported protobuf.Message
+  message Message {}
+
+  // Does NOT shadow imported protobuf._codegen.file_desc
+  message file_desc {}
+
+  // Inner class may shadow outer
+  message MessageNested {
+    // Refers to itself
+    MessageNested a = 1;
+    // Refers to the parent
+    escaping.MessageNested b = 2;
+  }
+
+  // Shadows MessageNested.desc()
+  message desc {}
+
+  // Shadows MessageNested.to_json()
+  enum to_json {
+    to_json_UNSPECIFIED = 0;
+  }
+
+  // Shadows MessageNested.__eq__
+  message __eq__ {}
+}
+
+// ## Enum values from specs/2026-03-26 escaping problem.md
+
+enum EnumValues {
+  // No issues
+  FOO = 0;
+  // Shadows built-in
+  type = 1;
+  // lambda is a keyword
+  lambda = 2;
+  // True is a keyword
+  True = 3;
+  // Shadows Enum.name
+  name = 4;
+  // Shadows Enum.value
+  value = 5;
+  // _sunder_ names are reserved for Enum use
+  _sunder_ = 6;
+  // dunder becomes class attr, not an enum member
+  __dunder__ = 7;
+  // value becomes private
+  _PRIVATE = 9;
+  // not allowed
+  mro = 10;
+}
+
+message EnumContainer {
+  enum AnotherEnum {
+    // Shadows Enum.desc
+    desc = 0;
+  }
+  string int_ = 1;
+  string str__ = 2;
+
+  enum int {
+    value = 0;
+  }
+
+  message str_ {}
+}
+
+enum EnumStrippedPrefix {
+  // No issues
+  ENUM_STRIPPED_PREFIX_FOO = 0;
+  // Cannot be stripped - identifier starts with digit
+  ENUM_STRIPPED_PREFIX_23_B = 1;
+  // Not prefixed
+  NOT_STRIPPED_PREFIX = 2;
+  // No issues
+  ENUM_STRIPPED_PREFIX_FOO_BAR = 3;
+}
+
+enum EnumStrippedPrefix2 {
+  // Cannot be stripped - True is a keyword
+  ENUM_STRIPPED_PREFIX2_True = 0;
+  // Stripped shadows Enum.name
+  ENUM_STRIPPED_PREFIX2_name = 1;
+  // Stripped shadows Enum.value
+  ENUM_STRIPPED_PREFIX2_value = 2;
+  // Stripped _sunder_ is reserved for Enum use
+  ENUM_STRIPPED_PREFIX2__sunder_ = 3;
+  // Stripped __dunder__ becomes class attr, not an enum member
+  ENUM_STRIPPED_PREFIX2___dunder__ = 4;
+  // Stripped value becomes private
+  ENUM_STRIPPED_PREFIX2__PRIVATE = 5;
+}
+
+message ExtCollision {
+  string ext_bar = 1;
+  extend google.protobuf.MessageOptions {
+    string bar = 1010;
+  }
+}

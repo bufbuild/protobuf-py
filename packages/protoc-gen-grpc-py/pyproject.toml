@@ -1,0 +1,57 @@
+[project]
+name = "protoc-gen-grpc-py"
+version = "0.1.1"
+description = ""
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = ["grpc", "protobuf", "rpc"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Environment :: Plugins",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Free Threading",
+  "Topic :: File Formats",
+  "Topic :: Software Development :: Code Generators",
+]
+dependencies = [
+  "protobuf-py==0.1.1",
+]
+
+[project.urls]
+Documentation = "https://protobufpy.com/"
+Homepage = "https://github.com/bufbuild/protobuf-py"
+Issues = "https://github.com/bufbuild/protobuf-py/issues"
+Source = "https://github.com/bufbuild/protobuf-py"
+
+[project.scripts]
+protoc-gen-grpc-py = "protoc_gen_grpc_py:main"
+
+[dependency-groups]
+dev = [
+  "buf-bin==1.71.0",
+  # grpcio ships no wheels for PyPy; we do not build it from source there.
+  "grpcio==1.81.1 ; platform_python_implementation != 'PyPy'",
+  "protoc-gen-py>=0.0.1",
+  "pytest==9.1.1",
+  "pytest-asyncio==1.4.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.2,<0.12"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"

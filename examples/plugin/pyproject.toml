@@ -1,0 +1,25 @@
+[project]
+name = "example-plugin"
+version = "0.0.1"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = [
+  "protobuf-py>=0.0.1",
+]
+
+[project.scripts]
+protoc-gen-rpc = "protoc_gen_rpc:main"
+
+[dependency-groups]
+dev = [
+  "buf-bin==1.71.0",
+  "protoc-gen-py>=0.0.1",
+  "pytest==9.1.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.2,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = ["protoc_gen_rpc"]

@@ -1,0 +1,31 @@
+[package]
+name = "protobuf-py-ext"
+version = "0.1.1"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+name = "protobuf_ext"
+
+[dependencies]
+bitvec = "1.1.1"
+buffa = "0.7.1"
+bytes = "1.12.0"
+pyo3 = { version = "0.29.0", features = ["bytes"] }
+
+[build-dependencies]
+pyo3-build-config = { version = "0.29.0", features = ["resolve-config"] }
+
+[lints.clippy]
+pedantic = { level = "deny", priority = -1 }
+
+fn_params_excessive_bools = "allow"
+struct_excessive_bools = "allow"
+too_many_arguments = "allow"
+unused_trait_names = "deny"
+
+[profile.release]
+debug = 0
+strip = true
+lto = true
+codegen-units = 1
