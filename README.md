@@ -36,20 +36,20 @@ updated = copy.replace(round_trip, active=False)  # Python 3.13+
 
 [`protobuf-py`](https://pypi.org/project/protobuf-py/) is the only option that combines complete protobuf semantics with an idiomatic Python interface. You get typed generated classes, relative-import-friendly output, first-class oneof pattern matching, and modern copy semantics without extra runtime dependencies.
 
-| | `protobuf-py` | `google-protobuf` | `betterproto` |
-|---|---|---|---|
-| Spec coverage | ✅ Full (proto2, proto3, editions, extensions, custom options) | ✅ Full | ❌ Partial (proto3-only) |
-| Type annotations | ✅ Built-in | ❌ Third-party tooling needed | ✅ Built-in |
-| Conformance tests | ✅ 100% pass rate | ⚠️ Contains known failures | ❌ No conformance suite |
-| Readable generated code | ✅ | ❌ Classes are built only at runtime and cannot be inspected | ✅ |
-| Imports | ✅ Relative imports | ❌ Broken without third-party tooling | ✅ Relative imports |
-| Oneofs | ✅ Ergonomic, `match`-compatible | ❌ String-returning `WhichOneof()` | ⚠️ Tuple-returning helpers |
-| Enums | ✅ Python-native `IntEnum` | ❌ `int` + `EnumTypeWrapper` | ⚠️ Custom int subclass |
-| Field presence | ✅ `msg.has_field("x")` with IDE completions | ⚠️ `HasField("x")` raises for proto3 scalars | ⚠️ Helper-based |
-| Field assignment (`foo.x = 123`) | ✅ Direct assignment | ❌ `CopyFrom()` required | ✅ Direct assignment |
-| `copy.copy()` / `copy.replace()` | ✅ | ❌ | ❌ |
-| Global mutable registry | ✅ Explicit `Registry` | ❌ Process-wide singleton behavior | ✅ N/A |
-| Zero dependencies | ✅ | ✅ | ❌ Includes `grpclib`, `python-dateutil`, `typing-extensions` |
+|                                  | `protobuf-py`                                                  | `google-protobuf`                                            | `betterproto`                                                 |
+| -------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------- |
+| Spec coverage                    | ✅ Full (proto2, proto3, editions, extensions, custom options) | ✅ Full                                                      | ❌ Partial (proto3-only)                                      |
+| Type annotations                 | ✅ Built-in                                                    | ❌ Third-party tooling needed                                | ✅ Built-in                                                   |
+| Conformance tests                | ✅ 100% pass rate                                              | ⚠️ Contains known failures                                   | ❌ No conformance suite                                       |
+| Readable generated code          | ✅                                                             | ❌ Classes are built only at runtime and cannot be inspected | ✅                                                            |
+| Imports                          | ✅ Relative imports                                            | ❌ Broken without third-party tooling                        | ✅ Relative imports                                           |
+| Oneofs                           | ✅ Ergonomic, `match`-compatible                               | ❌ String-returning `WhichOneof()`                           | ⚠️ Tuple-returning helpers                                    |
+| Enums                            | ✅ Python-native `IntEnum`                                     | ❌ `int` + `EnumTypeWrapper`                                 | ⚠️ Custom int subclass                                        |
+| Field presence                   | ✅ `msg.has_field("x")` with IDE completions                   | ⚠️ `HasField("x")` raises for proto3 scalars                 | ⚠️ Helper-based                                               |
+| Field assignment (`foo.x = 123`) | ✅ Direct assignment                                           | ❌ `CopyFrom()` required                                     | ✅ Direct assignment                                          |
+| `copy.copy()` / `copy.replace()` | ✅                                                             | ❌                                                           | ❌                                                            |
+| Global mutable registry          | ✅ Explicit `Registry`                                         | ❌ Process-wide singleton behavior                           | ✅ N/A                                                        |
+| Zero dependencies                | ✅                                                             | ✅                                                           | ❌ Includes `grpclib`, `python-dateutil`, `typing-extensions` |
 
 ## Quickstart
 
@@ -156,14 +156,14 @@ for field in user:
 
 ## Migration
 
-| `google-protobuf` | `protobuf-py` |
-|---|---|
-| `msg.SerializeToString()` | `msg.to_binary()` |
-| `MessageType.FromString(data)` | `MessageType.from_binary(data)` |
-| `msg.HasField("nickname")` | `msg.has_field("nickname")` |
+| `google-protobuf`                          | `protobuf-py`                         |
+| ------------------------------------------ | ------------------------------------- |
+| `msg.SerializeToString()`                  | `msg.to_binary()`                     |
+| `MessageType.FromString(data)`             | `MessageType.from_binary(data)`       |
+| `msg.HasField("nickname")`                 | `msg.has_field("nickname")`           |
 | `msg.WhichOneof("result")` + string checks | `match msg.result` with typed `Oneof` |
-| `msg.Extensions[ext]` | `msg[ext]` |
-| `msg.child.CopyFrom(other)` | `msg.child = other` |
+| `msg.Extensions[ext]`                      | `msg[ext]`                            |
+| `msg.child.CopyFrom(other)`                | `msg.child = other`                   |
 
 ## Documentation
 
@@ -182,6 +182,7 @@ for field in user:
 - [`protobuf-py`](https://pypi.org/project/protobuf-py/): The runtime library. Contains base types, generated well-known types, and serialization.
 - [`protoc-gen-py`](https://pypi.org/project/protoc-gen-py/): The code generator plugin. Generates Python code that depends on `protobuf-py`.
 - [`protobuf-py-ext`](https://pypi.org/project/protobuf-py-ext/): The optional native extension for high performance. Used transparently when installed.
+- [`protoc-gen-grpc-py`](https://pypi.org/project/protoc-gen-grpc-py/): code generator plugin that emits fully-typed [gRPC-Python](https://pypi.org/project/grpcio/) stubs that use `protobuf-py` messages.
 
 ### Native extension platform support
 
@@ -211,7 +212,6 @@ $ uv add protobuf-py-ext
 
 When your project is synced on a non-supported platform, Rust will automatically be invoked to build the
 extension package and it will be used with no other steps.
-
 
 ## Compatibility
 
