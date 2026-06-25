@@ -57,6 +57,25 @@ $ uv run protoc --proto_path proto \
 
 A `*_pb_grpc.py` file is generated only for proto files that declare a service. The plugin does not emit `__init__.py` files; let `protoc-gen-py` manage those.
 
+## Plugin options
+
+### `io`
+
+Controls which flavor of code is generated:
+
+- unset (default): generate both asynchronous (`grpc.aio`) and synchronous (`grpc`) code;
+- `io=async`: generate only asynchronous code;
+- `io=sync`: generate only synchronous code.
+
+For example, in `buf.gen.yaml`:
+
+```yaml
+plugins:
+  - local: protoc-gen-grpc-py
+    out: src/gen
+    opt: io=async
+```
+
 ## Example
 
 See the [gRPC example](https://github.com/bufbuild/protobuf-py/tree/main/examples/grpc) for a complete client and server using the generated stubs.
