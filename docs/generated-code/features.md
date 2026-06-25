@@ -10,6 +10,8 @@ for service in example_pb.desc().services:
     print(service.type_name)
 ```
 
+For RPC clients and servers built on `protobuf-py`, see [Connect for Python](https://github.com/connectrpc/connect-py).
+
 ## Comments
 
 Comments in `.proto` files become docstrings on the generated Python classes and attributes:

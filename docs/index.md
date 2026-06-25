@@ -60,3 +60,8 @@ print(same.to_json())
 **Zero dependencies.** The whole thing runs on Python 3.10+.
 
 [Get started](./getting-started/installation.md)
+
+## Building RPC APIs
+
+`protobuf-py` gives you the message types. To turn your services into working RPC clients and servers, reach for [Connect for Python](https://github.com/connectrpc/connect-py). It builds directly on `protobuf-py` and is the best way to build APIs.
+
