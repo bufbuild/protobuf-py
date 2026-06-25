@@ -188,10 +188,6 @@ jobs:
         run: uv build
         working-directory: packages/protoc-gen-py
 
-      - name: build protoc-gen-grpc-py
-        run: uv build
-        working-directory: packages/protoc-gen-grpc-py
-
       - name: publish all packages
         if: github.event_name != 'pull_request'
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
