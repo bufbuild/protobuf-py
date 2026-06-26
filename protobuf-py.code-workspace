@@ -9,10 +9,6 @@
       "path": "./packages/bench",
     },
     {
-      "name": "example-grpc",
-      "path": "./examples/grpc",
-    },
-    {
       "name": "example-plugin",
       "path": "./examples/plugin",
     },
@@ -23,10 +19,6 @@
     {
       "name": "license-header",
       "path": "./packages/license-header",
-    },
-    {
-      "name": "protoc-gen-grpc-py",
-      "path": "./packages/protoc-gen-grpc-py",
     },
     {
       "name": "protoc-gen-py",

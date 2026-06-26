@@ -36,7 +36,6 @@ dev = [
   "example",
   "example-plugin",
   "license-header",
-  "protoc-gen-grpc-py",
   "protoc-gen-py",
   "upstream-protobuf",
 
@@ -67,13 +66,6 @@ dev = [
 ]
 docs = ["mkdocstrings-python==2.0.5", "zensical==0.0.46"]
 
-# grpcio ships no wheels for PyPy or free-threaded CPython, so we do not include
-# dependencies on it in the default sync.
-grpc = [
-  "example-grpc",
-  "grpcio==1.81.1 ; platform_python_implementation != 'PyPy'",
-]
-
 [build-system]
 requires = ["uv_build>=0.11.2,<0.12"]
 build-backend = "uv_build"
@@ -85,9 +77,6 @@ year-range = "2025-2026"
 ignore = [
   "**/bench/proto/**",  # External protos
   "**/bench/src/bench/gen/**",  # Generated from external protos
-  "**/example_grpc/_eliza.py",  # Ported third-party code (see file header)
-  "**/examples/grpc/proto/**",  # Third-party protos (connectrpc eliza)
-  "**/protoc-gen-grpc-py/proto/**",  # Third-party protos (haberdasher)
 ]
 
 ## Poe
@@ -107,10 +96,8 @@ help = "Generate all proto files (except well-known types - see bootstrap)"
 sequence = [
   "generate-test",
   "generate-conformance",
-  "generate-grpc-py",
   "generate-example",
-  "generate-example-grpc",
-  "generate-example-plugin"
+  "generate-example-plugin",
 ]
 
 [tool.poe.tasks.generate-test]
@@ -128,26 +115,12 @@ sequence = [
   { cmd = "license-header tests/conformance/gen" },
 ]
 
-[tool.poe.tasks.generate-grpc-py]
-help = "Generate the protoc-gen-grpc-py test protos (haberdasher) with buf"
-sequence = [
-  { shell = "buf generate", cwd = "packages/protoc-gen-grpc-py" },
-  { cmd = "license-header packages/protoc-gen-grpc-py/tests/gen" },
-]
-
 [tool.poe.tasks.generate-example]
 help = "Generate examples/protobuf/proto with buf"
 # buf generate does not add license headers
 sequence = [
   { shell = "buf generate", cwd = "examples/protobuf" },
   { cmd = "license-header examples/protobuf/src/example/gen" },
-]
-
-[tool.poe.tasks.generate-example-grpc]
-help = "Generate examples/grpc/proto with buf"
-sequence = [
-  { shell = "buf generate", cwd = "examples/grpc" },
-  { cmd = "license-header examples/grpc/src/example_grpc/gen" },
 ]
 
 [tool.poe.tasks.generate-example-plugin]
@@ -167,17 +140,6 @@ sequence = [
   "test-example-plugin",
 ]
 
-# grpcio has no PyPy/free-threaded wheels, so the grpc tests are a separate task
-[tool.poe.tasks.test-grpc]
-help = "Run the grpc stub tests and example"
-sequence = ["test-grpc-py", "test-example-grpc"]
-
-[tool.poe.tasks.test-grpc-py]
-help = "Run the protoc-gen-grpc-py stub tests"
-cwd = "packages/protoc-gen-grpc-py"
-# Use uv run to ensure packages are built before running
-cmd = "uv run pytest"
-
 [tool.poe.tasks.test-bench]
 help = "Run unit tests for the bench harness. We run a subset of useful tests that aren't too slow."
 cmd = "pytest -k test_fleetbench"
@@ -190,12 +152,6 @@ cmd = "pytest"
 [tool.poe.tasks.test-example]
 help = "Run unit tests for the example"
 cwd = "examples/protobuf"
-# Use uv run to ensure package is built before running
-cmd = "uv run pytest"
-
-[tool.poe.tasks.test-example-grpc]
-help = "Run unit tests for the grpc example"
-cwd = "examples/grpc"
 # Use uv run to ensure package is built before running
 cmd = "uv run pytest"
 
@@ -264,12 +220,10 @@ help = "Lint types with ty"
 # https://github.com/astral-sh/ty/issues/819
 sequence = [
   { cmd = "ty check --project examples/protobuf" },
-  { cmd = "ty check --project examples/grpc" },
   { cmd = "ty check --project examples/plugin" },
   { cmd = "ty check --project packages/bench" },
   { cmd = "ty check --project packages/license-header" },
   { cmd = "ty check --project packages/protoc-gen-py" },
-  { cmd = "ty check --project packages/protoc-gen-grpc-py" },
   { cmd = "ty check --project packages/upstream-protobuf" },
   { cmd = "ty check" },
 ]
@@ -454,10 +408,6 @@ ignore = [
   "S101",  # assert is expected in tests
 ]
 "examples/**/*.py" = ["D100", "D104"]
-# Service implementations override generated, already-documented base methods and
-# are not required to use the gRPC context argument.
-"examples/grpc/src/example_grpc/eliza_service*.py" = ["ARG002", "D102", "D107"]
-"packages/protoc-gen-grpc-py/tests/test_haberdasher.py" = ["ARG002"]
 
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]
@@ -482,7 +432,6 @@ exclude = [
   "packages/bench",
   "packages/license-header",
   "packages/protoc-gen-py",
-  "packages/protoc-gen-grpc-py",
   "packages/upstream-protobuf",
 ]
 
@@ -498,10 +447,8 @@ module-name = ["protobuf"]
 [tool.uv.sources]
 protobuf-py = { workspace = true }
 protoc-gen-py = { workspace = true }
-protoc-gen-grpc-py = { workspace = true }
 upstream-protobuf = { workspace = true }
 example = { workspace = true }
-example-grpc = { workspace = true }
 example-plugin = { workspace = true }
 license-header = { workspace = true }
 protobuf-py-ext = { workspace = true }
@@ -511,11 +458,9 @@ protobuf-py-bench = { workspace = true }
 members = [
   "packages/protobuf-py-ext",
   "packages/protoc-gen-py",
-  "packages/protoc-gen-grpc-py",
   "packages/bench",
   "packages/upstream-protobuf",
   "packages/license-header",
   "examples/protobuf",
-  "examples/grpc",
   "examples/plugin",
 ]
