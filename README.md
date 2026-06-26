@@ -176,6 +176,7 @@ for field in user:
 - [Writing plugins](https://protobufpy.com/writing-plugins/)
 - [API reference](https://protobufpy.com/api/)
 - [Code example](./examples/protobuf) — A working example that uses Protobuf to manage a persistent list of users.
+- [Connect for Python](https://github.com/connectrpc/connect-py) — RPC clients and servers built on `protobuf-py`.
 
 ## Packages
 
