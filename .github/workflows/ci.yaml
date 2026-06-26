@@ -82,7 +82,7 @@ jobs:
         with:
           version: "0.11.23"
           python-version: "3.10"
-      - run: uv sync --locked --all-groups
+      - run: uv sync --locked
       - run: uv run poe lint
       - run: uv run poe format
       - run: uv run poe generate
