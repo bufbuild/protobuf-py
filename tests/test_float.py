@@ -13,7 +13,10 @@
 # limitations under the License.
 from __future__ import annotations
 
+import sys
 from math import copysign
+
+import pytest
 
 from .gen.messages_pb import ImplicitFields
 
@@ -30,3 +33,14 @@ def test_negative_zero() -> None:
     assert (
         copysign(1, ImplicitFields.from_binary(negative.to_binary()).float_field) == -1
     )
+
+
+def test_int_coerced() -> None:
+    msg = ImplicitFields(float_field=1)
+    assert ImplicitFields.from_binary(msg.to_binary()).float_field == 1.0
+
+
+def test_int_out_of_range() -> None:
+    msg = ImplicitFields(float_field=int(sys.float_info.max) * 10)
+    with pytest.raises(OverflowError):
+        msg.to_binary()
