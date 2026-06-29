@@ -37,6 +37,7 @@ class UserHandler(UserService):
     async def get_user(self, request: GetUserRequest, ctx: RequestContext) -> GetUserResponse:
         return GetUserResponse(user=User(first_name="Alice", active=True))
 
+# Serve it with any ASGI server, e.g. `uvicorn server:app`.
 app = UserServiceASGIApplication(UserHandler())
 ```
 
