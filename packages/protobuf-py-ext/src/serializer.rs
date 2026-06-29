@@ -726,7 +726,8 @@ fn validate_is_int(value: &Bound<'_, PyAny>) -> PyResult<()> {
 /// Validates that a Python value is a float.
 fn validate_is_float(value: &Bound<'_, PyAny>) -> PyResult<()> {
     value
-        .cast::<PyFloat>()
+        // Extract instead of exact type-cast so ints are also handled
+        .extract::<f64>()
         .map_err(|_| PyTypeError::new_err(format!("expected float, got {}", value.get_type())))?;
     Ok(())
 }
