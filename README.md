@@ -11,21 +11,33 @@
 100% Protobuf conformance with full support for proto2, proto3, and editions. Generated code is readable, typed, and works out of the box with no dependencies or extra tooling required. Native Rust module for high-performance encoding/decoding.
 
 ```python
-import copy
 from gen.example_pb import User
 
-user = User(
-    first_name="Alice",
-    last_name="Smith",
-    active=True,
-    locations=["NYC", "LDN"],
-    projects={"atlas": "infra"},
-)
-wire = user.to_binary()
-round_trip = User.from_binary(wire)
-print(round_trip.to_json())
-print(round_trip.has_field("first_name"))
-updated = copy.replace(round_trip, active=False)  # Python 3.13+
+# Messages are plain Python objects: pass fields as keyword args, or set them later.
+user = User(first_name="Alice", last_name="Smith", active=True)
+user.locations = ["NYC", "LDN"]
+
+# Serialize to the Protobuf wire format, then parse it back.
+data = user.to_binary()
+user = User.from_binary(data)
+
+print(user.first_name)  # Alice
+print(user.to_json())   # {"firstName": "Alice", "lastName": "Smith", ...}
+```
+
+The easiest way to build services with `protobuf-py` is with [Connect for Python](https://github.com/connectrpc/connect-py):
+
+```python
+from connectrpc.request import RequestContext
+
+from gen.example_connect import UserService, UserServiceASGIApplication
+from gen.example_pb import GetUserRequest, GetUserResponse, User
+
+class UserHandler(UserService):
+    async def get_user(self, request: GetUserRequest, ctx: RequestContext) -> GetUserResponse:
+        return GetUserResponse(user=User(first_name="Alice", active=True))
+
+app = UserServiceASGIApplication(UserHandler())
 ```
 
 ## How it compares
