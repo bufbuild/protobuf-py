@@ -53,7 +53,7 @@ class UserHandler(UserService):
 app = UserServiceASGIApplication(UserHandler())
 ```
 
-Connect will also generate client libraries for **every major language**, including your frontend. Here's what the generated Python client looks like:
+Connect can also generate client libraries for **every major language**, including your frontend. Here's what the generated Python client looks like:
 
 ```python
 from gen.user_connect import UserServiceClient
