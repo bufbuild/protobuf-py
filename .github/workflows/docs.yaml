@@ -31,7 +31,7 @@ jobs:
       - run: uv run --group docs --no-dev zensical build --clean --strict
 
       - name: deploy preview
-        if: github.event_name == 'pull_request' && !github.event.repository.fork
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
           curl -sS --fail-with-body -X POST "https://api.vercel.com/v13/deployments?teamId=${{ secrets.VERCEL_ORG_ID }}&forceNew=1" \
             -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
