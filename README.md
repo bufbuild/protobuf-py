@@ -34,8 +34,7 @@ print(user.first_name)  # Alice
 print(user.to_json())   # {"firstName": "Alice", "lastName": "Smith", ...}
 ```
 
-Protobuf is the easiest way to build services, with generated server stubs and generated clients in every language. <br/>
-We recommend [Connect for Python](https://github.com/connectrpc/connect-py):
+Protobuf is the easiest way to build services, with generated server stubs and clients in every language. We recommend [Connect for Python](https://github.com/connectrpc/connect-py):
 
 ```python
 from connectrpc.request import RequestContext
@@ -115,7 +114,10 @@ class User(Message[_UserFields]):
     __slots__ = ("first_name", "last_name", "active")
 
     def __init__(
-        self, *, first_name: str = "", last_name: str = "", active: bool = False,
+        self, *,
+        first_name: str = "",
+        last_name: str = "",
+        active: bool = False,
     ) -> None:
         ...
 
