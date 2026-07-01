@@ -24,8 +24,11 @@ DURATION_SECONDS_MAX = 315_576_000_000
 NANOS_PER_SECOND_MAX = 999_999_999
 """Maximum nanosecond value within a second."""
 
-EPOCH_DATETIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
+EPOCH_DATETIME_NAIVE = datetime(1970, 1, 1, tzinfo=None)
 """Epoch represented in datetime."""
+
+EPOCH_DATETIME_AWARE = EPOCH_DATETIME_NAIVE.replace(tzinfo=timezone.utc)
+"""Epoch represented in datetime with UTC timezone."""
 
 MICROSECOND_DELTA = timedelta(microseconds=1)
 """One microsecond represented in timedelta."""

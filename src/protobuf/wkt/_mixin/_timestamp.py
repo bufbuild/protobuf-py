@@ -13,12 +13,13 @@
 # limitations under the License.
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, tzinfo
 from time import time_ns
 from typing import TYPE_CHECKING, TypeVar
 
 from ._const import (
-    EPOCH_DATETIME,
+    EPOCH_DATETIME_AWARE,
+    EPOCH_DATETIME_NAIVE,
     MAX_NANOS,
     MICROSECOND_DELTA,
     MIN_NANOS,
@@ -55,14 +56,27 @@ class TimestampMixin:
     def from_datetime(cls: type[Self], dt: datetime, /) -> Self:
         """Create from the given datetime."""
         return cls.from_nanos(
-            ((dt.astimezone(timezone.utc) - EPOCH_DATETIME) // MICROSECOND_DELTA) * 1000
+            ((dt.astimezone(timezone.utc) - EPOCH_DATETIME_AWARE) // MICROSECOND_DELTA) * 1000
         )
 
-    def to_datetime(self) -> datetime:
-        """Convert to a datetime."""
-        return EPOCH_DATETIME + timedelta(
-            seconds=self.seconds, microseconds=round(self.nanos / 1000)
-        )
+    def to_datetime(self, tzinfo: tzinfo | None = None) -> datetime:
+        """Convert to a datetime.
+
+        Args:
+            tzinfo: A datetime.tzinfo subclass; defaults to None.
+
+        Returns:
+            If tzinfo is None, returns a timezone-naive UTC datetime (with no timezone
+            information, i.e. not aware that it's UTC).
+
+            Otherwise, returns a timezone-aware datetime in the input timezone.
+        """
+        delta = timedelta(seconds=self.seconds, microseconds=round(self.nanos / 1000)
+
+        if tzinfo is None:
+            return EPOCH_DATETIME_NAIVE + delta
+        else:
+            return (EPOCH_DATETIME_AWARE + delta).astimezone(tzinfo)
 
     def to_nanos(self) -> int:
         """Convert to the number of nanoseconds since Unix epoch 1970-01-01T00:00:00Z.
