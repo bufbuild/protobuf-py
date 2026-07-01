@@ -149,46 +149,119 @@ that can be accessed as before.
 
 Naturally, there is no real use case for the above code that immediately parses
 the serialized data in the same function. But now, you can instead send it to
-a different server entirely. Let's try it with [uvicorn](https://uvicorn.dev),
-[Starlette](https://starlette.dev/), and [HTTPX](https://www.python-httpx.org/).
+a different server entirely. We could send the bytes over HTTP by hand, but
+serializing data for transport is exactly the problem that an RPC framework
+solves for us. We'll use [Connect for Python](https://connectrpc.com/docs/python/getting-started/),
+which builds directly on `protobuf-py` and generates typed clients and servers
+from a schema, just like `protoc-gen-py` generated our message classes.
+
+First, describe the operation we want to expose as a *service* with an RPC
+method. Create `proto/user_service.proto`.
+
+```proto title="proto/user_service.proto"
+syntax = "proto3";
+
+import "user.proto";
+
+service UserService {
+  rpc DeactivateUser(User) returns (User);
+}
+```
+
+A service is a collection of RPC methods, and each method declares the message
+it accepts and the message it returns. Here `DeactivateUser` takes a `User` and
+returns a `User`.
+
+Add the Connect runtime and an ASGI server to the project, along with the
+`protoc-gen-connectrpc` plugin for code generation.
 
 ```shellsession
-$ uv add uvicorn starlette httpx
+$ uv add connectrpc uvicorn
+$ uv add --dev protoc-gen-connectrpc
 ```
+
+Now add the Connect plugin to `buf.gen.yaml` so `buf` generates service code
+alongside the message code.
+
+```yaml title="buf.gen.yaml"
+version: v2
+inputs:
+  - directory: proto
+plugins:
+  - local: protoc-gen-py
+    out: gen
+  - local: protoc-gen-connectrpc
+    out: gen
+```
+
+Regenerate.
+
+```shellsession
+$ uv run buf generate
+```
+
+This adds `gen/user_service_connect.py` next to the message code. Let's look at
+the pieces it generates (abbreviated).
+
+```python title="gen/user_service_connect.py"
+class UserService(Protocol):
+    async def deactivate_user(self, request: User, ctx: RequestContext[User, User]) -> User:
+        raise ConnectError(Code.UNIMPLEMENTED, 'Not implemented')
+
+
+class UserServiceASGIApplication(ConnectASGIApplication[UserService]):
+    ...
+
+
+class UserServiceClient(ConnectClient):
+    async def deactivate_user(
+        self,
+        request: User,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> User:
+        ...
+```
+
+`UserService` is the interface a server implements - one typed method per RPC,
+using our generated `User` message. `UserServiceASGIApplication` wraps an
+implementation as a standard [ASGI](https://asgi.readthedocs.io/) app so it can
+be served by any ASGI server. `UserServiceClient` is a fully-typed client that
+speaks to the server. (Synchronous `UserServiceClientSync` and WSGI variants are
+generated too.)
+
+Let's implement the service and call it. Update `main.py`.
 
 ```python title="main.py"
 import asyncio
 
-from httpx import AsyncClient
-from starlette.applications import Starlette
-from starlette.routing import Route
-from starlette.requests import Request
-from starlette.responses import Response
 import uvicorn
+from connectrpc.request import RequestContext
 
 from gen.user_pb import User
+from gen.user_service_connect import (
+    UserService,
+    UserServiceASGIApplication,
+    UserServiceClient,
+)
 
-async def deactivate_user(request: Request):
-    body = await request.body()
-    user = User.from_binary(body)
-    user.active = False
-    return Response(content=user.to_binary(), media_type="application/proto")
+class UserServiceImpl(UserService):
+    async def deactivate_user(self, request: User, ctx: RequestContext) -> User:
+        request.active = False
+        return request
 
 async def main():
-    app = Starlette(routes=[Route("/deactivate_user", deactivate_user, methods=["POST"])])
+    app = UserServiceASGIApplication(UserServiceImpl())
     server = uvicorn.Server(uvicorn.Config(app, log_level="warning"))
     server_task = asyncio.create_task(server.serve())
+    while not server.started:
+        await asyncio.sleep(0.01)
 
-    client = AsyncClient()
-    user = User(first_name="Yogi", last_name="Bear", active=True)
-    serialized_user = user.to_binary()
-    res = await client.post(
-        "http://localhost:8000/deactivate_user",
-        content=serialized_user,
-        headers={"Content-Type": "application/proto"}
-    )
-    user2 = User.from_binary(res.content)
-    print(user2)
+    async with UserServiceClient("http://localhost:8000") as client:
+        user = User(first_name="Yogi", last_name="Bear", active=True)
+        user2 = await client.deactivate_user(user)
+        print(user2)
 
     server.should_exit = True
     await server_task
@@ -202,10 +275,13 @@ $ uv run python main.py
 User(first_name='Yogi', last_name='Bear')
 ```
 
-We can see the user was able to be sent to the server, which returned it with
-a modification. While both the server and client are Python in this example, because
-plugins can be configured to generate for other languages, very similar code would
-work to send the data from a Python client to a Go server for example.
+We never wrote any serialization or HTTP code - the client took a `User`, the
+server received a `User`, returned it with a modification, and the client got a
+`User` back. Connect handled serializing the messages to the binary format and
+back over the wire for us. While both the server and client are Python in this
+example, because plugins can be configured to generate for other languages, the
+same schema can produce a Connect client or server in another language - so a
+Python client could call a Go server, for example.
 
 Protobuf also supports serializing to JSON. While it is less performant
 than the binary format, it can be useful when needing a human readable representation,
