@@ -10,7 +10,7 @@
 )](https://github.com/bufbuild/protobuf-py/blob/main/LICENSE)
 [![Slack](https://img.shields.io/badge/slack-buf-%23e01e5a?style=flat-square)](https://buf.build/links/slack)
 
-`protobuf-py` is an ergonomic Protobuf library for Python, **designed for humans**.
+`protobuf-py` is an **ergonomic and modern Protobuf library** for Python.
 
 Well-typed, generated code you can read. High-performance encoder/decoder written in Rust. 100% conformance. <br />
 Zero dependencies or tooling required.
