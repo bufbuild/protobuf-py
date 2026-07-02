@@ -38,6 +38,19 @@ plugins:
 ```
 
 This tells `buf` to read `.proto` files from the `proto/` directory and write generated Python files to `src/gen/`.
+By default, `__init__.py` files are populated to create standard Python packages. To create namespace packages
+without them, set the `init_files=false` option.
+
+
+```yaml title="buf.gen.yaml"
+version: v2
+inputs:
+  - directory: proto
+plugins:
+  - local: protoc-gen-py
+    out: src/gen
+    opt: init_files=false
+```
 
 ## Generate
 
