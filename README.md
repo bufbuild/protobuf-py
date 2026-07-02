@@ -16,8 +16,8 @@ Well-typed, generated code you can read. High-performance encoder/decoder writte
 Zero dependencies or tooling required.
 
 [Getting started](https://protobufpy.com/getting-started/installation/) •
-[Examples](https://example.com) •
-[New to Protobuf?](https://example.com)
+[Examples](https://github.com/bufbuild/protobuf-py/tree/main/examples/protobuf) •
+[New to Protobuf?](https://github.com/bufbuild/protobuf-py/blob/main/docs/tutorial.md)
 
 </div>
 
