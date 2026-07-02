@@ -4,9 +4,8 @@
 
 # protobuf-py
 
-[![PyPI version](https://img.shields.io/pypi/v/protobuf-py?style=flat-square
-)](https://pypi.org/project/protobuf-py)
-[![License](https://img.shields.io/github/license/bufbuild/protobuf-py?style=flat-square
+[![PyPI version](https://img.shields.io/pypi/v/protobuf-py?style=flat-square)](https://pypi.org/project/protobuf-py)
+[![License](https://img.shields.io/pypi/l/protobuf-py?style=flat-square
 )](https://github.com/bufbuild/protobuf-py/blob/main/LICENSE)
 [![Slack](https://img.shields.io/badge/slack-buf-%23e01e5a?style=flat-square)](https://buf.build/links/slack)
 
