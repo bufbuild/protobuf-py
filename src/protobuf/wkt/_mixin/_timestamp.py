@@ -13,13 +13,12 @@
 # limitations under the License.
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone, tzinfo
+from datetime import datetime, timedelta, timezone
 from time import time_ns
 from typing import TYPE_CHECKING, TypeVar
 
 from ._const import (
-    EPOCH_DATETIME_AWARE,
-    EPOCH_DATETIME_NAIVE,
+    EPOCH_DATETIME,
     MAX_NANOS,
     MICROSECOND_DELTA,
     MIN_NANOS,
@@ -54,29 +53,46 @@ class TimestampMixin:
 
     @classmethod
     def from_datetime(cls: type[Self], dt: datetime, /) -> Self:
-        """Create from the given datetime."""
+        """Create from the given datetime.
+
+        Examples:
+            >>> from datetime import datetime, timezone, timedelta
+            >>> from protobuf.wkt import Timestamp
+            >>> Timestamp.from_datetime(datetime(1970, 1, 1, tzinfo=timezone.utc))
+            Timestamp()
+            >>> Timestamp.from_datetime(
+            ...     datetime(1970, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
+            ... )
+            Timestamp(seconds=10)
+            >>> Timestamp.from_datetime(
+            ...     datetime(
+            ...         1970, 1, 1, tzinfo=timezone(timedelta(hours=5, minutes=30))
+            ...     )
+            ... )
+            Timestamp(seconds=-19800)
+        """
         return cls.from_nanos(
-            ((dt.astimezone(timezone.utc) - EPOCH_DATETIME_AWARE) // MICROSECOND_DELTA) * 1000
+            ((dt.astimezone(timezone.utc) - EPOCH_DATETIME) // MICROSECOND_DELTA) * 1000
         )
 
-    def to_datetime(self, tzinfo: tzinfo | None = None) -> datetime:
-        """Convert to a datetime.
+    def to_datetime(self) -> datetime:
+        """Convert to a UTC datetime with timezone set.
 
-        Args:
-            tzinfo: A datetime.tzinfo subclass; defaults to None.
+        To convert to a different timezone, use `datetime.astimezone()` on the result.
 
-        Returns:
-            If tzinfo is None, returns a timezone-naive UTC datetime (with no timezone
-            information, i.e. not aware that it's UTC).
-
-            Otherwise, returns a timezone-aware datetime in the input timezone.
+        Examples:
+            >>> from datetime import timezone, timedelta
+            >>> from protobuf.wkt import Timestamp
+            >>> Timestamp(seconds=10).to_datetime()
+            datetime.datetime(1970, 1, 1, 0, 0, 10, tzinfo=datetime.timezone.utc)
+            >>> Timestamp(seconds=10).to_datetime().astimezone(
+            ...     timezone(timedelta(hours=5, minutes=30))
+            ... )
+            datetime.datetime(1970, 1, 1, 5, 30, 10, tzinfo=datetime.timezone(datetime.timedelta(seconds=19800)))
         """
-        delta = timedelta(seconds=self.seconds, microseconds=round(self.nanos / 1000)
-
-        if tzinfo is None:
-            return EPOCH_DATETIME_NAIVE + delta
-        else:
-            return (EPOCH_DATETIME_AWARE + delta).astimezone(tzinfo)
+        return EPOCH_DATETIME + timedelta(
+            seconds=self.seconds, microseconds=round(self.nanos / 1000)
+        )
 
     def to_nanos(self) -> int:
         """Convert to the number of nanoseconds since Unix epoch 1970-01-01T00:00:00Z.
