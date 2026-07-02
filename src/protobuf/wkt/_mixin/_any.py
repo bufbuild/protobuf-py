@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar, cast, overload
 
 from protobuf import DescMessage, Message
 
@@ -54,12 +54,18 @@ class AnyMixin:
                 type_name = type_info._desc.type_name
         return type_name == type_url_to_name(self.type_url)
 
-    def unpack(self, type_info: DescMessage | type[T]) -> T | None:
+    @overload
+    def unpack(self, type_info: DescMessage, /) -> Message | None: ...
+
+    @overload
+    def unpack(self, type_info: type[T], /) -> T | None: ...
+
+    def unpack(self, type_info: DescMessage | type[T], /) -> T | None:
         """Unpacks the message the Any represents.
 
         Returns:
-            Returns None if the Any is empty, or if it does not contain the type
-            given by schema. Otherwise, the unpacked message.
+            The unpacked message, or None if the Any is empty or does
+                not contain the type given by schema.
         """
         if not self.is_type(type_info):
             return None
