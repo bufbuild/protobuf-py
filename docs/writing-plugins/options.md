@@ -35,7 +35,7 @@ Supported field types: `str`, `bool`, `int`, `float`, `Literal[...]`, `StrEnum`,
 
 ## Framework-reserved options
 
-The framework reserves certain option names for all plugins, currently: `no_fmt_off`.
+The framework reserves certain option names for all plugins, currently: `no_fmt_off` and `escape_module_with_hash`.
 If your `Options` dataclass defines a field with a reserved name, `run()` raises a `ValueError`.
 
 ### no_fmt_off
@@ -48,6 +48,19 @@ plugins:
   - local: protoc-gen-hello
     out: src/gen
     opt: no_fmt_off
+```
+
+### escape_module_with_hash
+
+Module names are derived from proto file paths, and characters that aren't valid in a Python module name (such as `.` or `-`) are replaced with underscores.
+That replacement can cause separate proto files to map to the same module name.
+When set, this option appends a short hash suffix, derived from the original unsanitized name, to avoid those collisions:
+
+```yaml title="buf.gen.yaml"
+plugins:
+  - local: protoc-gen-hello
+    out: src/gen
+    opt: escape_module_with_hash
 ```
 
 ## Example: Sensitive fields plugin

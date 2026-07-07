@@ -69,8 +69,8 @@ class File(Protocol):
                 - `int`/`float`/`bool` as literals.
                 - `bytes` as a bytes literal.
                 - `Ident` as an imported name.
-                - `ScalarType`, `DescMessage`, `DescEnum`, or
-                  `DescExtension` as imported symbols.
+                - `ScalarType`, `DescMessage`, `DescEnum`,
+                  `DescExtension`, or `DescFile` as imported symbols.
                 - `list` values are recursively flattened.
                 - Other values are formatted with `f"{arg}"`.
         """
