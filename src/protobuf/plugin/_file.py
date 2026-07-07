@@ -69,8 +69,10 @@ class File(Protocol):
                 - `int`/`float`/`bool` as literals.
                 - `bytes` as a bytes literal.
                 - `Ident` as an imported name.
-                - `ScalarType`, `DescMessage`, `DescEnum`,
-                  `DescExtension`, or `DescFile` as imported symbols.
+                - `ScalarType` as its Python type name (e.g. `int`, `str`).
+                - `DescMessage`, `DescEnum`, or `DescExtension` as an
+                  imported symbol.
+                - `DescFile` as an imported module reference.
                 - `list` values are recursively flattened.
                 - Other values are formatted with `f"{arg}"`.
         """
