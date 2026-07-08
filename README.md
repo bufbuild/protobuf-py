@@ -196,13 +196,13 @@ for field in user:
 
 ## Migration guide
 
-| `google-protobuf`                          | `protobuf-py`                         |
-| ------------------------------------------ | ------------------------------------- |
-| `msg.SerializeToString()`                  | `msg.to_binary()`                     |
-| `MessageType.FromString(data)`             | `MessageType.from_binary(data)`       |
-| `text_format.MessageToString(msg)`         | `protobuf.txtpb.to_text(msg)`         |
+| `google-protobuf`                          | `protobuf-py`                                 |
+| ------------------------------------------ | --------------------------------------------- |
+| `msg.SerializeToString()`                  | `msg.to_binary()`                             |
+| `MessageType.FromString(data)`             | `MessageType.from_binary(data)`               |
+| `text_format.MessageToString(msg)`         | `protobuf.txtpb.to_text(msg)`                 |
 | `text_format.Parse(text, msg)`             | `protobuf.txtpb.from_text(MessageType, text)` |
-| `msg.HasField("nickname")`                 | `msg.has_field("nickname")`           |
-| `msg.WhichOneof("result")` + string checks | `match msg.result` with typed `Oneof` |
-| `msg.Extensions[ext]`                      | `msg[ext]`                            |
-| `msg.child.CopyFrom(other)`                | `msg.child = other`                   |
+| `msg.HasField("nickname")`                 | `msg.has_field("nickname")`                   |
+| `msg.WhichOneof("result")` + string checks | `match msg.result` with typed `Oneof`         |
+| `msg.Extensions[ext]`                      | `msg[ext]`                                    |
+| `msg.child.CopyFrom(other)`                | `msg.child = other`                           |
