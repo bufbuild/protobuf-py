@@ -77,7 +77,7 @@ Deserialization uses merge semantics: parsing into an existing message overwrite
 
 ProtoJSON serialization and deserialization are complete, including the special encodings required for well-known types like `Timestamp`, `Any`, `Struct`, `Duration`, `FieldMask`, `Value`, and `ListValue`.
 
-The [text format](https://protobuf.dev/reference/protobuf/textformat-spec/) is supported for debugging, tests, and config files (`.txtpb`). Output follows the default formatting of [txtpbfmt](https://github.com/protocolbuffers/txtpbfmt); where the text-format spec leaves details open, behavior matches protobuf-go's `prototext` package, like protobuf-es. All three formats pass the upstream conformance suite.
+The [text format](https://protobuf.dev/reference/protobuf/textformat-spec/) is supported for debugging, tests, and config files (`.txtpb`), via free functions in `protobuf.txtpb` (`to_text`/`from_text`/`merge_from_text`) rather than `Message` methods — this is the one serialization format that is *not* exposed as a method, so that using it never expands the set of reserved attribute names on every generated message class. Output matches the canonical writer used by `google.protobuf.text_format` (two-space indentation, no colon before a message value's `{`); where the text-format spec otherwise leaves details open, behavior matches protobuf-go's `prototext` package, like protobuf-es. All three formats pass the upstream conformance suite.
 
 ## Type System
 

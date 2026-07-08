@@ -38,6 +38,7 @@ nav = [
   { "API Reference" = [
     "api/index.md",
     "api/protobuf.md",
+    "api/txtpb.md",
     "api/wkt.md",
     "api/plugin.md"
   ] }

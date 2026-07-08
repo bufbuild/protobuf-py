@@ -19,7 +19,7 @@ import struct
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from ._descriptors import (
+from protobuf._descriptors import (
     DescEnum,
     DescField,
     DescFieldValueEnum,
@@ -30,13 +30,13 @@ from ._descriptors import (
     DescMessage,
     ScalarType,
 )
-from ._typing import assert_never
-from ._wire import BinaryReader, WireType
+from protobuf._typing import assert_never
+from protobuf._wire import BinaryReader, WireType
 
 if TYPE_CHECKING:
-    from ._descriptors import DescExtension
-    from ._message import Message
-    from ._registry import Registry
+    from protobuf._descriptors import DescExtension
+    from protobuf._message import Message
+    from protobuf._registry import Registry
 
 
 @dataclass(slots=True, frozen=True)
@@ -58,15 +58,17 @@ class _TextWriter:
     """A writer for the protobuf text format.
 
     The writer owns layout: indentation, line breaks, and braces. Its output
-    matches the default formatting of txtpbfmt and the multi-line output of
-    protobuf-go: two-space indentation, `name: value` with a single space after
-    the colon, submessages as `name: {` with the body indented and `}` aligned
-    under the field name, and a trailing newline. It never inserts the
-    randomized extra spaces that protobuf-go adds to discourage parsing its
-    output as canonical.
+    matches the canonical writer used by `google.protobuf.text_format` (and,
+    for indentation and line breaks, txtpbfmt and protobuf-go): two-space
+    indentation, `name: value` with a single space after the colon for scalar
+    and enum fields, submessages as `name {` (no colon — the text format spec
+    leaves the colon optional before a message value, and the C++/Python
+    writer omits it) with the body indented and `}` aligned under the field
+    name, and a trailing newline. It never inserts the randomized extra spaces
+    that protobuf-go adds to discourage parsing its output as canonical.
 
     Output accumulates into a single buffer of lines, so a deep tree costs no
-    more than the bytes it prints. To decide between `name: {}` and an indented
+    more than the bytes it prints. To decide between `name {}` and an indented
     block, the caller renders the body, then rolls back with mark()/reset() if
     it turned out empty — an O(1) decision that needs no separate child buffer.
     """
@@ -82,12 +84,20 @@ class _TextWriter:
         self._chunks.append(f"{_INDENT_UNIT * self._depth}{name}: {value}\n")
 
     def empty_message(self, name: str) -> None:
-        """Write an empty message field: `<indent>name: {}` followed by a newline."""
-        self._chunks.append(f"{_INDENT_UNIT * self._depth}{name}: {{}}\n")
+        """Write an empty message field: `<indent>name {}` followed by a newline.
+
+        No colon before the brace: the colon is optional for message-valued
+        fields and the canonical C++/Python writer (`text_format.MessageToString`)
+        omits it, so we match that rather than protobuf-es's `name: {}`.
+        """
+        self._chunks.append(f"{_INDENT_UNIT * self._depth}{name} {{}}\n")
 
     def open_message(self, name: str) -> None:
-        """Open a message field and indent the body. Close it with end()."""
-        self._chunks.append(f"{_INDENT_UNIT * self._depth}{name}: {{\n")
+        """Open a message field and indent the body. Close it with end().
+
+        No colon before the brace; see empty_message().
+        """
+        self._chunks.append(f"{_INDENT_UNIT * self._depth}{name} {{\n")
         self._depth += 1
 
     def end(self) -> None:
@@ -115,8 +125,9 @@ class _TextWriter:
 def to_text(message: Message, opts: ToTextOptions) -> str:
     """Serialize a message to the protobuf text format.
 
-    The output matches the default formatting of txtpbfmt: two-space
-    indentation, one field per line, and a trailing newline.
+    The output matches the canonical `google.protobuf.text_format` writer:
+    two-space indentation, one field per line, no colon before a message
+    value's `{`, and a trailing newline.
     """
     writer = _TextWriter()
     _write_message(writer, message, opts)
@@ -185,7 +196,7 @@ def _write_field(
 def _write_message_value(
     writer: _TextWriter, name: str, message: Message, opts: ToTextOptions
 ) -> None:
-    """Write a message value as `name: { ... }`, or `name: {}` when it has no body.
+    """Write a message value as `name { ... }`, or `name {}` when it has no body.
 
     The body is rendered speculatively and rolled back if it turns out empty.
     """
@@ -246,7 +257,7 @@ def _write_map(
 
 
 def _write_any(writer: _TextWriter, message: Message, opts: ToTextOptions) -> bool:
-    """Write `google.protobuf.Any` in its expanded form `[type.url]: { ... }`.
+    """Write `google.protobuf.Any` in its expanded form `[type.url] { ... }`.
 
     Returns False (so the generic path writes `type_url`/`value` instead) when
     the message is not an Any, has no type URL, or the type cannot be resolved.

@@ -99,12 +99,17 @@ user = User.from_json(text, ignore_unknown_fields=True)
 The [text format](https://protobuf.dev/reference/protobuf/textformat-spec/) is a plain-text syntax mainly used for debugging, tests, and config files.
 You can use it to read and write `.txtpb` files.
 
+Unlike binary and JSON, text format serialization is exposed as free functions from `protobuf.txtpb`, not as methods on `Message`.
+This keeps the less commonly used text format from adding new reserved attribute names to every generated message class.
+
 ```python
+from protobuf.txtpb import to_text, from_text
+
 # Serialize
-text: str = user.to_text()
+text: str = to_text(user)
 
 # Deserialize
-user = User.from_text(text)
+user = from_text(User, text)
 ```
 
 Serializing the example message from the [tutorial](./tutorial.md) prints:
@@ -115,13 +120,14 @@ last_name: "Smith"
 active: true
 locations: "NYC"
 locations: "LDN"
-projects: {
+projects {
   key: "atlas"
   value: "infra"
 }
 ```
 
-The output matches the default formatting of [txtpbfmt](https://github.com/protocolbuffers/txtpbfmt), so text written by `to_text` can be read by the buf CLI, `protoc`, and other implementations, and text they produce can be read by `from_text`.
+The output matches the canonical writer used by `google.protobuf.text_format` (the same style `protoc --decode` and other Protobuf implementations produce): two-space indentation, one field per line, and no colon before a message value's `{`.
+Text written by `to_text` can be read by the buf CLI, `protoc`, and other implementations, and text they produce can be read by `from_text`.
 
 Unlike binary and JSON serialization, `to_text` does not validate legacy required fields: unset fields are simply omitted, so a partially initialized message can always be dumped for debugging.
 
@@ -131,15 +137,15 @@ Unlike binary and JSON serialization, `to_text` does not validate legacy require
 Without it, an Any is written as its raw `type_url`/`value` fields, and extensions are omitted from output and rejected on parse.
 
 ```python
-user.to_text(registry=registry)
-user = User.from_text(text, registry=registry)
+to_text(user, registry=registry)
+user = from_text(User, text, registry=registry)
 ```
 
 `print_unknown_fields`: set to `True` to print unknown fields by their field number.
 This is a debugging aid only: `from_text` rejects fields addressed by number, so output that includes them cannot be parsed back.
 
 ```python
-user.to_text(print_unknown_fields=True)
+to_text(user, print_unknown_fields=True)
 ```
 
 ## Merging
@@ -148,7 +154,8 @@ Instead of creating a new message, you can parse data into an existing one.
 This is useful for applying partial updates or combining data from multiple sources.
 
 ```python
-from protobuf import merge_from_binary, merge_from_json, merge_from_text, merge_from
+from protobuf import merge_from_binary, merge_from_json, merge_from
+from protobuf.txtpb import merge_from_text
 
 # Merge binary data into an existing message
 merge_from_binary(user, data)

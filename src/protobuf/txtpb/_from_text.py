@@ -18,7 +18,7 @@ import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from ._descriptors import (
+from protobuf._descriptors import (
     DescEnum,
     DescExtension,
     DescField,
@@ -30,19 +30,20 @@ from ._descriptors import (
     DescMessage,
     ScalarType,
 )
-from ._field_values import scalar_zero_value
-from ._from_json import _read_int
+from protobuf._field_values import scalar_zero_value
+from protobuf._from_json import _read_int
+from protobuf._typing import assert_never
+from protobuf._wire._binary_reader import DEPTH_LIMIT
+
 from ._to_text import fround, group_like_message
-from ._typing import assert_never
-from ._wire._binary_reader import DEPTH_LIMIT
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from ._descriptors import DescOneof
-    from ._enum import Enum
-    from ._message import Message
-    from ._registry import Registry
+    from protobuf._descriptors import DescOneof
+    from protobuf._enum import Enum
+    from protobuf._message import Message
+    from protobuf._registry import Registry
 
 
 def merge_from_text(
@@ -433,7 +434,9 @@ def _map_value_zero(field_value: DescFieldValueMap) -> Any:
 def _read_expanded_any(
     msg: Message, ctx: _ParseContext, type_url: str, seen_fields: set[int]
 ) -> None:
-    """Read `google.protobuf.Any` in its expanded form `[type.url]: { ... }`.
+    """Read `google.protobuf.Any` in its expanded form `[type.url] { ... }`.
+
+    The colon before `{` is optional here, as for any message value.
 
     The expanded form is mutually exclusive with the raw `type_url` (field 1)
     and `value` (field 2) fields, and may appear only once. We enforce that

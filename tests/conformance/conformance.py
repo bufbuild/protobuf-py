@@ -18,6 +18,7 @@ import sys
 from typing import Literal
 
 from protobuf import Oneof, Registry
+from protobuf.txtpb import from_text, to_text
 from protobuf.wkt import (
     any_pb,
     duration_pb,
@@ -117,7 +118,7 @@ def do_test(request: ConformanceRequest) -> Result:
                 return Oneof(field="parse_error", value=repr(e))
         case Oneof(field="text_payload", value=v):
             try:
-                message = message_type.from_text(v, registry=REGISTRY)
+                message = from_text(message_type, v, registry=REGISTRY)
             except AssertionError as e:
                 return Oneof(
                     field="runtime_error",
@@ -159,8 +160,10 @@ def do_test(request: ConformanceRequest) -> Result:
             # for the *_Drop tests).
             return Oneof(
                 field="text_payload",
-                value=message.to_text(
-                    registry=REGISTRY, print_unknown_fields=request.print_unknown_fields
+                value=to_text(
+                    message,
+                    registry=REGISTRY,
+                    print_unknown_fields=request.print_unknown_fields,
                 ),
             )
         except AssertionError as e:
