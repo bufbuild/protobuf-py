@@ -184,6 +184,39 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
             ),
         )
 
+    def to_text(
+        self, *, registry: Registry | None = None, print_unknown_fields: bool = False
+    ) -> str:
+        """Serialize this message to the protobuf text format.
+
+        The [text format](https://protobuf.dev/reference/protobuf/textformat-spec/)
+        is mainly used for debugging, tests, and config files (`.txtpb`). The
+        output matches the default formatting of txtpbfmt: two-space
+        indentation, one field per line, and a trailing newline.
+
+        Unset fields are omitted, including unset required fields; unlike
+        [`to_binary`][] and [`to_json`][], legacy required fields are not
+        validated when serializing to text.
+
+        Args:
+            registry: A registry for resolving google.protobuf.Any messages
+                and extensions. Without it, an Any is written as its raw
+                `type_url`/`value` fields and extensions are omitted.
+            print_unknown_fields: If `True`, unknown fields are printed by
+                field number. This is a debugging aid only: `from_text`
+                rejects fields named by number, so output that includes them
+                cannot be parsed back.
+
+        Returns:
+            The message in protobuf text format.
+        """
+        from ._to_text import ToTextOptions, to_text  # noqa: PLC0415
+
+        return to_text(
+            self,
+            ToTextOptions(print_unknown_fields=print_unknown_fields, registry=registry),
+        )
+
     def to_binary(self, *, write_unknown_fields: bool = True) -> bytes:
         """Serialize this message to binary protobuf format.
 
@@ -601,6 +634,33 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
         merge_from_json(
             msg, json, ignore_unknown_fields=ignore_unknown_fields, registry=registry
         )
+        return msg
+
+    @classmethod
+    def from_text(
+        cls: type[Self],
+        text: str | bytes | bytearray,
+        *,
+        registry: Registry | None = None,
+    ) -> Self:
+        """Create a new message by parsing the protobuf text format.
+
+        To merge into an existing message, use [`merge_from_text`][].
+
+        Args:
+            text: A str, bytes, or bytearray instance containing the text
+                format.
+            registry: Required to read `google.protobuf.Any` in its expanded
+                `[type.url] {...}` form, and extension fields, from text
+                format.
+
+        Raises:
+            ValueError: If the text cannot be parsed into the message.
+        """
+        from ._from_text import merge_from_text  # noqa: PLC0415
+
+        msg = cls()
+        merge_from_text(msg, text, registry=registry)
         return msg
 
     @classmethod

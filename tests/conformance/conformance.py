@@ -74,9 +74,6 @@ Result = (
 
 
 def do_test(request: ConformanceRequest) -> Result:
-    if request.requested_output_format == WireFormat.TEXT_FORMAT:
-        return Oneof(field="skipped", value="text output not supported")
-
     desc = REGISTRY.message(request.message_type)
     if desc is None:
         return Oneof(field="runtime_error", value="message not supported")
@@ -118,8 +115,20 @@ def do_test(request: ConformanceRequest) -> Result:
                 return Oneof(field="runtime_error", value="not implemented")
             except Exception as e:  # noqa: BLE001
                 return Oneof(field="parse_error", value=repr(e))
+        case Oneof(field="text_payload", value=v):
+            try:
+                message = message_type.from_text(v, registry=REGISTRY)
+            except AssertionError as e:
+                return Oneof(
+                    field="runtime_error",
+                    value="Unexpected assertion error in from_text: " + repr(e),
+                )
+            except Exception as e:  # noqa: BLE001
+                return Oneof(field="parse_error", value=repr(e))
         case _:
-            return Oneof(field="skipped", value="only protobuf or json input supported")
+            return Oneof(
+                field="skipped", value="only protobuf, json, or text input supported"
+            )
 
     if request.requested_output_format == WireFormat.PROTOBUF:
         try:
@@ -143,7 +152,26 @@ def do_test(request: ConformanceRequest) -> Result:
         except Exception as e:  # noqa: BLE001
             return Oneof(field="serialize_error", value=repr(e))
 
-    return Oneof(field="skipped", value="only protobuf or json output supported")
+    if request.requested_output_format == WireFormat.TEXT_FORMAT:
+        try:
+            # The runner asks us to print unknown fields via
+            # request.print_unknown_fields (true for the *_Print tests, false
+            # for the *_Drop tests).
+            return Oneof(
+                field="text_payload",
+                value=message.to_text(
+                    registry=REGISTRY, print_unknown_fields=request.print_unknown_fields
+                ),
+            )
+        except AssertionError as e:
+            return Oneof(
+                field="runtime_error",
+                value="Unexpected assertion error in to_text: " + repr(e),
+            )
+        except Exception as e:  # noqa: BLE001
+            return Oneof(field="serialize_error", value=repr(e))
+
+    return Oneof(field="skipped", value="only protobuf, json, or text output supported")
 
 
 def do_test_io() -> bool:

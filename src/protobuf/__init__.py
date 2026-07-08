@@ -41,6 +41,7 @@ from ._enum import Enum, enum_is_unknown
 from ._extension import Extension
 from ._from_binary import merge_from_binary
 from ._from_json import merge_from_json, message_from_json_value
+from ._from_text import merge_from_text
 from ._merge import merge_from
 from ._message import Message
 from ._oneof import Oneof
@@ -78,6 +79,7 @@ __all__ = [
     "merge_from",
     "merge_from_binary",
     "merge_from_json",
+    "merge_from_text",
     "message_from_json_value",
     "message_to_json_value",
     "minimum_supported_edition",

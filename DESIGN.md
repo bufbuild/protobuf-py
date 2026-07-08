@@ -77,6 +77,8 @@ Deserialization uses merge semantics: parsing into an existing message overwrite
 
 ProtoJSON serialization and deserialization are complete, including the special encodings required for well-known types like `Timestamp`, `Any`, `Struct`, `Duration`, `FieldMask`, `Value`, and `ListValue`.
 
+The [text format](https://protobuf.dev/reference/protobuf/textformat-spec/) is supported for debugging, tests, and config files (`.txtpb`). Output follows the default formatting of [txtpbfmt](https://github.com/protocolbuffers/txtpbfmt); where the text-format spec leaves details open, behavior matches protobuf-go's `prototext` package, like protobuf-es. All three formats pass the upstream conformance suite.
+
 ## Type System
 
 **Oneofs** are represented as `Oneof` dataclasses with a `field` and `value`, which works naturally with Python's `match` statement for type-safe dispatch:
@@ -216,7 +218,7 @@ in `validate.proto`, `message`, `field`, and `oneof`. As these names provide lit
 **Messages support equality comparison.** `==` compares messages by value: two messages are equal when they have the same type, the same fields set, and the same field values. Extensions and unknown fields are not considered.
 
 **Legacy required fields are validated on serialization, not on parsing.**
-Fields with `features.field_presence = LEGACY_REQUIRED` (proto2 `required`) are checked when serializing to binary or ProtoJSON — an error is raised if the field is not set. When parsing from binary or ProtoJSON, missing required fields are silently accepted. This matches protobuf-go, protobuf-es, and the C++ implementation.
+Fields with `features.field_presence = LEGACY_REQUIRED` (proto2 `required`) are checked when serializing to binary or ProtoJSON — an error is raised if the field is not set. When parsing from binary or ProtoJSON, missing required fields are silently accepted. This matches protobuf-go, protobuf-es, and the C++ implementation. The text format is the deliberate exception: `to_text` does not validate required fields and simply omits unset ones, like protobuf-es, so a partially initialized message can always be dumped for debugging.
 
 ### Escaping Python code
 

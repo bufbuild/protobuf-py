@@ -200,6 +200,8 @@ for field in user:
 | ------------------------------------------ | ------------------------------------- |
 | `msg.SerializeToString()`                  | `msg.to_binary()`                     |
 | `MessageType.FromString(data)`             | `MessageType.from_binary(data)`       |
+| `text_format.MessageToString(msg)`         | `msg.to_text()`                       |
+| `text_format.Parse(text, msg)`             | `MessageType.from_text(text)`         |
 | `msg.HasField("nickname")`                 | `msg.has_field("nickname")`           |
 | `msg.WhichOneof("result")` + string checks | `match msg.result` with typed `Oneof` |
 | `msg.Extensions[ext]`                      | `msg[ext]`                            |
