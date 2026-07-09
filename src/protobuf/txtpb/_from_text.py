@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from enum import Enum as _StdEnum
 from typing import TYPE_CHECKING, Any
 
 from protobuf._descriptors import (
@@ -41,13 +42,17 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from protobuf._descriptors import DescOneof
-    from protobuf._enum import Enum
+    from protobuf._enum import Enum as ProtoEnum
     from protobuf._message import Message
     from protobuf._registry import Registry
 
 
 def merge_from_text(
-    message: Message, text: str | bytes | bytearray, *, registry: Registry | None = None
+    message: Message,
+    text: str | bytes | bytearray,
+    *,
+    registry: Registry | None = None,
+    ignore_unknown_fields: bool = False,
 ) -> None:
     """Parse a protobuf text format string, merging fields into an existing message.
 
@@ -63,32 +68,43 @@ def merge_from_text(
         text: A str, bytes, or bytearray instance containing the text format.
         registry: Required to read `google.protobuf.Any` in its expanded
             `[type.url] {...}` form, and extension fields, from text format.
+        ignore_unknown_fields: If `True`, unknown fields are silently
+            skipped instead of raising an error.
 
     Raises:
-        ValueError: If the text cannot be parsed into the message.
+        ValueError: If the text cannot be parsed into the message. This
+            includes encountering an unknown field, unless
+            ignore_unknown_fields is set.
         RecursionError: If messages are nested deeper than the supported limit.
     """
     if isinstance(text, (bytes, bytearray)):
         text = text.decode()
-    ctx = _ParseContext(reader=_TextReader(text), registry=registry)
-    _read_message_body(message, ctx, "eof")
+    ctx = _ParseContext(
+        reader=_TextReader(text),
+        registry=registry,
+        ignore_unknown_fields=ignore_unknown_fields,
+    )
+    _read_message_body(message, ctx, _TokenKind.EOF)
 
 
 class _ParseContext:
-    __slots__ = ("depth", "reader", "registry")
+    __slots__ = ("depth", "ignore_unknown_fields", "reader", "registry")
 
-    def __init__(self, reader: _TextReader, registry: Registry | None) -> None:
+    def __init__(
+        self,
+        reader: _TextReader,
+        registry: Registry | None,
+        *,
+        ignore_unknown_fields: bool,
+    ) -> None:
         self.reader = reader
         self.registry = registry
+        self.ignore_unknown_fields = ignore_unknown_fields
         self.depth = 0
 
 
-def _read_message_body(msg: Message, ctx: _ParseContext, close: str) -> None:
-    """Read a message body (its fields until `close`), guarding nesting depth.
-
-    The top-level message and every nested "{...}"/"<...>" block go through
-    here, so the recursion limit counts the root too, matching from_binary.
-    """
+def _read_message_body(msg: Message, ctx: _ParseContext, close: _TokenKind) -> None:
+    """Read a message body (its fields until `close`), guarding nesting depth."""
     ctx.depth += 1
     if ctx.depth > DEPTH_LIMIT:
         msg_ = f"exceeded maximum recursion depth {DEPTH_LIMIT} while parsing message"
@@ -97,21 +113,20 @@ def _read_message_body(msg: Message, ctx: _ParseContext, close: str) -> None:
     ctx.depth -= 1
 
 
-def _read_fields(msg: Message, ctx: _ParseContext, close: str) -> None:
-    """Read the fields of a message until `close` (or "eof" for the top level)."""
+def _read_fields(msg: Message, ctx: _ParseContext, close: _TokenKind) -> None:
+    """Read the fields of a message until `close` (or EOF for the top level)."""
     # Tracks the fields and oneofs seen in this message body, so a non-repeated
-    # field set twice, or two members of the same oneof, are rejected
-    # (mirroring protobuf-go's seenNums/seenOneofs).
+    # field set twice, or two members of the same oneof, are rejected.
     seen_fields: set[int] = set()
     seen_oneofs: set[DescOneof] = set()
     while True:
         tok = ctx.reader.peek()
-        if tok.kind == "eof":
-            if close != "eof":
-                msg_ = f'unexpected end of input, expected "{close}"'
+        if tok.kind == _TokenKind.EOF:
+            if close != _TokenKind.EOF:
+                msg_ = f'unexpected end of input, expected "{close.value}"'
                 raise ValueError(msg_)
             return
-        if close != "eof" and tok.kind == close:
+        if close != _TokenKind.EOF and tok.kind == close:
             ctx.reader.next()
             return
         _read_field(msg, ctx, seen_fields, seen_oneofs)
@@ -127,34 +142,39 @@ def _read_field(
 ) -> None:
     name_tok = ctx.reader.next()
     desc = msg._desc
-    if name_tok.kind == "identifier":
-        field = _field_by_text_name(desc, name_tok.text)
-        if field is not None:
+    if name_tok.kind == _TokenKind.IDENTIFIER:
+        if (field := _field_by_text_name(desc, name_tok.text)) is not None:
             _check_seen(field, seen_fields, seen_oneofs)
             _read_field_value(msg, field, ctx)
             return
         # Reserved field names are silently skipped; any other unknown name is
-        # an error. This matches protobuf-go.
-        if name_tok.text in desc.proto.reserved_name:
+        # an error, unless ignore_unknown_fields is set.
+        if name_tok.text in desc.proto.reserved_name or ctx.ignore_unknown_fields:
             _skip_field_value(ctx)
             return
         msg_ = f'unknown field "{name_tok.text}" for {desc}'
         raise ValueError(msg_)
-    if name_tok.kind == "[":
+    if name_tok.kind == _TokenKind.LBRACKET:
         name = ctx.reader.read_type_name()
         # Inside google.protobuf.Any, a bracketed name is always a type URL; in
         # any other message it is an extension name.
         if desc.type_name == "google.protobuf.Any":
             _read_expanded_any(msg, ctx, name, seen_fields)
             return
-        extension = ctx.registry.extension(name) if ctx.registry else None
-        if extension is not None and extension.extendee.type_name == desc.type_name:
+        if (
+            ctx.registry
+            and (extension := ctx.registry.extension(name))
+            and extension.extendee.type_name == desc.type_name
+        ):
             _check_seen(extension, seen_fields, seen_oneofs)
             _read_extension_field(msg, extension, ctx)
             return
+        if ctx.ignore_unknown_fields:
+            _skip_field_value(ctx)
+            return
         msg_ = f'unknown extension "[{name}]" for {desc}'
         raise ValueError(msg_)
-    if name_tok.kind == "int":
+    if name_tok.kind == _TokenKind.INT:
         # Like protobuf-go, a field cannot be addressed by number, so the
         # numbered output of print_unknown_fields cannot be read back.
         msg_ = f"cannot specify field by number: {name_tok.text}"
@@ -166,27 +186,24 @@ def _read_field(
 def _check_seen(
     field: DescField | DescExtension, seen_fields: set[int], seen_oneofs: set[DescOneof]
 ) -> None:
-    """Reject a repeated occurrence of a singular field, or a second member of the same oneof.
-
-    Repeated and map fields may appear any number of times.
-    """
+    """Reject a repeated occurrence of a singular field, or a second member of the same oneof."""
     match field_value := field.value:
         case DescFieldValueList() | DescFieldValueMap():
             return
         case _:
             oneof = field_value.oneof
-    if oneof is not None:
+    if oneof:
         if oneof in seen_oneofs:
             msg = f'oneof "{oneof.name}" is already set'
             raise ValueError(msg)
         seen_oneofs.add(oneof)
     if field.number in seen_fields:
-        what = (
+        name = (
             f'extension "[{field.type_name}]"'
             if isinstance(field, DescExtension)
             else f'field "{field.name}"'
         )
-        msg = f"non-repeated {what} is repeated"
+        msg = f"non-repeated {name} is repeated"
         raise ValueError(msg)
     seen_fields.add(field.number)
 
@@ -238,7 +255,7 @@ def _read_extension_field(msg: Message, ext: DescExtension, ctx: _ParseContext) 
             _read_message_value(sub, ctx)
             msg[extension] = sub
         case DescFieldValueList():
-            # Not a dict lookup: Message has no .get.
+            # False positive, not a dict
             existing = msg[extension] if extension in msg else []  # noqa: SIM401
             _read_list_field(existing, ext, field_value, ctx)
             msg[extension] = existing
@@ -269,36 +286,31 @@ def _read_message_value(msg: Message, ctx: _ParseContext) -> None:
     _read_message_body(msg, ctx, _read_message_open(ctx))
 
 
-def _read_message_open(ctx: _ParseContext) -> str:
+def _read_message_open(ctx: _ParseContext) -> _TokenKind:
     open_tok = ctx.reader.next()
-    if open_tok.kind == "{":
-        return "}"
-    if open_tok.kind == "<":
-        return ">"
+    if open_tok.kind == _TokenKind.LBRACE:
+        return _TokenKind.RBRACE
+    if open_tok.kind == _TokenKind.LANGLE:
+        return _TokenKind.RANGLE
     msg = f'expected "{{" or "<", got {_describe(open_tok)}'
     raise ValueError(msg)
 
 
 def _read_bracketed_list(ctx: _ParseContext, read_element: Callable[[], None]) -> None:
-    """Read a repeated value: either a single element, or a bracketed list "[e, e, ...]".
-
-    This is the one place the list grammar lives, so list fields, map fields,
-    and the reserved-skip path cannot drift in how they accept (and reject)
-    separators.
-    """
-    if ctx.reader.peek().kind != "[":
+    """Read a repeated value: either a single element, or a bracketed list "[e, e, ...]"."""
+    if ctx.reader.peek().kind != _TokenKind.LBRACKET:
         read_element()
         return
     ctx.reader.next()  # "["
-    if ctx.reader.peek().kind == "]":
+    if ctx.reader.peek().kind == _TokenKind.RBRACKET:
         ctx.reader.next()
         return
     while True:
         read_element()
         sep = ctx.reader.next()
-        if sep.kind == "]":
+        if sep.kind == _TokenKind.RBRACKET:
             return
-        if sep.kind != ",":
+        if sep.kind != _TokenKind.COMMA:
             msg = f'expected "," or "]" in list, got {_describe(sep)}'
             raise ValueError(msg)
 
@@ -361,7 +373,7 @@ def _read_map_entry(
         )
         raise RecursionError(msg)
     close = _read_message_open(ctx)
-    key: Any = scalar_zero_value(field_value.key)
+    key = scalar_zero_value(field_value.key)
     value = _map_value_zero(field_value)
     key_seen = False
     value_seen = False
@@ -370,11 +382,11 @@ def _read_map_entry(
         if tok.kind == close:
             ctx.reader.next()
             break
-        if tok.kind == "eof":
-            msg = f'unexpected end of input, expected "{close}"'
+        if tok.kind == _TokenKind.EOF:
+            msg = f'unexpected end of input, expected "{close.value}"'
             raise ValueError(msg)
         name_tok = ctx.reader.next()
-        if name_tok.kind != "identifier":
+        if name_tok.kind != _TokenKind.IDENTIFIER:
             msg = f'expected "key" or "value", got {_describe(name_tok)}'
             raise ValueError(msg)
         if name_tok.text == "key":
@@ -447,8 +459,10 @@ def _read_expanded_any(
     if 1 in seen_fields or 2 in seen_fields:
         msg_ = "google.protobuf.Any cannot mix the expanded form with type_url/value"
         raise ValueError(msg_)
-    desc = ctx.registry.message(type_url.rpartition("/")[2]) if ctx.registry else None
-    if desc is None:
+    if (
+        not ctx.registry
+        or (desc := ctx.registry.message(type_url.rpartition("/")[2])) is None
+    ):
         msg_ = f'unable to resolve "{type_url}" for google.protobuf.Any'
         raise ValueError(msg_)
     _consume_colon(ctx)
@@ -470,7 +484,7 @@ def _consume_sign(ctx: _ParseContext) -> bool:
     and the number are insignificant, so "- 42" means -42, matching
     protobuf-go.
     """
-    if ctx.reader.peek().kind == "-":
+    if ctx.reader.peek().kind == _TokenKind.MINUS:
         ctx.reader.next()
         return True
     return False
@@ -479,14 +493,10 @@ def _consume_sign(ctx: _ParseContext) -> bool:
 def _read_scalar_value(
     field: DescField | DescExtension, scalar_type: ScalarType, ctx: _ParseContext
 ) -> Any:
-    negative = _consume_sign(ctx)
-    tok = ctx.reader.next()
     match scalar_type:
         case ScalarType.STRING | ScalarType.BYTES:
-            if negative:
-                msg = "a string value cannot have a sign"
-                raise ValueError(msg)
-            if tok.kind != "string":
+            tok = ctx.reader.next()
+            if tok.kind != _TokenKind.STRING:
                 msg = f"expected a string, got {_describe(tok)}"
                 raise ValueError(msg)
             data = _concat_strings(tok, ctx)
@@ -498,33 +508,38 @@ def _read_scalar_value(
                 msg = f"invalid UTF-8 in string for {field}"
                 raise ValueError(msg) from None
         case ScalarType.BOOL:
-            return _read_bool_value(tok, negative)
+            return _read_bool_value(ctx.reader.next())
         case ScalarType.FLOAT:
+            negative = _consume_sign(ctx)
             # Round to 32-bit precision: an out-of-range value becomes ±inf,
             # which is what the text format requires for float overflow.
-            return fround(_read_float_value(tok, negative))
+            return fround(_read_float_value(ctx.reader.next(), negative))
         case ScalarType.DOUBLE:
-            return _read_float_value(tok, negative)
+            negative = _consume_sign(ctx)
+            return _read_float_value(ctx.reader.next(), negative)
         case (
             ScalarType.UINT32
             | ScalarType.FIXED32
             | ScalarType.UINT64
             | ScalarType.FIXED64
         ):
+            negative = _consume_sign(ctx)
+            tok = ctx.reader.next()
             # Reject any sign for an unsigned field, including "-0".
             if negative:
                 msg = "an unsigned field does not accept a negative value"
                 raise ValueError(msg)
             return _read_int(field, scalar_type, _int_token_value(tok))
         case _:
-            value = _int_token_value(tok)
+            negative = _consume_sign(ctx)
+            value = _int_token_value(ctx.reader.next())
             return _read_int(field, scalar_type, -value if negative else value)
 
 
-def _read_enum_value(desc_enum: DescEnum, ctx: _ParseContext) -> Enum | int:
+def _read_enum_value(desc_enum: DescEnum, ctx: _ParseContext) -> ProtoEnum | int:
     negative = _consume_sign(ctx)
     tok = ctx.reader.next()
-    if tok.kind == "identifier":
+    if tok.kind == _TokenKind.IDENTIFIER:
         if negative:
             msg = f'invalid enum value "-{tok.text}" for {desc_enum}'
             raise ValueError(msg)
@@ -533,7 +548,7 @@ def _read_enum_value(desc_enum: DescEnum, ctx: _ParseContext) -> Enum | int:
                 return desc_enum.type(enum_value.number)
         msg = f'unknown enum value "{tok.text}" for {desc_enum}'
         raise ValueError(msg)
-    if tok.kind == "int":
+    if tok.kind == _TokenKind.INT:
         value = _int_token_value(tok)
         if negative:
             value = -value
@@ -547,29 +562,28 @@ def _read_enum_value(desc_enum: DescEnum, ctx: _ParseContext) -> Enum | int:
     raise ValueError(msg)
 
 
-def _read_bool_value(tok: _Token, negative: bool) -> bool:  # noqa: FBT001
-    if not negative:
-        if tok.kind == "identifier":
-            if tok.text in ("true", "True", "t"):
-                return True
-            if tok.text in ("false", "False", "f"):
-                return False
-        if tok.kind == "int":
-            value = _int_token_value(tok)
-            if value == 0:
-                return False
-            if value == 1:
-                return True
-    msg = f"expected a bool, got {'-' if negative else ''}{_describe(tok)}"
+def _read_bool_value(tok: _Token) -> bool:
+    if tok.kind == _TokenKind.IDENTIFIER:
+        if tok.text in ("true", "True", "t"):
+            return True
+        if tok.text in ("false", "False", "f"):
+            return False
+    if tok.kind == _TokenKind.INT:
+        value = _int_token_value(tok)
+        if value == 0:
+            return False
+        if value == 1:
+            return True
+    msg = f"expected a bool, got {_describe(tok)}"
     raise ValueError(msg)
 
 
 def _read_float_value(tok: _Token, negative: bool) -> float:  # noqa: FBT001
-    if tok.kind == "identifier":
-        # A separate "-" token (negative) before a float literal is invalid;
-        # the only signed literals are "-inf"/"-infinity", which the scanner
-        # glues into one identifier token. "-nan" is not a literal, so it falls
-        # through to the error below. This matches protobuf-go's
+    if tok.kind == _TokenKind.IDENTIFIER:
+        # A separate "-" token (negative) before a non-numeric float literal is
+        # invalid; the only signed literals are "-inf"/"-infinity", which the
+        # scanner glues into one identifier token. "-nan" is not a literal, so
+        # it falls through to the error below. This matches protobuf-go's
         # identifier-path sign handling.
         if negative:
             msg = f'invalid float value "-{tok.text}"'
@@ -583,10 +597,10 @@ def _read_float_value(tok: _Token, negative: bool) -> float:  # noqa: FBT001
                 return math.nan
         msg = f'invalid float value "{tok.text}"'
         raise ValueError(msg)
-    if tok.kind == "float":
+    if tok.kind == _TokenKind.FLOAT:
         value = float(tok.text)
         return -value if negative else value
-    if tok.kind == "int":
+    if tok.kind == _TokenKind.INT:
         # Octal and hexadecimal literals are not valid for float and double
         # fields.
         if tok.base != 10:
@@ -599,7 +613,7 @@ def _read_float_value(tok: _Token, negative: bool) -> float:  # noqa: FBT001
 
 
 def _int_token_value(tok: _Token) -> int:
-    if tok.kind != "int":
+    if tok.kind != _TokenKind.INT:
         msg = f"expected an integer, got {_describe(tok)}"
         raise ValueError(msg)
     return int(tok.text, tok.base)
@@ -608,35 +622,31 @@ def _int_token_value(tok: _Token) -> int:
 def _concat_strings(first: _Token, ctx: _ParseContext) -> bytes:
     """Concatenate adjacent string literals into a single byte string."""
     data = first.bytes_value
-    while ctx.reader.peek().kind == "string":
+    while ctx.reader.peek().kind == _TokenKind.STRING:
         data += ctx.reader.next().bytes_value
     return data
 
 
 def _skip_field_value(ctx: _ParseContext) -> None:
-    """Skip the value of a reserved field.
-
-    Like every other nested read, the message case is guarded by the recursion
-    limit.
-    """
+    """Skip the value of a reserved field."""
     _consume_colon(ctx)
     _read_bracketed_list(ctx, lambda: _skip_single_value(ctx))
 
 
 def _skip_single_value(ctx: _ParseContext) -> None:
     tok = ctx.reader.peek()
-    if tok.kind in ("{", "<"):
+    if tok.kind in (_TokenKind.LBRACE, _TokenKind.LANGLE):
         _skip_message_block(ctx)
         return
     # A leading sign is consumed leniently here: skipping a reserved value
     # should tolerate "- 5".
     _consume_sign(ctx)
     value = ctx.reader.next()
-    if value.kind == "string":
-        while ctx.reader.peek().kind == "string":
+    if value.kind == _TokenKind.STRING:
+        while ctx.reader.peek().kind == _TokenKind.STRING:
             ctx.reader.next()
         return
-    if value.kind not in ("identifier", "int", "float"):
+    if value.kind not in (_TokenKind.IDENTIFIER, _TokenKind.INT, _TokenKind.FLOAT):
         msg = f"expected a value, got {_describe(value)}"
         raise ValueError(msg)
 
@@ -653,13 +663,13 @@ def _skip_message_block(ctx: _ParseContext) -> None:
             ctx.reader.next()
             ctx.depth -= 1
             return
-        if tok.kind == "eof":
-            msg = f'unexpected end of input, expected "{close}"'
+        if tok.kind == _TokenKind.EOF:
+            msg = f'unexpected end of input, expected "{close.value}"'
             raise ValueError(msg)
         name_tok = ctx.reader.next()
-        if name_tok.kind == "[":
+        if name_tok.kind == _TokenKind.LBRACKET:
             ctx.reader.read_type_name()
-        elif name_tok.kind not in ("identifier", "int"):
+        elif name_tok.kind not in (_TokenKind.IDENTIFIER, _TokenKind.INT):
             msg = f"expected a field name, got {_describe(name_tok)}"
             raise ValueError(msg)
         _skip_field_value(ctx)
@@ -668,12 +678,12 @@ def _skip_message_block(ctx: _ParseContext) -> None:
 
 def _consume_separator(ctx: _ParseContext) -> None:
     """Consume an optional "," or ";" that separates fields or list/map elements."""
-    if ctx.reader.peek().kind in (",", ";"):
+    if ctx.reader.peek().kind in (_TokenKind.COMMA, _TokenKind.SEMICOLON):
         ctx.reader.next()
 
 
 def _consume_colon(ctx: _ParseContext) -> bool:
-    if ctx.reader.peek().kind == ":":
+    if ctx.reader.peek().kind == _TokenKind.COLON:
         ctx.reader.next()
         return True
     return False
@@ -692,40 +702,59 @@ def _field_by_text_name(desc: DescMessage, name: str) -> DescField | None:
     lowercase of the message type name) or by the message type name itself;
     JSON names are not valid.
     """
-    field = desc._fields_by_name.get(name)
-    if field is not None:
+    if field := desc._fields_by_name.get(name):
         return field
     # A group-like field is also addressable by its message type name.
-    candidate = desc._fields_by_name.get(name.lower())
-    if candidate is not None:
-        group = group_like_message(candidate)
-        if group is not None and group.name == name:
-            return candidate
+    if (
+        (candidate := desc._fields_by_name.get(name.lower()))
+        and (group := group_like_message(candidate))
+        and group.name == name
+    ):
+        return candidate
     return None
 
 
 def _describe(tok: _Token) -> str:
     match tok.kind:
-        case "identifier" | "int" | "float":
+        case _TokenKind.IDENTIFIER | _TokenKind.INT | _TokenKind.FLOAT:
             return f'"{tok.text}"'
-        case "string":
+        case _TokenKind.STRING:
             return "a string"
-        case "eof":
+        case _TokenKind.EOF:
             return "end of input"
         case _:
-            return f'"{tok.kind}"'
+            return f'"{tok.kind.value}"'
+
+
+class _TokenKind(_StdEnum):
+    """The kind of a lexical token of the protobuf text format."""
+
+    EOF = "eof"
+    IDENTIFIER = "identifier"
+    STRING = "string"
+    INT = "int"
+    FLOAT = "float"
+    LBRACE = "{"
+    RBRACE = "}"
+    LANGLE = "<"
+    RANGLE = ">"
+    LBRACKET = "["
+    RBRACKET = "]"
+    COLON = ":"
+    COMMA = ","
+    SEMICOLON = ";"
+    MINUS = "-"
 
 
 @dataclass(slots=True, frozen=True)
 class _Token:
     """A lexical token of the protobuf text format.
 
-    Punctuation tokens (and eof) carry no payload and use their literal source
-    character as the kind; identifiers and numbers carry their text (numbers
-    also their base, so the parser can accept or reject octal and hexadecimal
-    per field type); string tokens carry their decoded bytes (the same bytes
-    back both string and bytes fields, and bytes fields may hold sequences
-    that are not valid UTF-8).
+    Identifiers and numbers carry their text (numbers also their base, so the
+    parser can accept or reject octal and hexadecimal per field type); string
+    tokens carry their decoded bytes (the same bytes back both string and
+    bytes fields, and bytes fields may hold sequences that are not valid
+    UTF-8). Punctuation tokens and eof carry no payload.
 
     The minus sign before a number is its own token rather than part of the
     number, which keeps numeric sign handling in one place in the parser and,
@@ -736,14 +765,24 @@ class _Token:
     error there, not negative infinity.
     """
 
-    kind: str
+    kind: _TokenKind
     text: str = ""
     bytes_value: bytes = b""
     base: int = 10
 
 
-_TOKEN_EOF = _Token(kind="eof")
-_STRUCTURAL = frozenset("{}<>[]:,;")
+_TOKEN_EOF = _Token(kind=_TokenKind.EOF)
+_STRUCTURAL = {
+    "{": _TokenKind.LBRACE,
+    "}": _TokenKind.RBRACE,
+    "<": _TokenKind.LANGLE,
+    ">": _TokenKind.RANGLE,
+    "[": _TokenKind.LBRACKET,
+    "]": _TokenKind.RBRACKET,
+    ":": _TokenKind.COLON,
+    ",": _TokenKind.COMMA,
+    ";": _TokenKind.SEMICOLON,
+}
 
 
 class _TextReader:
@@ -758,8 +797,7 @@ class _TextReader:
     __slots__ = ("_input", "_length", "_lookahead", "_pos")
 
     def __init__(self, text: str) -> None:
-        # A leading byte-order mark is insignificant; skip it like
-        # protobuf-go's tokenizer does.
+        # Skip any unicode BOM
         self._input = text.removeprefix("\ufeff")
         self._length = len(self._input)
         self._pos = 0
@@ -829,7 +867,7 @@ class _TextReader:
             return _TOKEN_EOF
         if c in _STRUCTURAL:
             self._pos += 1
-            return _Token(kind=c)
+            return _Token(kind=_STRUCTURAL[c])
         if c == "-":
             # A "-" glued to a letter begins a negative identifier (-inf or
             # -infinity); otherwise it is a sign token. A number may have
@@ -841,7 +879,7 @@ class _TextReader:
             if _is_letter(self._char_at(self._pos + 1)):
                 return self._scan_identifier()
             self._pos += 1
-            return _Token(kind="-")
+            return _Token(kind=_TokenKind.MINUS)
         if c in ('"', "'"):
             return self._scan_string(c)
         if _is_digit(c) or (c == "." and _is_digit(self._char_at(self._pos + 1))):
@@ -871,7 +909,7 @@ class _TextReader:
         self._pos += 1  # the first letter (the caller guarantees one is present)
         while _is_letter_or_digit(self._char_at(self._pos)):
             self._pos += 1
-        return _Token(kind="identifier", text=self._input[start : self._pos])
+        return _Token(kind=_TokenKind.IDENTIFIER, text=self._input[start : self._pos])
 
     def _scan_number(self) -> _Token:
         """Scan a numeric literal.
@@ -891,7 +929,9 @@ class _TextReader:
                 msg = "invalid hexadecimal literal"
                 raise ValueError(msg)
             self._expect_delimiter()
-            return _Token(kind="int", text=self._input[start : self._pos], base=16)
+            return _Token(
+                kind=_TokenKind.INT, text=self._input[start : self._pos], base=16
+            )
         if self._input[self._pos] == "0" and _is_octal_digit(
             self._char_at(self._pos + 1)
         ):
@@ -902,7 +942,9 @@ class _TextReader:
             while _is_octal_digit(self._char_at(self._pos)):
                 self._pos += 1
             self._expect_delimiter()
-            return _Token(kind="int", text=self._input[start : self._pos], base=8)
+            return _Token(
+                kind=_TokenKind.INT, text=self._input[start : self._pos], base=8
+            )
         # A decimal integer or a floating point literal. A leading "0" stands
         # alone (octal and hex were handled above), so the delimiter check
         # below rejects a following digit — `08` and `09` are malformed, not
@@ -939,8 +981,8 @@ class _TextReader:
         self._expect_delimiter()
         text = self._input[start:end]
         if is_float:
-            return _Token(kind="float", text=text)
-        return _Token(kind="int", text=text, base=10)
+            return _Token(kind=_TokenKind.FLOAT, text=text)
+        return _Token(kind=_TokenKind.INT, text=text, base=10)
 
     def _expect_delimiter(self) -> None:
         # A number must be terminated by a delimiter — any character that
@@ -966,7 +1008,7 @@ class _TextReader:
             if c == quote:
                 _push_utf8(data, self._input[run_start : self._pos])
                 self._pos += 1  # closing quote
-                return _Token(kind="string", bytes_value=bytes(data))
+                return _Token(kind=_TokenKind.STRING, bytes_value=bytes(data))
             if c == "\\":
                 _push_utf8(data, self._input[run_start : self._pos])
                 self._pos += 1  # backslash
@@ -989,7 +1031,7 @@ class _TextReader:
             data.append(ord(c))
             self._pos += 1
             return
-        if (simple := _SIMPLE_ESCAPES.get(c)) is not None:
+        if simple := _SIMPLE_ESCAPES.get(c):
             data.append(simple)
             self._pos += 1
             return
@@ -1078,6 +1120,7 @@ def _validate_type_name(name: str) -> None:
             raise ValueError(msg)
 
 
+# These functions require the caller to ensure `c` is a single character string
 def _is_digit(c: str | None) -> bool:
     return c is not None and "0" <= c <= "9"
 

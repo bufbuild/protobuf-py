@@ -32,6 +32,7 @@ from protobuf._descriptors import (
 )
 from protobuf._typing import assert_never
 from protobuf._wire import BinaryReader, WireType
+from protobuf._wire._binary_reader import DEPTH_LIMIT
 
 if TYPE_CHECKING:
     from protobuf._descriptors import DescExtension
@@ -45,13 +46,7 @@ class ToTextOptions:
     registry: Registry | None = None
 
 
-# A bound on nested unknown-field rendering. The known-field tree is a finite,
-# valid in-memory message and needs no limit, but print_unknown_fields re-parses
-# bytes and recurses (the length-delimited heuristic), so we cap that path as
-# defense-in-depth.
-_UNKNOWN_FIELD_DEPTH_LIMIT = 100
-
-_INDENT_UNIT = "  "
+_INDENT = "  "
 
 
 class _TextWriter:
@@ -69,66 +64,50 @@ class _TextWriter:
 
     Output accumulates into a single buffer of lines, so a deep tree costs no
     more than the bytes it prints. To decide between `name {}` and an indented
-    block, the caller renders the body, then rolls back with mark()/reset() if
-    it turned out empty — an O(1) decision that needs no separate child buffer.
+    block, end_message() checks whether anything was written since the
+    matching open_message() and rolls back if not — an O(1) decision that
+    needs no separate child buffer.
     """
 
-    __slots__ = ("_chunks", "_depth")
+    __slots__ = ("_chunks", "_depth", "_open_stack")
 
     def __init__(self) -> None:
         self._chunks: list[str] = []
         self._depth = 0
+        self._open_stack: list[tuple[int, str]] = []
 
     def scalar(self, name: str, value: str) -> None:
         """Write a scalar field: `<indent>name: value` followed by a newline."""
-        self._chunks.append(f"{_INDENT_UNIT * self._depth}{name}: {value}\n")
-
-    def empty_message(self, name: str) -> None:
-        """Write an empty message field: `<indent>name {}` followed by a newline.
-
-        No colon before the brace: the colon is optional for message-valued
-        fields and the canonical C++/Python writer (`text_format.MessageToString`)
-        omits it, so we match that rather than protobuf-es's `name: {}`.
-        """
-        self._chunks.append(f"{_INDENT_UNIT * self._depth}{name} {{}}\n")
+        self._chunks.append(f"{_INDENT * self._depth}{name}: {value}\n")
 
     def open_message(self, name: str) -> None:
-        """Open a message field and indent the body. Close it with end().
+        """Open a message field and indent the body. Close it with end_message().
 
-        No colon before the brace; see empty_message().
+        We omit the colon before the brace.
         """
-        self._chunks.append(f"{_INDENT_UNIT * self._depth}{name} {{\n")
+        self._open_stack.append((len(self._chunks), name))
+        self._chunks.append(f"{_INDENT * self._depth}{name} {{\n")
         self._depth += 1
 
-    def end(self) -> None:
-        """Close a message opened with open_message()."""
+    def end_message(self) -> None:
+        """Close a message opened with open_message().
+
+        If nothing was written inside, collapses to an inline `name {}`.
+        """
+        mark, name = self._open_stack.pop()
         self._depth -= 1
-        self._chunks.append(f"{_INDENT_UNIT * self._depth}}}\n")
-
-    def mark(self) -> tuple[int, int]:
-        """Capture the current output position so it can be rolled back with reset()."""
-        return (len(self._chunks), self._depth)
-
-    def reset(self, mark: tuple[int, int]) -> None:
-        """Roll back to a position captured with mark()."""
-        del self._chunks[mark[0] :]
-        self._depth = mark[1]
-
-    def writes_since(self, mark: tuple[int, int]) -> int:
-        """The number of lines written since the given mark."""
-        return len(self._chunks) - mark[0]
+        if len(self._chunks) - mark == 1:
+            del self._chunks[mark:]
+            self._chunks.append(f"{_INDENT * self._depth}{name} {{}}\n")
+        else:
+            self._chunks.append(f"{_INDENT * self._depth}}}\n")
 
     def finish(self) -> str:
         return "".join(self._chunks)
 
 
 def to_text(message: Message, opts: ToTextOptions) -> str:
-    """Serialize a message to the protobuf text format.
-
-    The output matches the canonical `google.protobuf.text_format` writer:
-    two-space indentation, one field per line, no colon before a message
-    value's `{`, and a trailing newline.
-    """
+    """Serialize a message to the protobuf text format."""
     writer = _TextWriter()
     _write_message(writer, message, opts)
     return writer.finish()
@@ -196,19 +175,10 @@ def _write_field(
 def _write_message_value(
     writer: _TextWriter, name: str, message: Message, opts: ToTextOptions
 ) -> None:
-    """Write a message value as `name { ... }`, or `name {}` when it has no body.
-
-    The body is rendered speculatively and rolled back if it turns out empty.
-    """
-    mark = writer.mark()
+    """Write a message value as `name { ... }`, or `name {}` when it has no body."""
     writer.open_message(name)
     _write_message(writer, message, opts)
-    if writer.writes_since(mark) == 1:
-        # Only the opener was written, so the message is empty.
-        writer.reset(mark)
-        writer.empty_message(name)
-    else:
-        writer.end()
+    writer.end_message()
 
 
 def _write_list(
@@ -253,7 +223,7 @@ def _write_map(
                 _write_message_value(writer, "value", val, opts)
             case _:
                 assert_never(value_desc)
-        writer.end()
+        writer.end_message()
 
 
 def _write_any(writer: _TextWriter, message: Message, opts: ToTextOptions) -> bool:
@@ -330,16 +300,15 @@ def _write_unknown_field(writer: _TextWriter, reader: BinaryReader, depth: int) 
             writer.scalar(name, f"0x{reader.fixed64():016x}")
         case WireType.LENGTH_DELIMITED:
             data = reader.bytes_()
-            if depth < _UNKNOWN_FIELD_DEPTH_LIMIT and _parses_as_message(data):
+            if depth < DEPTH_LIMIT and _parses_as_message(data):
                 writer.open_message(name)
                 nested = BinaryReader(memoryview(data))
                 while nested.offset < len(data):
                     _write_unknown_field(writer, nested, depth + 1)
-                writer.end()
+                writer.end_message()
             else:
                 writer.scalar(name, _quote_bytes(data))
         case WireType.SGROUP:
-            mark = writer.mark()
             writer.open_message(name)
             while True:
                 offset = reader.offset
@@ -347,11 +316,7 @@ def _write_unknown_field(writer: _TextWriter, reader: BinaryReader, depth: int) 
                     break
                 reader.seek(offset)
                 _write_unknown_field(writer, reader, depth + 1)
-            if writer.writes_since(mark) == 1:
-                writer.reset(mark)
-                writer.empty_message(name)
-            else:
-                writer.end()
+            writer.end_message()
         case WireType.EGROUP:
             msg = "unexpected end group tag in unknown fields"
             raise ValueError(msg)

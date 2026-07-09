@@ -109,7 +109,5 @@ def is_zero_value(member: DescFieldValue | DescOneof, value: Any) -> bool:
         ScalarType.FLOAT,
         ScalarType.DOUBLE,
     ):
-        # Negative zero is not the zero value: it is distinguishable from 0.0
-        # and must survive serialization, matching C++ and protobuf-go.
         return value == 0.0 and copysign(1, value) == 1
     return not bool(value)

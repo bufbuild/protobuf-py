@@ -77,7 +77,7 @@ Deserialization uses merge semantics: parsing into an existing message overwrite
 
 ProtoJSON serialization and deserialization are complete, including the special encodings required for well-known types like `Timestamp`, `Any`, `Struct`, `Duration`, `FieldMask`, `Value`, and `ListValue`.
 
-The [text format](https://protobuf.dev/reference/protobuf/textformat-spec/) is supported for debugging, tests, and config files (`.txtpb`), via free functions in `protobuf.txtpb` (`to_text`/`from_text`/`merge_from_text`) rather than `Message` methods — this is the one serialization format that is *not* exposed as a method, so that using it never expands the set of reserved attribute names on every generated message class. Output matches the canonical writer used by `google.protobuf.text_format` (two-space indentation, no colon before a message value's `{`); where the text-format spec otherwise leaves details open, behavior matches protobuf-go's `prototext` package, like protobuf-es. All three formats pass the upstream conformance suite.
+The [text format](https://protobuf.dev/reference/protobuf/textformat-spec/) is supported for debugging, tests, and config files (`.txtpb`), via free functions in `protobuf.txtpb` (`message_to_text`/`message_from_text`/`merge_from_text`) rather than `Message` methods — this is the one serialization format that is *not* exposed as a method, so that using it never expands the set of reserved attribute names on every generated message class. Output matches the canonical writer used by `google.protobuf.text_format` (two-space indentation, no colon before a message value's `{`). All three formats pass the upstream conformance suite.
 
 ## Type System
 
@@ -218,7 +218,7 @@ in `validate.proto`, `message`, `field`, and `oneof`. As these names provide lit
 **Messages support equality comparison.** `==` compares messages by value: two messages are equal when they have the same type, the same fields set, and the same field values. Extensions and unknown fields are not considered.
 
 **Legacy required fields are validated on serialization, not on parsing.**
-Fields with `features.field_presence = LEGACY_REQUIRED` (proto2 `required`) are checked when serializing to binary or ProtoJSON — an error is raised if the field is not set. When parsing from binary or ProtoJSON, missing required fields are silently accepted. This matches protobuf-go, protobuf-es, and the C++ implementation. The text format is the deliberate exception: `to_text` does not validate required fields and simply omits unset ones, like protobuf-es, so a partially initialized message can always be dumped for debugging.
+Fields with `features.field_presence = LEGACY_REQUIRED` (proto2 `required`) are checked when serializing to binary or ProtoJSON — an error is raised if the field is not set. When parsing from binary or ProtoJSON, missing required fields are silently accepted. This matches protobuf-go, protobuf-es, and the C++ implementation.
 
 ### Escaping Python code
 

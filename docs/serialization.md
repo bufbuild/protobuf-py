@@ -1,14 +1,14 @@
 # Serializing Messages
 
-Messages can be serialized to and from three formats: **binary**, **JSON**, and the **text format**.
+Messages can be serialized to and from two formats: **binary** and **JSON**.
 
-As a general guide: use JSON when you need human-readable output or interoperability with non-Protobuf consumers, and the text format for debugging, tests, and config files (`.txtpb`).
+As a general guide: use JSON when you need human-readable output or interoperability with non-Protobuf consumers.
 Use binary for everything else; it is more compact, faster to parse, and more resilient to schema changes.
 For example, you can rename a field in your `.proto` file and still parse binary data serialized with the previous version, because binary encoding uses field numbers rather than names.
-JSON and text output use field names, so a rename will break consumers (JSON consumers can be shielded with the `json_name` option).
+JSON output uses field names, so a rename will break consumers unless you use the `json_name` option.
 
-JSON output follows the [Protobuf JSON specification](https://protobuf.dev/programming-guides/json/), and text output follows the [text format specification](https://protobuf.dev/reference/protobuf/textformat-spec/).
-All three formats pass the conformance test suite, ensuring interoperability with implementations in other languages.
+JSON output follows the [Protobuf JSON specification](https://protobuf.dev/programming-guides/json/).
+Both formats pass the conformance test suite, ensuring interoperability with implementations in other languages.
 
 ## Binary
 
@@ -94,22 +94,45 @@ Set this to `True` to silently skip them:
 user = User.from_json(text, ignore_unknown_fields=True)
 ```
 
-## Text Format
+## Merging
 
-The [text format](https://protobuf.dev/reference/protobuf/textformat-spec/) is a plain-text syntax mainly used for debugging, tests, and config files.
-You can use it to read and write `.txtpb` files.
-
-Unlike binary and JSON, text format serialization is exposed as free functions from `protobuf.txtpb`, not as methods on `Message`.
-This keeps the less commonly used text format from adding new reserved attribute names to every generated message class.
+Instead of creating a new message, you can parse data into an existing one.
+This is useful for applying partial updates or combining data from multiple sources.
 
 ```python
-from protobuf.txtpb import to_text, from_text
+from protobuf import merge_from_binary, merge_from_json, merge_from
+
+# Merge binary data into an existing message
+merge_from_binary(user, data)
+
+# Merge JSON into an existing message
+merge_from_json(user, text)
+
+# Merge one message into another of the same type
+merge_from(target, source)
+```
+
+Merge semantics follow the Protobuf specification:
+
+- **Scalar and enum fields**: the source value overwrites the target.
+- **Message fields**: merged recursively if the target field is already set; otherwise the source value is set directly.
+- **Repeated fields**: source elements are appended to the target list.
+- **Map fields**: source entries are added; existing keys are overwritten. Message-valued map entries are not recursively merged.
+- **Unknown fields**: retained in the target unless `ignore_unknown_fields=True` is passed.
+
+## Text Format
+
+In addition to binary and JSON, Protobuf also provides [text format](https://protobuf.dev/reference/protobuf/textformat-spec/), a plain-text syntax used for debugging, tests, and config files.
+You can use it to read and write `.txtpb` files.
+
+```python
+from protobuf.txtpb import message_from_text, message_to_text
 
 # Serialize
-text: str = to_text(user)
+text: str = message_to_text(user)
 
 # Deserialize
-user = from_text(User, text)
+user = message_from_text(User, text)
 ```
 
 Serializing the example message from the [tutorial](./tutorial.md) prints:
@@ -127,9 +150,7 @@ projects {
 ```
 
 The output matches the canonical writer used by `google.protobuf.text_format` (the same style `protoc --decode` and other Protobuf implementations produce): two-space indentation, one field per line, and no colon before a message value's `{`.
-Text written by `to_text` can be read by the buf CLI, `protoc`, and other implementations, and text they produce can be read by `from_text`.
-
-Unlike binary and JSON serialization, `to_text` does not validate legacy required fields: unset fields are simply omitted, so a partially initialized message can always be dumped for debugging.
+Text written by `message_to_text` can be read by the buf CLI, `protoc`, and other implementations, and text they produce can be read by `message_from_text`.
 
 ### Options
 
@@ -137,44 +158,27 @@ Unlike binary and JSON serialization, `to_text` does not validate legacy require
 Without it, an Any is written as its raw `type_url`/`value` fields, and extensions are omitted from output and rejected on parse.
 
 ```python
-to_text(user, registry=registry)
-user = from_text(User, text, registry=registry)
+message_to_text(user, registry=registry)
+user = message_from_text(User, text, registry=registry)
 ```
 
 `print_unknown_fields`: set to `True` to print unknown fields by their field number.
-This is a debugging aid only: `from_text` rejects fields addressed by number, so output that includes them cannot be parsed back.
+This is a debugging aid only: `message_from_text` rejects fields addressed by number, so output that includes them cannot be parsed back.
 
 ```python
-to_text(user, print_unknown_fields=True)
+message_to_text(user, print_unknown_fields=True)
 ```
 
-## Merging
-
-Instead of creating a new message, you can parse data into an existing one.
-This is useful for applying partial updates or combining data from multiple sources.
+`ignore_unknown_fields`: set to `True` to silently skip unknown fields on parse instead of raising an error.
 
 ```python
-from protobuf import merge_from_binary, merge_from_json, merge_from
+user = message_from_text(User, text, ignore_unknown_fields=True)
+```
+
+To merge into an existing message, use `merge_from_text`:
+
+```python
 from protobuf.txtpb import merge_from_text
 
-# Merge binary data into an existing message
-merge_from_binary(user, data)
-
-# Merge JSON into an existing message
-merge_from_json(user, text)
-
-# Merge text format into an existing message
 merge_from_text(user, text)
-
-# Merge one message into another of the same type
-merge_from(target, source)
 ```
-
-Merge semantics follow the Protobuf specification:
-
-- **Scalar and enum fields**: the source value overwrites the target.
-- **Message fields**: merged recursively if the target field is already set; otherwise the source value is set directly.
-- **Repeated fields**: source elements are appended to the target list.
-- **Map fields**: source entries are added; existing keys are overwritten. Message-valued map entries are not recursively merged.
-- **Unknown fields**: retained in the target unless `ignore_unknown_fields=True` is passed.
-

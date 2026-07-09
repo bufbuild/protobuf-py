@@ -14,17 +14,14 @@
 """Protobuf text format (`.txtpb`) serialization.
 
 The [text format](https://protobuf.dev/reference/protobuf/textformat-spec/)
-is a plain-text syntax mainly used for debugging, tests, and config files.
-
-This functionality is kept in its own module, separate from `protobuf`, so
-that using it never adds new reserved attribute names to `Message` subclasses.
+is a plain-text syntax used for debugging, tests, and config files.
 
 Examples:
     ```python
-    from protobuf.txtpb import from_text, to_text
+    from protobuf.txtpb import message_from_text, message_to_text
 
-    text = to_text(user)
-    user = from_text(User, text)
+    text = message_to_text(user)
+    user = message_from_text(User, text)
     ```
 """
 
@@ -41,10 +38,10 @@ if TYPE_CHECKING:
 
 T = TypeVar("T", bound="Message")
 
-__all__ = ["from_text", "merge_from_text", "to_text"]
+__all__ = ["merge_from_text", "message_from_text", "message_to_text"]
 
 
-def to_text(
+def message_to_text(
     message: Message,
     /,
     *,
@@ -53,13 +50,7 @@ def to_text(
 ) -> str:
     """Serialize a message to the protobuf text format.
 
-    The output matches the canonical `google.protobuf.text_format` writer:
-    two-space indentation, one field per line, no colon before a message
-    value's `{`, and a trailing newline.
-
-    Unset fields are omitted, including unset required fields; unlike
-    [`Message.to_binary`][] and [`Message.to_json`][], legacy required fields
-    are not validated when serializing to text.
+    Unlike standard serialization, unset required fields will not raise an error.
 
     Args:
         message: The message to serialize.
@@ -67,9 +58,7 @@ def to_text(
             and extensions. Without it, an Any is written as its raw
             `type_url`/`value` fields and extensions are omitted.
         print_unknown_fields: If `True`, unknown fields are printed by
-            field number. This is a debugging aid only: `from_text`
-            rejects fields named by number, so output that includes them
-            cannot be parsed back.
+            field number.
 
     Returns:
         The message in protobuf text format.
@@ -80,11 +69,12 @@ def to_text(
     )
 
 
-def from_text(
+def message_from_text(
     message_type: type[T],
     text: str | bytes | bytearray,
     *,
     registry: Registry | None = None,
+    ignore_unknown_fields: bool = False,
 ) -> T:
     """Create a new message by parsing the protobuf text format.
 
@@ -92,15 +82,22 @@ def from_text(
 
     Args:
         message_type: The type of message to create.
-        text: A str, bytes, or bytearray instance containing the text
-            format.
+        text: The text data to parse.
         registry: Required to read `google.protobuf.Any` in its expanded
             `[type.url] {...}` form, and extension fields, from text
             format.
+        ignore_unknown_fields: If `True`, unknown fields are silently
+            skipped instead of raising an error.
 
     Raises:
-        ValueError: If the text cannot be parsed into the message.
+        ValueError: If the text cannot be parsed into the message. This
+            includes encountering an unknown field, unless
+            ignore_unknown_fields is set.
+        RecursionError: If messages are nested deeper than the supported
+            limit.
     """
     message = message_type()
-    merge_from_text(message, text, registry=registry)
+    merge_from_text(
+        message, text, registry=registry, ignore_unknown_fields=ignore_unknown_fields
+    )
     return message

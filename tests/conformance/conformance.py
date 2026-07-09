@@ -18,7 +18,7 @@ import sys
 from typing import Literal
 
 from protobuf import Oneof, Registry
-from protobuf.txtpb import from_text, to_text
+from protobuf.txtpb import message_from_text, message_to_text
 from protobuf.wkt import (
     any_pb,
     duration_pb,
@@ -118,11 +118,11 @@ def do_test(request: ConformanceRequest) -> Result:
                 return Oneof(field="parse_error", value=repr(e))
         case Oneof(field="text_payload", value=v):
             try:
-                message = from_text(message_type, v, registry=REGISTRY)
+                message = message_from_text(message_type, v, registry=REGISTRY)
             except AssertionError as e:
                 return Oneof(
                     field="runtime_error",
-                    value="Unexpected assertion error in from_text: " + repr(e),
+                    value="Unexpected assertion error in message_from_text: " + repr(e),
                 )
             except Exception as e:  # noqa: BLE001
                 return Oneof(field="parse_error", value=repr(e))
@@ -160,7 +160,7 @@ def do_test(request: ConformanceRequest) -> Result:
             # for the *_Drop tests).
             return Oneof(
                 field="text_payload",
-                value=to_text(
+                value=message_to_text(
                     message,
                     registry=REGISTRY,
                     print_unknown_fields=request.print_unknown_fields,
@@ -169,7 +169,7 @@ def do_test(request: ConformanceRequest) -> Result:
         except AssertionError as e:
             return Oneof(
                 field="runtime_error",
-                value="Unexpected assertion error in to_text: " + repr(e),
+                value="Unexpected assertion error in message_to_text: " + repr(e),
             )
         except Exception as e:  # noqa: BLE001
             return Oneof(field="serialize_error", value=repr(e))
