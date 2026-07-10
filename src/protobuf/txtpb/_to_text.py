@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import math
 import struct
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -35,6 +36,8 @@ from protobuf._wire import BinaryReader, WireType
 from protobuf._wire._binary_reader import DEPTH_LIMIT
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from protobuf._descriptors import DescExtension
     from protobuf._message import Message
     from protobuf._registry import Registry
@@ -59,47 +62,37 @@ class _TextWriter:
     and enum fields, submessages as `name {` (no colon — the text format spec
     leaves the colon optional before a message value, and the C++/Python
     writer omits it) with the body indented and `}` aligned under the field
-    name, and a trailing newline. It never inserts the randomized extra spaces
-    that protobuf-go adds to discourage parsing its output as canonical.
-
-    Output accumulates into a single buffer of lines, so a deep tree costs no
-    more than the bytes it prints. To decide between `name {}` and an indented
-    block, end_message() checks whether anything was written since the
-    matching open_message() and rolls back if not — an O(1) decision that
-    needs no separate child buffer.
+    name, and a trailing newline.
     """
 
-    __slots__ = ("_chunks", "_depth", "_open_stack")
+    __slots__ = ("_chunks", "_depth")
 
     def __init__(self) -> None:
         self._chunks: list[str] = []
         self._depth = 0
-        self._open_stack: list[tuple[int, str]] = []
 
     def scalar(self, name: str, value: str) -> None:
         """Write a scalar field: `<indent>name: value` followed by a newline."""
         self._chunks.append(f"{_INDENT * self._depth}{name}: {value}\n")
 
-    def open_message(self, name: str) -> None:
-        """Open a message field and indent the body. Close it with end_message().
+    @contextmanager
+    def open_message(self, name: str) -> Iterator[None]:
+        """Enters a message field and indents the body.
 
-        We omit the colon before the brace.
+        Exiting will close the message, inline if no fields were written.
         """
-        self._open_stack.append((len(self._chunks), name))
-        self._chunks.append(f"{_INDENT * self._depth}{name} {{\n")
+        self._chunks.append("")
+        open_len = len(self._chunks)
         self._depth += 1
-
-    def end_message(self) -> None:
-        """Close a message opened with open_message().
-
-        If nothing was written inside, collapses to an inline `name {}`.
-        """
-        mark, name = self._open_stack.pop()
-        self._depth -= 1
-        if len(self._chunks) - mark == 1:
-            del self._chunks[mark:]
-            self._chunks.append(f"{_INDENT * self._depth}{name} {{}}\n")
+        try:
+            yield
+        finally:
+            self._depth -= 1
+        if len(self._chunks) == open_len:
+            # No fields were written.
+            self._chunks[open_len - 1] = f"{_INDENT * self._depth}{name} {{}}\n"
         else:
+            self._chunks[open_len - 1] = f"{_INDENT * self._depth}{name} {{\n"
             self._chunks.append(f"{_INDENT * self._depth}}}\n")
 
     def finish(self) -> str:
@@ -176,9 +169,8 @@ def _write_message_value(
     writer: _TextWriter, name: str, message: Message, opts: ToTextOptions
 ) -> None:
     """Write a message value as `name { ... }`, or `name {}` when it has no body."""
-    writer.open_message(name)
-    _write_message(writer, message, opts)
-    writer.end_message()
+    with writer.open_message(name):
+        _write_message(writer, message, opts)
 
 
 def _write_list(
@@ -212,18 +204,17 @@ def _write_map(
     # Map entries are emitted in iteration (insertion) order; unlike
     # protobuf-go, we deliberately do not sort them.
     for key, val in value.items():
-        writer.open_message(name)
-        writer.scalar("key", _scalar_to_text(field_value.key, key))
-        match value_desc := field_value.value:
-            case ScalarType():
-                writer.scalar("value", _scalar_to_text(value_desc, val))
-            case DescEnum():
-                writer.scalar("value", _enum_to_text(value_desc, val))
-            case DescMessage():
-                _write_message_value(writer, "value", val, opts)
-            case _:
-                assert_never(value_desc)
-        writer.end_message()
+        with writer.open_message(name):
+            writer.scalar("key", _scalar_to_text(field_value.key, key))
+            match value_desc := field_value.value:
+                case ScalarType():
+                    writer.scalar("value", _scalar_to_text(value_desc, val))
+                case DescEnum():
+                    writer.scalar("value", _enum_to_text(value_desc, val))
+                case DescMessage():
+                    _write_message_value(writer, "value", val, opts)
+                case _:
+                    assert_never(value_desc)
 
 
 def _write_any(writer: _TextWriter, message: Message, opts: ToTextOptions) -> bool:
@@ -301,22 +292,20 @@ def _write_unknown_field(writer: _TextWriter, reader: BinaryReader, depth: int) 
         case WireType.LENGTH_DELIMITED:
             data = reader.bytes_()
             if depth < DEPTH_LIMIT and _parses_as_message(data):
-                writer.open_message(name)
-                nested = BinaryReader(memoryview(data))
-                while nested.offset < len(data):
-                    _write_unknown_field(writer, nested, depth + 1)
-                writer.end_message()
+                with writer.open_message(name):
+                    nested = BinaryReader(memoryview(data))
+                    while nested.offset < len(data):
+                        _write_unknown_field(writer, nested, depth + 1)
             else:
                 writer.scalar(name, _quote_bytes(data))
         case WireType.SGROUP:
-            writer.open_message(name)
-            while True:
-                offset = reader.offset
-                if reader.tag().wire_type == WireType.EGROUP:
-                    break
-                reader.seek(offset)
-                _write_unknown_field(writer, reader, depth + 1)
-            writer.end_message()
+            with writer.open_message(name):
+                while True:
+                    offset = reader.offset
+                    if reader.tag().wire_type == WireType.EGROUP:
+                        break
+                    reader.seek(offset)
+                    _write_unknown_field(writer, reader, depth + 1)
         case WireType.EGROUP:
             msg = "unexpected end group tag in unknown fields"
             raise ValueError(msg)

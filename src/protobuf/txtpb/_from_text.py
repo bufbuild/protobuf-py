@@ -65,9 +65,10 @@ def merge_from_text(
 
     Args:
         message: The message instance to merge into.
-        text: A str, bytes, or bytearray instance containing the text format.
+        text: The text data to parse.
         registry: Required to read `google.protobuf.Any` in its expanded
-            `[type.url] {...}` form, and extension fields, from text format.
+            `[type.url] {...}` form, and extension fields, from text
+            format.
         ignore_unknown_fields: If `True`, unknown fields are silently
             skipped instead of raising an error.
 
@@ -142,45 +143,47 @@ def _read_field(
 ) -> None:
     name_tok = ctx.reader.next()
     desc = msg._desc
-    if name_tok.kind == _TokenKind.IDENTIFIER:
-        if (field := _field_by_text_name(desc, name_tok.text)) is not None:
-            _check_seen(field, seen_fields, seen_oneofs)
-            _read_field_value(msg, field, ctx)
-            return
-        # Reserved field names are silently skipped; any other unknown name is
-        # an error, unless ignore_unknown_fields is set.
-        if name_tok.text in desc.proto.reserved_name or ctx.ignore_unknown_fields:
-            _skip_field_value(ctx)
-            return
-        msg_ = f'unknown field "{name_tok.text}" for {desc}'
-        raise ValueError(msg_)
-    if name_tok.kind == _TokenKind.LBRACKET:
-        name = ctx.reader.read_type_name()
-        # Inside google.protobuf.Any, a bracketed name is always a type URL; in
-        # any other message it is an extension name.
-        if desc.type_name == "google.protobuf.Any":
-            _read_expanded_any(msg, ctx, name, seen_fields)
-            return
-        if (
-            ctx.registry
-            and (extension := ctx.registry.extension(name))
-            and extension.extendee.type_name == desc.type_name
-        ):
-            _check_seen(extension, seen_fields, seen_oneofs)
-            _read_extension_field(msg, extension, ctx)
-            return
-        if ctx.ignore_unknown_fields:
-            _skip_field_value(ctx)
-            return
-        msg_ = f'unknown extension "[{name}]" for {desc}'
-        raise ValueError(msg_)
-    if name_tok.kind == _TokenKind.INT:
-        # Like protobuf-go, a field cannot be addressed by number, so the
-        # numbered output of print_unknown_fields cannot be read back.
-        msg_ = f"cannot specify field by number: {name_tok.text}"
-        raise ValueError(msg_)
-    msg_ = f"expected a field name, got {_describe(name_tok)}"
-    raise ValueError(msg_)
+    match name_tok.kind:
+        case _TokenKind.IDENTIFIER:
+            if (field := _field_by_text_name(desc, name_tok.text)) is not None:
+                _check_seen(field, seen_fields, seen_oneofs)
+                _read_field_value(msg, field, ctx)
+                return
+            # Reserved field names are silently skipped; any other unknown name is
+            # an error, unless ignore_unknown_fields is set.
+            if name_tok.text in desc.proto.reserved_name or ctx.ignore_unknown_fields:
+                _skip_field_value(ctx)
+                return
+            msg_ = f'unknown field "{name_tok.text}" for {desc}'
+            raise ValueError(msg_)
+        case _TokenKind.LBRACKET:
+            name = ctx.reader.read_type_name()
+            # Inside google.protobuf.Any, a bracketed name is always a type URL; in
+            # any other message it is an extension name.
+            if desc.type_name == "google.protobuf.Any":
+                _read_expanded_any(msg, ctx, name, seen_fields)
+                return
+            if (
+                ctx.registry
+                and (extension := ctx.registry.extension(name))
+                and extension.extendee.type_name == desc.type_name
+            ):
+                _check_seen(extension, seen_fields, seen_oneofs)
+                _read_extension_field(msg, extension, ctx)
+                return
+            if ctx.ignore_unknown_fields:
+                _skip_field_value(ctx)
+                return
+            msg_ = f'unknown extension "[{name}]" for {desc}'
+            raise ValueError(msg_)
+        case _TokenKind.INT:
+            # Like protobuf-go, a field cannot be addressed by number, so the
+            # numbered output of print_unknown_fields cannot be read back.
+            msg_ = f"cannot specify field by number: {name_tok.text}"
+            raise ValueError(msg_)
+        case _:
+            msg_ = f"expected a field name, got {_describe(name_tok)}"
+            raise ValueError(msg_)
 
 
 def _check_seen(
@@ -221,13 +224,12 @@ def _read_field_value(msg: Message, field: DescField, ctx: _ParseContext) -> Non
         case DescFieldValueEnum():
             msg._set_member(field, _read_enum_value(field_value.enum, ctx))
         case DescFieldValueMessage():
-            sub = (
-                msg._get_member(field)
-                if msg._contains_member(field)
-                else field_value.message.type()
-            )
+            if msg._contains_member(field):
+                sub = msg._get_member(field)
+            else:
+                sub = field_value.message.type()
+                msg._set_member(field, sub)
             _read_message_value(sub, ctx)
-            msg._set_member(field, sub)
         case DescFieldValueList():
             _read_list_field(msg._get_member(field), field, field_value, ctx)
         case DescFieldValueMap():
@@ -255,8 +257,7 @@ def _read_extension_field(msg: Message, ext: DescExtension, ctx: _ParseContext) 
             _read_message_value(sub, ctx)
             msg[extension] = sub
         case DescFieldValueList():
-            # False positive, not a dict
-            existing = msg[extension] if extension in msg else []  # noqa: SIM401
+            existing = msg[extension] if extension in msg else []  # noqa: SIM401 # false positive, not a dict
             _read_list_field(existing, ext, field_value, ctx)
             msg[extension] = existing
         case _:
@@ -288,12 +289,14 @@ def _read_message_value(msg: Message, ctx: _ParseContext) -> None:
 
 def _read_message_open(ctx: _ParseContext) -> _TokenKind:
     open_tok = ctx.reader.next()
-    if open_tok.kind == _TokenKind.LBRACE:
-        return _TokenKind.RBRACE
-    if open_tok.kind == _TokenKind.LANGLE:
-        return _TokenKind.RANGLE
-    msg = f'expected "{{" or "<", got {_describe(open_tok)}'
-    raise ValueError(msg)
+    match open_tok.kind:
+        case _TokenKind.LBRACE:
+            return _TokenKind.RBRACE
+        case _TokenKind.LANGLE:
+            return _TokenKind.RANGLE
+        case _:
+            msg = f'expected "{{" or "<", got {_describe(open_tok)}'
+            raise ValueError(msg)
 
 
 def _read_bracketed_list(ctx: _ParseContext, read_element: Callable[[], None]) -> None:
@@ -1121,6 +1124,8 @@ def _validate_type_name(name: str) -> None:
 
 
 # These functions require the caller to ensure `c` is a single character string
+
+
 def _is_digit(c: str | None) -> bool:
     return c is not None and "0" <= c <= "9"
 
