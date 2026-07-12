@@ -358,8 +358,8 @@ def test_duration_from_json_error(json_str: str, error_type: type[Exception]) ->
 @pytest.mark.parametrize(
     ("seconds", "nanos", "match"),
     [
-        (315_576_000_001, 0, "timestamp seconds out of range"),
-        (-315_576_000_001, 0, "timestamp seconds out of range"),
+        (253_402_300_800, 0, "timestamp seconds out of range"),
+        (-62_135_596_801, 0, "timestamp seconds out of range"),
         (5000, 1_000_000_000, "timestamp nanos out of range"),
     ],
 )

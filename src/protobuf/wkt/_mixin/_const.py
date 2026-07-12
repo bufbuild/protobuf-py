@@ -19,7 +19,13 @@ SECOND_AS_NANOS = 1_000_000_000
 """One second as nano seconds."""
 
 DURATION_SECONDS_MAX = 315_576_000_000
-"""Maximum/minimum seconds for Duration and Timestamp (representing +/-10,000 years)."""
+"""Maximum/minimum seconds for Duration (representing +/-10,000 years)."""
+
+TIMESTAMP_SECONDS_MIN = -62_135_596_800
+"""Minimum seconds for Timestamp (0001-01-01T00:00:00Z)."""
+
+TIMESTAMP_SECONDS_MAX = 253_402_300_799
+"""Maximum seconds for Timestamp (9999-12-31T23:59:59Z)."""
 
 NANOS_PER_SECOND_MAX = 999_999_999
 """Maximum nanosecond value within a second."""

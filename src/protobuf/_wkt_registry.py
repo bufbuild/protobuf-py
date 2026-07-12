@@ -68,12 +68,13 @@ class WktTimestamp:
     def to_json_value(self, msg: Message, _opts: ToJsonOptions) -> JsonValue:
         from .wkt import Timestamp  # noqa: PLC0415
         from .wkt._mixin._const import (  # noqa: PLC0415
-            DURATION_SECONDS_MAX,
             NANOS_PER_SECOND_MAX,
+            TIMESTAMP_SECONDS_MAX,
+            TIMESTAMP_SECONDS_MIN,
         )
 
         value = cast("Timestamp", msg)
-        if not (-DURATION_SECONDS_MAX <= value.seconds <= DURATION_SECONDS_MAX):
+        if not (TIMESTAMP_SECONDS_MIN <= value.seconds <= TIMESTAMP_SECONDS_MAX):
             err = "timestamp seconds out of range"
             raise ValueError(err)
         if not (0 <= value.nanos <= NANOS_PER_SECOND_MAX):
