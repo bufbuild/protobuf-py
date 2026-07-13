@@ -18,6 +18,9 @@ from datetime import datetime, timedelta, timezone
 SECOND_AS_NANOS = 1_000_000_000
 """One second as nano seconds."""
 
+NANOS_PER_SECOND_MAX = 999_999_999
+"""Maximum nanosecond value within a second."""
+
 DURATION_SECONDS_MAX = 315_576_000_000
 """Maximum/minimum seconds for Duration (representing +/-10,000 years)."""
 
@@ -27,17 +30,14 @@ TIMESTAMP_SECONDS_MIN = -62_135_596_800
 TIMESTAMP_SECONDS_MAX = 253_402_300_799
 """Maximum seconds for Timestamp (9999-12-31T23:59:59Z)."""
 
-NANOS_PER_SECOND_MAX = 999_999_999
-"""Maximum nanosecond value within a second."""
+TIMESTAMP_NANOS_MIN = TIMESTAMP_SECONDS_MIN * SECOND_AS_NANOS
+"""Smallest legal value for nanoseconds"""
+
+TIMESTAMP_NANOS_MAX = TIMESTAMP_SECONDS_MAX * SECOND_AS_NANOS + NANOS_PER_SECOND_MAX
+"""Largest legal value for nanoseconds"""
 
 EPOCH_DATETIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
 """Epoch represented in datetime."""
 
 MICROSECOND_DELTA = timedelta(microseconds=1)
 """One microsecond represented in timedelta."""
-
-MAX_NANOS = 253_402_300_799_999_999_000
-"""Largest legal value for nanoseconds"""
-
-MIN_NANOS = -62_135_596_800_000_000_000
-"""Smallest legal value for nanoseconds"""

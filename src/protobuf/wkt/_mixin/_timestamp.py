@@ -19,10 +19,10 @@ from typing import TYPE_CHECKING, TypeVar
 
 from ._const import (
     EPOCH_DATETIME,
-    MAX_NANOS,
     MICROSECOND_DELTA,
-    MIN_NANOS,
     SECOND_AS_NANOS,
+    TIMESTAMP_NANOS_MAX,
+    TIMESTAMP_NANOS_MIN,
 )
 
 Self = TypeVar("Self", bound="TimestampMixin")
@@ -46,8 +46,8 @@ class TimestampMixin:
     @classmethod
     def from_nanos(cls: type[Self], nanos: int, /) -> Self:
         """Create from a Unix timestamp in nanoseconds."""
-        if nanos > MAX_NANOS or nanos < MIN_NANOS:
-            msg = "seconds out of range"
+        if nanos > TIMESTAMP_NANOS_MAX or nanos < TIMESTAMP_NANOS_MIN:
+            msg = "nanos out of range"
             raise OverflowError(msg)
         return cls(seconds=nanos // SECOND_AS_NANOS, nanos=nanos % SECOND_AS_NANOS)
 
@@ -77,6 +77,9 @@ class TimestampMixin:
 
     def to_datetime(self) -> datetime:
         """Convert to a UTC datetime with timezone set.
+
+        Note that the upper half of the very last microsecond in the valid range of a Timestamp is not
+        representable as a datetime and will raise an OverflowError.
 
         To convert to a different timezone, use `datetime.astimezone()` on the result.
 

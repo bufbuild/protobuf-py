@@ -45,16 +45,10 @@ def test_timestamp_to_from_seconds() -> None:
         == "0001-01-01T00:00:00+00:00"
     )
     # test out of bounds
-    try:
+    with pytest.raises(OverflowError):
         Timestamp.from_seconds(253402300799.99999)
-        pytest.fail("Timestamp.from_seconds should fail")
-    except OverflowError:
-        pass
-    try:
+    with pytest.raises(OverflowError):
         Timestamp.from_seconds(-62135596800.1)
-        pytest.fail("Timestamp.from_seconds should fail")
-    except OverflowError:
-        pass
 
 
 def test_timestamp_to_from_nanos() -> None:
@@ -77,16 +71,11 @@ def test_timestamp_to_from_nanos() -> None:
         == "0001-01-01T00:00:00+00:00"
     )
     # test out of bounds
-    try:
-        Timestamp.from_nanos(253_402_300_799_999_999_001)
-        pytest.fail("Timestamp.from_seconds should fail")
-    except OverflowError:
-        pass
-    try:
+    with pytest.raises(OverflowError):
         Timestamp.from_nanos(-62_135_596_800_000_000_001)
-        pytest.fail("Timestamp.from_seconds should fail")
-    except OverflowError:
-        pass
+    with pytest.raises(OverflowError):
+        # Valid timestamp but invalid datetime
+        Timestamp.from_nanos(253_402_300_799_999_999_501).to_datetime()
 
 
 @pytest.mark.parametrize(
