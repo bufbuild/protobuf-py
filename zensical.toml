@@ -39,7 +39,8 @@ nav = [
     "api/index.md",
     "api/protobuf.md",
     "api/wkt.md",
-    "api/plugin.md"
+    "api/plugin.md",
+    "api/txtpb.md",
   ] }
 ]
 

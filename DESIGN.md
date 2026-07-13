@@ -77,6 +77,8 @@ Deserialization uses merge semantics: parsing into an existing message overwrite
 
 ProtoJSON serialization and deserialization are complete, including the special encodings required for well-known types like `Timestamp`, `Any`, `Struct`, `Duration`, `FieldMask`, `Value`, and `ListValue`.
 
+The [text format](https://protobuf.dev/reference/protobuf/textformat-spec/) is supported for debugging, tests, and config files (`.txtpb`), via free functions in `protobuf.txtpb` (`message_to_text`/`message_from_text`/`merge_from_text`) rather than `Message` methods — this is the one serialization format that is *not* exposed as a method, so that using it never expands the set of reserved attribute names on every generated message class. Output matches the canonical writer used by `google.protobuf.text_format` (two-space indentation, no colon before a message value's `{`). All three formats pass the upstream conformance suite.
+
 ## Type System
 
 **Oneofs** are represented as `Oneof` dataclasses with a `field` and `value`, which works naturally with Python's `match` statement for type-safe dispatch:

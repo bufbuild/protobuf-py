@@ -105,6 +105,9 @@ def is_zero_value(member: DescFieldValue | DescOneof, value: Any) -> bool:
     """
     if isinstance(member, DescFieldValueEnum):
         return value == member.enum.values[0].number
-    if isinstance(member, DescFieldValueScalar) and member.scalar == ScalarType.FLOAT:
+    if isinstance(member, DescFieldValueScalar) and member.scalar in (
+        ScalarType.FLOAT,
+        ScalarType.DOUBLE,
+    ):
         return value == 0.0 and copysign(1, value) == 1
     return not bool(value)

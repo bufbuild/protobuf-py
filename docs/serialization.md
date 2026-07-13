@@ -120,3 +120,65 @@ Merge semantics follow the Protobuf specification:
 - **Map fields**: source entries are added; existing keys are overwritten. Message-valued map entries are not recursively merged.
 - **Unknown fields**: retained in the target unless `ignore_unknown_fields=True` is passed.
 
+## Text Format
+
+In addition to binary and JSON, Protobuf also provides [text format](https://protobuf.dev/reference/protobuf/textformat-spec/), a plain-text syntax used for debugging, tests, and config files.
+You can use it to read and write `.txtpb` files.
+
+```python
+from protobuf.txtpb import message_from_text, message_to_text
+
+# Serialize
+text: str = message_to_text(user)
+
+# Deserialize
+user = message_from_text(User, text)
+```
+
+Serializing the example message from the [tutorial](./tutorial.md) prints:
+
+```txtpb
+first_name: "Alice"
+last_name: "Smith"
+active: true
+locations: "NYC"
+locations: "LDN"
+projects {
+  key: "atlas"
+  value: "infra"
+}
+```
+
+The output matches the canonical writer used by `google.protobuf.text_format` (the same style `protoc --decode` and other Protobuf implementations produce): two-space indentation, one field per line, and no colon before a message value's `{`.
+Text written by `message_to_text` can be read by the buf CLI, `protoc`, and other implementations, and text they produce can be read by `message_from_text`.
+
+### Options
+
+`registry`: required to write and read [`google.protobuf.Any`](./well-known-types.md#any) fields in their expanded `[type.url] {...}` form, and extension fields (`[pkg.extension_name]`).
+Without it, an Any is written as its raw `type_url`/`value` fields, and extensions are omitted from output and rejected on parse.
+
+```python
+message_to_text(user, registry=registry)
+user = message_from_text(User, text, registry=registry)
+```
+
+`print_unknown_fields`: set to `True` to print unknown fields by their field number.
+This is a debugging aid only: `message_from_text` rejects fields addressed by number, so output that includes them cannot be parsed back.
+
+```python
+message_to_text(user, print_unknown_fields=True)
+```
+
+`ignore_unknown_fields`: set to `True` to silently skip unknown fields on parse instead of raising an error.
+
+```python
+user = message_from_text(User, text, ignore_unknown_fields=True)
+```
+
+To merge into an existing message, use `merge_from_text`:
+
+```python
+from protobuf.txtpb import merge_from_text
+
+merge_from_text(user, text)
+```

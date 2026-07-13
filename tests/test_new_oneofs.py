@@ -53,7 +53,7 @@ def test_oneof_pattern_matching() -> None:
                 # v should be narrowed to int
                 return f"Number: {v * 2}"
             case _:
-                assert_never(val)  # ty:ignore[invalid-argument-type]
+                assert_never(val)
 
     # Test with string case
     str_val: StringOrInt = Oneof[Literal["text"], str](field="text", value="hello")

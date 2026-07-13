@@ -35,6 +35,20 @@ def test_negative_zero() -> None:
     )
 
 
+def test_negative_zero_double() -> None:
+    positive = ImplicitFields(double_field=0.0)
+    negative = ImplicitFields(double_field=-0.0)
+
+    assert positive.to_binary() != negative.to_binary()
+
+    assert (
+        copysign(1, ImplicitFields.from_binary(positive.to_binary()).double_field) == 1
+    )
+    assert (
+        copysign(1, ImplicitFields.from_binary(negative.to_binary()).double_field) == -1
+    )
+
+
 def test_int_coerced() -> None:
     msg = ImplicitFields(float_field=1)
     assert ImplicitFields.from_binary(msg.to_binary()).float_field == 1.0
