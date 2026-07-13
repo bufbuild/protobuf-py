@@ -428,6 +428,7 @@ extra-paths = ["packages/protobuf-py-ext"]
 # https://docs.astral.sh/ty/reference/typing-faq/#does-ty-support-monorepos
 # https://github.com/astral-sh/ty/issues/819
 exclude = [
+  ".repros",
   "examples",
   "packages/bench",
   "packages/license-header",

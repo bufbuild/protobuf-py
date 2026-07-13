@@ -158,7 +158,7 @@ class ValueMixin:
                 return cls(kind=Oneof(field="string_value", value=value))
             case Mapping() as m:
                 return cls(
-                    kind=Oneof(field="struct_value", value=Struct.from_python(m))
+                    kind=Oneof(field="struct_value", value=Struct.from_python(m))  # ty: ignore[invalid-argument-type] - https://github.com/astral-sh/ty/issues/3983
                 )
             case Sequence() as s:
                 return cls(
