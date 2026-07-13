@@ -1,9 +1,8 @@
 name: PR Approval Bypass Notifier
 on:
-  pull_request:
-    types:
-      - closed
-    branches: [main]
+  push:
+    branches:
+      - main
 permissions:
   pull-requests: read
 jobs:
