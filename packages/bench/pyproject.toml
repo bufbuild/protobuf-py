@@ -4,7 +4,7 @@ version = "0.0.1"
 requires-python = ">=3.10"
 dependencies = [
   "PyYAML==6.0.3",
-  "buf-bin==1.71.0",
+  "buf-bin==1.72.0",
   "fix-protobuf-imports==0.1.7",
   "protobuf==7.35.1",
 ]

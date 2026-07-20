@@ -8,7 +8,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "buf-bin==1.71.0",
+  "buf-bin==1.72.0",
   "protoc-gen-py>=0.0.1",
   "pytest==9.1.1",
 ]
