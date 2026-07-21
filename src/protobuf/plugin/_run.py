@@ -141,6 +141,7 @@ def run(
         sys.exit(0)
 
     if isinstance(options, type):
+        options = cast("type[DataclassInstance]", options)
         framework_fields = {f.name for f in dataclasses.fields(_FrameworkOptions)}
         plugin_fields = {f.name for f in dataclasses.fields(options)}
         conflicts = plugin_fields & framework_fields
@@ -216,6 +217,7 @@ def _parse_plugin_options(
             raise ValueError(msg)
         return None
     if isinstance(options, type):
+        options = cast("type[DataclassInstance]", options)
         result, unknown = parse_options(options, parameter)
         if unknown:
             msg = f"unknown option(s): {unknown}"

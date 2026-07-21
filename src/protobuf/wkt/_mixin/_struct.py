@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Literal, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeAlias, TypeVar, cast
 
 if TYPE_CHECKING:
     from protobuf import Oneof
@@ -157,8 +157,9 @@ class ValueMixin:
             case str():
                 return cls(kind=Oneof(field="string_value", value=value))
             case Mapping() as m:
+                m = cast("Mapping[str, ValueTypeParam]", m)
                 return cls(
-                    kind=Oneof(field="struct_value", value=Struct.from_python(m))  # ty: ignore[invalid-argument-type] - https://github.com/astral-sh/ty/issues/3983
+                    kind=Oneof(field="struct_value", value=Struct.from_python(m))
                 )
             case Sequence() as s:
                 return cls(
