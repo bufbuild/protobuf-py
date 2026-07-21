@@ -31,11 +31,11 @@ jobs:
       # When bumping, also bump top-level env in release.yaml
       MATURIN_ARGS: ${{ (matrix.python-version == '3.10' || matrix.python-version == '3.11') && '--features pyo3/abi3-py310' || '' }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install uv with Python ${{ matrix.python-version }}
         uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
-          version: "0.11.28"
+          version: "0.11.30"
           python-version: ${{ matrix.python-version }}
       - name: Setup rust
         if: matrix.native-ext
@@ -63,11 +63,11 @@ jobs:
         python-version:
           - "pypy3.11"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install uv with Python ${{ matrix.python-version }}
         uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
-          version: "0.11.28"
+          version: "0.11.30"
           python-version: ${{ matrix.python-version }}
       - run: uv sync --locked
       - run: uv run poe test
@@ -77,10 +77,10 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
-          version: "0.11.28"
+          version: "0.11.30"
           python-version: "3.10"
       - run: uv sync --locked
       - run: uv run poe lint
