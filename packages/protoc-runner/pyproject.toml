@@ -29,11 +29,12 @@ dev = ["license-header", "poethepoet==0.48.0", "wheel==0.47.0"]
 requires = ["uv_build>=0.11.2,<0.12"]
 build-backend = "uv_build"
 
+[tool.licenseheader]
+copyright-holder = "Buf Technologies, Inc."
+year-range = "2025-2026"
+
 [tool.poe.tasks.build]
 script = "scripts.build:main()"
 
 [tool.uv.build-backend]
 module-name = ["protoc"]
-
-[tool.uv.sources]
-license-header = { path = "../license-header" }

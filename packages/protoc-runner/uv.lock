@@ -5,13 +5,14 @@ requires-python = ">=3.10"
 [[package]]
 name = "license-header"
 version = "0.0.1"
-source = { directory = "../license-header" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "tomli" },
 ]
-
-[package.metadata]
-requires-dist = [{ name = "tomli", specifier = "==2.4.1" }]
+sdist = { url = "https://files.pythonhosted.org/packages/12/d7/b5022800c7a5df156c12197045e12560e071196d1b962312db023bd9e9d7/license_header-0.0.1.tar.gz", hash = "sha256:752b5e8ee5ce78a682baa1f677d1575837ea5b8d01602ff40219fbf9cf6d05d1", size = 8943, upload-time = "2026-07-14T08:31:20.144Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/90/ce/a8636febaa4bdd24da2c106d4154278ba3a20b39ed6e01046dded532d4e9/license_header-0.0.1-py3-none-any.whl", hash = "sha256:dc45b544370155260e409713eb5ebb00f878e5d2630c4bcb9a6d045e18505b44", size = 13399, upload-time = "2026-07-14T08:31:19.061Z" },
+]
 
 [[package]]
 name = "packaging"
@@ -61,7 +62,7 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "license-header", directory = "../license-header" },
+    { name = "license-header" },
     { name = "poethepoet", specifier = "==0.48.0" },
     { name = "wheel", specifier = "==0.47.0" },
 ]
