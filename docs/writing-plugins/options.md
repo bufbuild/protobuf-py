@@ -10,13 +10,16 @@ Define plugin options as a dataclass and pass it as the third argument to `run()
 from dataclasses import dataclass
 from protobuf.plugin import Schema, run
 
+
 @dataclass
 class Options:
     verbose: bool = False
 
+
 def generate(schema: Schema[Options]) -> None:
     if schema.options.verbose:
         ...
+
 
 run("protoc-gen-hello", "0.1.0", Options, generate)
 ```
@@ -72,6 +75,7 @@ Here is a plugin that generates a `_sensitive.py` file for each proto file, list
 from protobuf.plugin import Schema, run
 from gen.options_pb import ext_sensitive
 
+
 def generate(schema: Schema) -> None:
     for desc in schema.files_to_generate:
         f = schema.generate_file(desc, "_sensitive.py")
@@ -89,6 +93,7 @@ def generate(schema: Schema) -> None:
             for msg, field in sensitive_fields:
                 f.print(f'("{msg.name}", "{field.name}"),')
         f.print("]")
+
 
 run("protoc-gen-sensitive", "0.1.0", generate)
 ```

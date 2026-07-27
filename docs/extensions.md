@@ -38,23 +38,23 @@ opts = FieldOptions()
 opts[ext_custom_option] = "hello"
 
 # Presence check
-ext_custom_option in opts   # True
+ext_custom_option in opts  # True
 
 # Get
-opts[ext_custom_option]     # "hello"
+opts[ext_custom_option]  # "hello"
 
 # Clear
 del opts[ext_custom_option]
-ext_custom_option in opts   # False
-opts[ext_custom_option]     # "" (zero value)
+ext_custom_option in opts  # False
+opts[ext_custom_option]  # "" (zero value)
 ```
 
 Extensions always track presence; `ext in msg` returns `True` even when the extension is set to its zero value:
 
 ```python
 opts[ext_custom_option] = ""
-ext_custom_option in opts   # True
-opts[ext_custom_option]     # ""
+ext_custom_option in opts  # True
+opts[ext_custom_option]  # ""
 ```
 
 ## Extensions in custom options
@@ -124,7 +124,7 @@ Extensions not found in the registry are silently omitted from JSON output.
 from protobuf import Registry
 
 registry = Registry()
-registry.add(ext_custom_option)   # the extension to register
+registry.add(ext_custom_option)  # the extension to register
 
 text = opts.to_json(registry=registry)
 opts = FieldOptions.from_json(text, registry=registry)

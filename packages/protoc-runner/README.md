@@ -11,6 +11,7 @@ This package is for use testing internal projects.
 
 ```python
 from protoc import get_protoc_path, get_conformance_test_runner_path
+
 subprocess.run([get_protoc_path(), "-h"], check=True)
 subprocess.run([get_conformance_test_runner_path(), "-h"], check=True)
 ```

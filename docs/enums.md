@@ -7,7 +7,7 @@ Values compare equal to plain integers and can be used anywhere an integer is ex
 from gen.example_pb import PhoneType
 
 user.phone_type = PhoneType.MOBILE
-user.phone_type == 1   # True
+user.phone_type == 1  # True
 ```
 
 ## Open and closed enums
@@ -18,7 +18,7 @@ Proto2 enums are *closed*: unknown values are rejected during parsing.
 The `desc().open` attribute indicates which behavior applies:
 
 ```python
-PhoneType.desc().open   # True (proto3), False (proto2/closed)
+PhoneType.desc().open  # True (proto3), False (proto2/closed)
 ```
 
 ## JSON representation
@@ -26,13 +26,13 @@ PhoneType.desc().open   # True (proto3), False (proto2/closed)
 By default, enum values serialize to their string name in ProtoJSON:
 
 ```python
-msg.to_json()   # {"phoneType":"PHONE_TYPE_MOBILE"}
+msg.to_json()  # {"phoneType":"PHONE_TYPE_MOBILE"}
 ```
 
 To serialize as integers instead, pass `print_enums_as_ints=True`:
 
 ```python
-msg.to_json(print_enums_as_ints=True)   # {"phoneType":1}
+msg.to_json(print_enums_as_ints=True)  # {"phoneType":1}
 ```
 
 See [Serialization](./serialization.md) for the full list of JSON options.

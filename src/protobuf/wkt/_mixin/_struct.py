@@ -22,16 +22,16 @@ if TYPE_CHECKING:
 
 
 ValueTypeParam: TypeAlias = (
-    None
-    | bool
+    bool
     | int
     | float
     | str
     | Sequence["ValueTypeParam"]
     | Mapping[str, "ValueTypeParam"]
+    | None
 )
 ValueTypeReturn: TypeAlias = (
-    None | bool | float | str | list["ValueTypeReturn"] | dict[str, "ValueTypeReturn"]
+    bool | float | str | list["ValueTypeReturn"] | dict[str, "ValueTypeReturn"] | None
 )
 
 

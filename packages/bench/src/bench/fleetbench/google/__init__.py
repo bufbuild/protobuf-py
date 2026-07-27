@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from bench.fleetbench.google.receiver import Ops
 from bench.fleetbench.google.access_message0 import Message0Access
 from bench.fleetbench.google.access_message1 import Message1Access
 from bench.fleetbench.google.access_message2 import Message2Access
@@ -38,6 +37,7 @@ from bench.fleetbench.google.access_message16 import Message16Access
 from bench.fleetbench.google.access_message17 import Message17Access
 from bench.fleetbench.google.access_message18 import Message18Access
 from bench.fleetbench.google.access_message19 import Message19Access
+from bench.fleetbench.google.receiver import Ops
 
 
 class Access(

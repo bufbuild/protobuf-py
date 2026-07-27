@@ -71,7 +71,7 @@ def _fetch_repo(org: str, repo: str, ver: str, *, commit: bool = False) -> Path:
 
 
 def _update_hyperpb(suite: Suite) -> None:
-    print("Updating hyperpb benchmarks...")  # noqa: T201
+    print("Updating hyperpb benchmarks...")
     repo_root = _fetch_repo("bufbuild", "hyperpb-go", VER_HYPERPB)
     for dir, _, files in os.walk(repo_root / "internal" / "testdata"):
         for file in files:
@@ -103,7 +103,7 @@ def _extract_hyperpb_payload(filename: str, data: dict[str, Any]) -> list[bytes]
                 msg = f"benchmark {filename} has non-string protoscope payload"
                 raise TypeError(msg)
             proc = subprocess.run(
-                [  # noqa: S607
+                [
                     "go",
                     "run",
                     "github.com/protocolbuffers/protoscope/cmd/protoscope@8e7a6aafa2c9958527b1e0747e66e1bfff045819",
@@ -124,8 +124,8 @@ def _extract_hyperpb_payload(filename: str, data: dict[str, Any]) -> list[bytes]
             if not isinstance(payload, str):
                 msg = f"benchmark {filename} has non-string textproto payload"
                 raise TypeError(msg)
-            proc = subprocess.run(  # noqa: S603
-                [  # noqa: S607
+            proc = subprocess.run(
+                [
                     "buf",
                     "convert",
                     "--from",
@@ -147,7 +147,7 @@ def _extract_hyperpb_payload(filename: str, data: dict[str, Any]) -> list[bytes]
 
 
 def _update_buffa(suite: Suite) -> None:
-    print("Updating buffa benchmarks...")  # noqa: T201
+    print("Updating buffa benchmarks...")
     repo_root = _fetch_repo("anthropics", "buffa", VER_BUFFA)
     for root, _, files in os.walk(repo_root / "benchmarks" / "datasets"):
         for file in files:
@@ -162,7 +162,7 @@ def _update_buffa(suite: Suite) -> None:
 
 
 def _update_fleetbench() -> None:
-    print("Updating fleetbench benchmarks...")  # noqa: T201
+    print("Updating fleetbench benchmarks...")
     repo_root = _fetch_repo("google", "fleetbench", VER_FLEETBENCH, commit=True)
     _fleetbench.translate(repo_root)
 
@@ -209,7 +209,7 @@ def suite() -> None:
 
 
 def home_timeline() -> None:
-    print("Updating home timeline content...")  # noqa: T201
+    print("Updating home timeline content...")
     # Fetch real Reddit post bodies via the Hugging Face datasets-server rows API.
     # We store the content column, as a base64-encoded JSON array of strings.
     # Using base64 encoding allows colorful Reddit content to stay opaque within
@@ -219,7 +219,7 @@ def home_timeline() -> None:
         f"?dataset={quote(HOME_TIMELINE_DATASET, safe='')}"
         f"&config=default&split=train&offset=0&length={HOME_TIMELINE_ROWS}"
     )
-    with contextlib.closing(urlopen(url)) as resp:  # noqa: S310
+    with contextlib.closing(urlopen(url)) as resp:
         resp: HTTPResponse
         if resp.status != 200:
             msg = f"bad HTTP response status {resp.status} for {url}"

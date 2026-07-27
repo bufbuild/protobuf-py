@@ -54,7 +54,7 @@ User manager = 4;
 
 ```python
 user = User()
-user.manager        # None
+user.manager  # None
 
 user.manager = User(first_name="Burns")
 user.manager.first_name  # "Burns"
@@ -67,7 +67,7 @@ Because `Enum` extends `IntEnum`, values compare equal to plain integers and can
 
 ```python
 user = User(phone_type=PhoneType.MOBILE)
-user.phone_type   # PhoneType.MOBILE (== 1)
+user.phone_type  # PhoneType.MOBILE (== 1)
 ```
 
 See [Enum value prefix stripping](./features.md#enum-value-prefix-stripping) for how value names are generated, and [Enums](../enums.md) for open/closed behavior and JSON representation.
@@ -82,9 +82,9 @@ repeated string locations = 5;
 
 ```python
 user = User()
-user.locations              # []
+user.locations  # []
 user.locations.append("Springfield")
-user.locations              # ["Springfield"]
+user.locations  # ["Springfield"]
 ```
 
 Standard list operations work as expected: `append`, `extend`, `insert`, indexing, and slicing.
@@ -100,7 +100,7 @@ map<string, string> projects = 6;
 ```python
 user = User()
 user.projects["SPP"] = "Springfield Power Plant"
-user.projects           # {"SPP": "Springfield Power Plant"}
+user.projects  # {"SPP": "Springfield Power Plant"}
 ```
 
 ## Oneof fields
@@ -119,7 +119,7 @@ message Response {
 
 ```python
 r = Response(result=Oneof(field="value", value="ok"))
-r.result   # Oneof(field="value", value="ok")
+r.result  # Oneof(field="value", value="ok")
 ```
 
 Setting any field in a oneof automatically clears the others.

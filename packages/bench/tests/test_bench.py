@@ -23,6 +23,7 @@ from types import ModuleType
 from typing import (
     TYPE_CHECKING,
     Any,
+    ClassVar,
     Literal,
     TypeAlias,
     TypeVar,
@@ -106,15 +107,15 @@ def _get_google_protobuf_message_instance(
 ) -> GoogleProtobufMessage:
     import google.protobuf.symbol_database
 
-    import bench.gen.buffa.bench_messages_pb2  # noqa: F401
-    import bench.gen.buffa.benchmark_message1_proto3_pb2  # noqa: F401
-    import bench.gen.home.home_pb2  # noqa: F401
-    import bench.gen.hyperpb.descriptor_pb2  # noqa: F401
-    import bench.gen.hyperpb.test_pb2  # noqa: F401
-    import bench.gen.rsb.options_pb2  # noqa: F401 # isort: skip
-    import bench.gen.rsb.log.log_pb2  # noqa: F401
-    import bench.gen.rsb.mesh.mesh_pb2  # noqa: F401
-    import bench.gen.rsb.minecraft.minecraft_pb2  # noqa: F401
+    import bench.gen.buffa.bench_messages_pb2
+    import bench.gen.buffa.benchmark_message1_proto3_pb2
+    import bench.gen.home.home_pb2
+    import bench.gen.hyperpb.descriptor_pb2
+    import bench.gen.hyperpb.test_pb2
+    import bench.gen.rsb.options_pb2  # isort: skip
+    import bench.gen.rsb.log.log_pb2
+    import bench.gen.rsb.mesh.mesh_pb2
+    import bench.gen.rsb.minecraft.minecraft_pb2
     import bench.gen.rsb.mk48.mk48_pb2  # noqa: F401
 
     message = google.protobuf.symbol_database.Default().GetSymbol(typename)()
@@ -204,7 +205,7 @@ class TestBench:
                 benchmark(deepcopy, message)
 
     class TestAttrAccess:
-        _scalar_cases = [
+        _scalar_cases: ClassVar[list] = [
             pytest.param(
                 "implicit_int",
                 "hyperpb.test.Scalars",

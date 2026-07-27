@@ -21,7 +21,6 @@
 # Shared by both the google and protobuf implementations: the message classes,
 # access functions, and message operations are all resolved on the `Access`
 # object passed at construction.
-# ruff: noqa: F841
 from __future__ import annotations
 
 from copy import deepcopy

@@ -12,7 +12,7 @@ from gen import example_pb
 
 # All top-level messages
 for msg in example_pb.desc().messages:
-    print(msg.type_name)   # "example.User"
+    print(msg.type_name)  # "example.User"
 
     # Fields on each message
     for field in msg.fields:
@@ -43,7 +43,7 @@ Use **`fields`** for all fields, including those inside a `oneof`:
 
 ```python
 for field in User.desc().fields:
-    print(field.name)   # first_name, last_name, active, manager, locations, projects
+    print(field.name)  # first_name, last_name, active, manager, locations, projects
 ```
 
 Scalar, message, and enum fields (but not repeated or map fields) also have an `oneof` attribute:
@@ -52,8 +52,12 @@ Scalar, message, and enum fields (but not repeated or map fields) also have an `
 from protobuf import DescFieldValueScalar, DescFieldValueMessage, DescFieldValueEnum
 
 for field in User.desc().fields:
-    if isinstance(field.value, (DescFieldValueScalar, DescFieldValueMessage, DescFieldValueEnum)):
-        print(field.value.oneof)  # DescOneof | None — set if the field is inside a oneof
+    if isinstance(
+        field.value, (DescFieldValueScalar, DescFieldValueMessage, DescFieldValueEnum)
+    ):
+        print(
+            field.value.oneof
+        )  # DescOneof | None — set if the field is inside a oneof
 ```
 
 Use **`oneofs`** for `oneof` groups only; iterate into their fields:
@@ -87,7 +91,13 @@ for member in User.desc().members:
 Use `match` on the `value` to handle each kind specifically:
 
 ```python
-from protobuf import DescFieldValueScalar, DescFieldValueMessage, DescFieldValueEnum, DescFieldValueList, DescFieldValueMap
+from protobuf import (
+    DescFieldValueScalar,
+    DescFieldValueMessage,
+    DescFieldValueEnum,
+    DescFieldValueList,
+    DescFieldValueMap,
+)
 
 for field in User.desc().fields:
     name = field.name
@@ -107,13 +117,13 @@ for field in User.desc().fields:
 All field types share common attributes:
 
 ```python
-field.name         # proto name ("first_name")
-field.local_name   # Python attribute name (same unless reserved keyword)
-field.number       # field number
-field.json_name    # JSON key ("firstName")
-field.presence     # EXPLICIT, IMPLICIT, or LEGACY_REQUIRED
-field.deprecated   # bool
-field.parent       # DescMessage that owns this field
+field.name  # proto name ("first_name")
+field.local_name  # Python attribute name (same unless reserved keyword)
+field.number  # field number
+field.json_name  # JSON key ("firstName")
+field.presence  # EXPLICIT, IMPLICIT, or LEGACY_REQUIRED
+field.deprecated  # bool
+field.parent  # DescMessage that owns this field
 ```
 
 ## DescEnum
@@ -123,9 +133,9 @@ field.parent       # DescMessage that owns this field
 ```python
 from gen.example_pb import PhoneType
 
-desc = PhoneType.desc()   # DescEnum
-desc.name                 # "PhoneType"
-desc.open                 # True (proto3) or False (proto2)
+desc = PhoneType.desc()  # DescEnum
+desc.name  # "PhoneType"
+desc.open  # True (proto3) or False (proto2)
 for v in desc.values:
     print(v.name, v.number)
 ```

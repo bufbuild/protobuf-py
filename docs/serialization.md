@@ -56,7 +56,7 @@ Field names are converted to `camelCase` in the JSON output, per the Protobuf JS
 Set this to `True` to always include them:
 
 ```python
-user = User()   # first_name is "" (zero value)
+user = User()  # first_name is "" (zero value)
 user.to_json()  # {} (first_name omitted)
 user.to_json(always_emit_implicit=True)  # {"firstName":""}
 ```

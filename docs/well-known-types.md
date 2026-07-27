@@ -30,9 +30,9 @@ ts = Timestamp.from_seconds(1704067200.0)
 ts = Timestamp.from_nanos(1_704_067_200_000_000_000)
 
 # Convert back
-dt: datetime  = ts.to_datetime()
-s:  float     = ts.to_seconds()
-ns: int       = ts.to_nanos()
+dt: datetime = ts.to_datetime()
+s: float = ts.to_seconds()
+ns: int = ts.to_nanos()
 ```
 
 `Timestamp` serializes to an RFC 3339 string in ProtoJSON (`"2024-01-01T00:00:00Z"`).
@@ -56,8 +56,8 @@ d = Duration.from_nanos(5_400_000_000_000)
 
 # Convert back
 td: timedelta = d.to_timedelta()
-s:  float     = d.to_seconds()
-ns: int       = d.to_nanos()
+s: float = d.to_seconds()
+ns: int = d.to_nanos()
 ```
 
 `Duration` serializes to a seconds string in ProtoJSON (`"5400s"`).
@@ -75,11 +75,11 @@ user = User(first_name="Alice")
 any_msg = Any.pack(user)
 
 # Check the type without unpacking
-any_msg.is_type(User)            # True
-any_msg.is_type("example.User") # True (by type name)
+any_msg.is_type(User)  # True
+any_msg.is_type("example.User")  # True (by type name)
 
 # Unpack
-user = any_msg.unpack(User)      # User | None
+user = any_msg.unpack(User)  # User | None
 ```
 
 `unpack()` returns `None` if the `Any` is empty or contains a different type.
@@ -88,7 +88,7 @@ Serializing and deserializing `Any` to ProtoJSON requires a [`Registry`][protobu
 
 ```python
 registry = Registry()
-registry.add(example_pb.desc())   # register the file containing User
+registry.add(example_pb.desc())  # register the file containing User
 
 text = any_msg.to_json(registry=registry)
 restored = Any.from_json(text, registry=registry)

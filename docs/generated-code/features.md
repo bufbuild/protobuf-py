@@ -27,6 +27,7 @@ message User {
 ```python
 class User(Message):
     """A user in the system."""
+
     ...
 ```
 
@@ -43,7 +44,7 @@ message Request {
 ```
 
 ```python
-req.from_   # "from" on the wire
+req.from_  # "from" on the wire
 req.class_  # "class" on the wire
 ```
 
@@ -107,7 +108,7 @@ message User {
 class User(Message[...]):
     class Role(Enum):
         UNSPECIFIED = 0
-        ADMIN       = 1
+        ADMIN = 1
 ```
 
 Access them as `User.Role`, `User.Role.ADMIN`, etc.

@@ -24,9 +24,9 @@ registry.add(example_pb.desc())
 ## Looking up types
 
 ```python
-registry.message("example.User")         # DescMessage | None
-registry.enum("example.PhoneType")       # DescEnum | None
-registry.file("example.proto")           # DescFile | None
+registry.message("example.User")  # DescMessage | None
+registry.enum("example.PhoneType")  # DescEnum | None
+registry.file("example.proto")  # DescFile | None
 registry.extension("example.sensitive")  # DescExtension | None
 ```
 

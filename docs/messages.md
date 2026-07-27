@@ -27,9 +27,9 @@ Repeated and map fields default to empty collections.
 Fields are read and written as typed attributes:
 
 ```python
-user.first_name           # "Homer"
-user.manager.last_name    # "Burns"
-user.locations[0]         # "Springfield"
+user.first_name  # "Homer"
+user.manager.last_name  # "Burns"
+user.locations[0]  # "Springfield"
 
 user.first_name = "Bart"
 user.locations.append("Capital City")
@@ -65,14 +65,14 @@ Use the `has_field` method to check whether a field with explicit presence has b
 
 ```python
 user = User()
-user.has_field("nickname")   # False, not set
-user.nickname        # "" (zero value)
+user.has_field("nickname")  # False, not set
+user.nickname  # "" (zero value)
 
 user.nickname = ""
-user.has_field("nickname")   # True, explicitly set to empty string
+user.has_field("nickname")  # True, explicitly set to empty string
 
 user.first_name = ""
-user.has_field("first_name") # False, implicit presence: "" == not set
+user.has_field("first_name")  # False, implicit presence: "" == not set
 ```
 
 Message fields always have explicit presence.
@@ -82,7 +82,7 @@ To clear a field back to its default (and mark it as unset):
 
 ```python
 user.clear_field("nickname")
-user.has_field("nickname")   # False
+user.has_field("nickname")  # False
 ```
 
 ### Required fields
@@ -103,10 +103,10 @@ Extensions and unknown fields are not considered.
 ```python
 a = User(first_name="Alice")
 b = User(first_name="Alice")
-a == b   # True
+a == b  # True
 
 c = User(first_name="Alice", active=True)
-a == c   # False, `active` is set to `True` on `c` but unset on `a`
+a == c  # False, `active` is set to `True` on `c` but unset on `a`
 ```
 
 NaN-valued floats follow Python container semantics: the same `nan` object compares equal to itself, but distinct `nan` objects (e.g., two `float("nan")` calls) do not.
@@ -117,7 +117,7 @@ Every message class has a `desc()` classmethod that returns its [`DescMessage`][
 Use `type_name` to get the fully qualified name of the message type:
 
 ```python
-User.desc().type_name   # "example.User"
+User.desc().type_name  # "example.User"
 ```
 
 To check whether an unknown value is a message, use `isinstance` with [`Message`][protobuf.Message]:
@@ -125,13 +125,13 @@ To check whether an unknown value is a message, use `isinstance` with [`Message`
 ```python
 from protobuf import Message
 
-isinstance(user, Message)   # True
+isinstance(user, Message)  # True
 ```
 
 To check for a specific message type, use `isinstance` with the generated class directly:
 
 ```python
-isinstance(user, User)   # True
+isinstance(user, User)  # True
 ```
 
 ## Copying
@@ -145,21 +145,21 @@ The copy has independent presence and unknown field tracking, but mutable field 
 import copy
 
 original = User(first_name="Homer", locations=["Springfield"])
-shallow  = copy.copy(original)
+shallow = copy.copy(original)
 
 shallow.first_name = "Bart"
-original.first_name   # "Homer", scalar is independent
+original.first_name  # "Homer", scalar is independent
 
 shallow.locations.append("Shelbyville")
-original.locations    # ["Springfield", "Shelbyville"], list is shared
+original.locations  # ["Springfield", "Shelbyville"], list is shared
 ```
 
 On Python 3.13+, use [`copy.replace()`](https://docs.python.org/3/library/copy.html#copy.replace) to produce a copy with specific fields changed:
 
 ```python
 updated = copy.replace(original, first_name="Bart")
-updated.first_name    # "Bart"
-original.first_name   # "Homer", unchanged
+updated.first_name  # "Bart"
+original.first_name  # "Homer", unchanged
 ```
 
 ## Iterating over fields
@@ -184,9 +184,9 @@ field descriptors and extensions. For field-name presence checks in generated me
 
 ```python
 desc = next(f for f in User.desc().fields if f.name == "first_name")
-user[desc]           # get
-user[desc] = "Homer" # set
-desc in user         # descriptor presence check
+user[desc]  # get
+user[desc] = "Homer"  # set
+desc in user  # descriptor presence check
 ```
 
 ## String representation

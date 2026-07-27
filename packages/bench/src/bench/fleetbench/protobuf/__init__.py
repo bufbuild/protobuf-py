@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from bench.fleetbench.protobuf.receiver import Ops
 from bench.fleetbench.protobuf.access_message0 import Message0Access
 from bench.fleetbench.protobuf.access_message1 import Message1Access
 from bench.fleetbench.protobuf.access_message2 import Message2Access
@@ -38,6 +37,7 @@ from bench.fleetbench.protobuf.access_message16 import Message16Access
 from bench.fleetbench.protobuf.access_message17 import Message17Access
 from bench.fleetbench.protobuf.access_message18 import Message18Access
 from bench.fleetbench.protobuf.access_message19 import Message19Access
+from bench.fleetbench.protobuf.receiver import Ops
 
 if TYPE_CHECKING:
     from protobuf import Registry

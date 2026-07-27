@@ -88,10 +88,7 @@ user = User(
     active=True,
     locations=["Springfield"],
     projects={"SPP": "Springfield Power Plant"},
-    manager=User(
-        first_name="Montgomery",
-        last_name="Burns",
-    ),
+    manager=User(first_name="Montgomery", last_name="Burns"),
 )
 ```
 
@@ -103,11 +100,11 @@ Scalar fields default to their zero value (`""`, `0`, `False`), message fields d
 Fields are accessible as typed attributes:
 
 ```python
-user.first_name          # "Homer"
-user.active              # True
-user.manager.last_name   # "Burns"
-user.locations[0]        # "Springfield"
-user.projects["SPP"]     # "Springfield Power Plant"
+user.first_name  # "Homer"
+user.active  # True
+user.manager.last_name  # "Burns"
+user.locations[0]  # "Springfield"
+user.projects["SPP"]  # "Springfield Power Plant"
 ```
 
 Repeated fields are Python lists and map fields are Python dicts, so standard Python operations work as expected:

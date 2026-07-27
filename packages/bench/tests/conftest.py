@@ -17,7 +17,8 @@ from __future__ import annotations
 import os
 import sys
 import sysconfig
-from typing import Iterator, Literal, TypeAlias, get_args
+from collections.abc import Iterator
+from typing import Literal, TypeAlias, get_args
 
 import pytest
 from protobuf import _native_message

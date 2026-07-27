@@ -55,7 +55,7 @@ HEADER = (
 # Derived from github.com/google/fleetbench
 # Copyright 2025 The Fleetbench Authors
 # SPDX-License-Identifier: Apache-2.0
-# ruff: noqa: F841
+# ruff: noqa
 # pyright: reportUnusedExpression=false
 from __future__ import annotations
 
@@ -489,11 +489,13 @@ def generate_init(impl: str, num_messages: int, used: UsedTypes) -> str:
         if impl == "protobuf"
         else "from typing import Any",
         "",
-        f"from bench.fleetbench.{impl}.receiver import Ops",
     ]
     lines.extend(
         f"from bench.fleetbench.{impl}.access_message{i} import Message{i}Access"
         for i in range(num_messages)
+    )
+    lines.append(
+        f"from bench.fleetbench.{impl}.receiver import Ops",
     )
     if impl == "protobuf":
         lines += ["", "if TYPE_CHECKING:", "    from protobuf import Registry"]
@@ -643,7 +645,6 @@ LIFECYCLE_TEMPLATE = (
 # Shared by both the google and protobuf implementations: the message classes,
 # access functions, and message operations are all resolved on the `Access`
 # object passed at construction.
-# ruff: noqa: F841
 from __future__ import annotations
 
 from copy import deepcopy
@@ -735,5 +736,5 @@ def translate(repo_root: Path) -> None:
             used.update(file_used)
         (out_dir / "__init__.py").write_text(generate_init(impl, num_messages, used))
     (OUT_ROOT / "lifecycle.py").write_text(generate_lifecycle(src, num_messages))
-    subprocess.run(["ruff", "format", str(OUT_ROOT)], check=True)  # noqa: S607
-    print(f"translated {num_messages} fleetbench messages")  # noqa: T201
+    subprocess.run(["ruff", "format", str(OUT_ROOT)], check=True)
+    print(f"translated {num_messages} fleetbench messages")

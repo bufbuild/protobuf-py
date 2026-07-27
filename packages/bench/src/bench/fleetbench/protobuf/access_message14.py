@@ -17,7 +17,7 @@
 # Derived from github.com/google/fleetbench
 # Copyright 2025 The Fleetbench Authors
 # SPDX-License-Identifier: Apache-2.0
-# ruff: noqa: F841
+# ruff: noqa
 # pyright: reportUnusedExpression=false
 from __future__ import annotations
 

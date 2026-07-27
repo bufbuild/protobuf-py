@@ -14,11 +14,15 @@ Create a file named `protoc-gen-hello.py`:
 #!/usr/bin/env python3
 from protobuf.plugin import Schema, run
 
+
 def generate(schema: Schema) -> None:
     for desc in schema.files_to_generate:
         f = schema.generate_file(desc, "_hello.py")
         f.preamble(desc)
-        f.print('print(f"Hello! Here is your descriptor:\\n{', desc, '.proto.to_json()}")')
+        f.print(
+            'print(f"Hello! Here is your descriptor:\\n{', desc, '.proto.to_json()}")'
+        )
+
 
 run("protoc-gen-hello", "0.1.0", generate)
 ```
@@ -95,6 +99,7 @@ from protobuf.plugin import Ident, Module, Schema, run
 
 _PROTOCOL = Module("typing").ident("Protocol")
 
+
 def generate(schema: Schema) -> None:
     for desc in schema.files_to_generate:
         f = schema.generate_file(desc, "_rpc.py")
@@ -106,8 +111,17 @@ def generate(schema: Schema) -> None:
                         continue  # skip streaming RPCs
                     request = Ident.for_desc(method.input, type_only=True)
                     response = Ident.for_desc(method.output, type_only=True)
-                    with f.scope("def ", method.name, "(self, request: ", request, ") -> ", response, ":"):
+                    with f.scope(
+                        "def ",
+                        method.name,
+                        "(self, request: ",
+                        request,
+                        ") -> ",
+                        response,
+                        ":",
+                    ):
                         f.print("...")
+
 
 run("protoc-gen-rpc", "0.1.0", generate)
 ```
@@ -161,9 +175,9 @@ Users of the generated file implement the Protocol and import message types from
 from gen.user.v1.user_pb import GetUserRequest, GetUserResponse
 from gen.user.v1.user_rpc import UserService
 
+
 class InMemoryUserService(UserService):
-    def GetUser(self, request: GetUserRequest) -> GetUserResponse:
-        ...
+    def GetUser(self, request: GetUserRequest) -> GetUserResponse: ...
 ```
 
 !!! note
@@ -175,9 +189,9 @@ class InMemoryUserService(UserService):
 The [`Schema`][protobuf.plugin.Schema] passed to your `generate` callback is the entry point:
 
 ```python
-schema.files_to_generate   # Sequence[DescFile] — files buf was asked to generate
-schema.all_files           # Sequence[DescFile] — all files including transitive imports
-schema.options             # parsed plugin options (see Options)
+schema.files_to_generate  # Sequence[DescFile] — files buf was asked to generate
+schema.all_files  # Sequence[DescFile] — all files including transitive imports
+schema.options  # parsed plugin options (see Options)
 ```
 
 Always iterate `files_to_generate`, not `all_files`; the latter includes imported dependencies that the user did not explicitly ask you to generate.

@@ -155,15 +155,16 @@ from pathlib import Path
 
 from protobuf.wkt import FileDescriptorSet
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Diff two Protobuf messages")
     parser.add_argument(
-        "--descriptors",
-        help="Path to the descriptors file for the input messages",
+        "--descriptors", help="Path to the descriptors file for the input messages"
     )
     args = parser.parse_args()
     fds = FileDescriptorSet.from_binary(Path(args.descriptors).read_bytes())
     print(fds)
+
 
 if __name__ == "__main__":
     main()
@@ -201,13 +202,15 @@ from pathlib import Path
 
 from protobuf.wkt import FileDescriptorSet
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Diff two Protobuf messages")
     parser.add_argument(
-        "--descriptors",
-        help="Path to the descriptors file for the input messages",
+        "--descriptors", help="Path to the descriptors file for the input messages"
     )
-    parser.add_argument("--type", help="Fully qualified message type name, e.g. 'my.package.Message'")
+    parser.add_argument(
+        "--type", help="Fully qualified message type name, e.g. 'my.package.Message'"
+    )
     parser.add_argument("message1", help="Path to the first message file")
     parser.add_argument("message2", help="Path to the second message file")
     args = parser.parse_args()
@@ -225,6 +228,7 @@ def main() -> None:
     message2 = desc_message.type.from_json(message2_bytes)
     print(message1)
     print(message2)
+
 
 if __name__ == "__main__":
     main()
@@ -253,17 +257,26 @@ import argparse
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from protobuf import DescMessage, DescFieldValueMessage, DescFieldValueList, DescFieldValueMap
+from protobuf import (
+    DescMessage,
+    DescFieldValueMessage,
+    DescFieldValueList,
+    DescFieldValueMap,
+)
 from protobuf.wkt import FileDescriptorSet, Timestamp
 
 if TYPE_CHECKING:
     from protobuf import Message
 
+
 def _diff_scalars(field_name: str, value1: object, value2: object) -> None:
     if value1 != value2:
         print(f"{field_name}: {value1} != {value2}")
 
-def _diff_messages(field_name: str, desc_message: DescMessage, message1: Message, message2: Message) -> None:
+
+def _diff_messages(
+    field_name: str, desc_message: DescMessage, message1: Message, message2: Message
+) -> None:
     if desc_message.type_name == "google.protobuf.Timestamp":
         if message1.to_datetime() != message2.to_datetime():
             print(f"{field_name}: {message1.to_datetime()} != {message2.to_datetime()}")
@@ -281,14 +294,23 @@ def _diff_messages(field_name: str, desc_message: DescMessage, message1: Message
         value2 = message2[field]
         match field.value:
             case DescFieldValueMessage(message=nested_desc_message):
-                _diff_messages(f"{field_name}.{field.name}", nested_desc_message, value1, value2)
+                _diff_messages(
+                    f"{field_name}.{field.name}", nested_desc_message, value1, value2
+                )
             case DescFieldValueList(element=element_type):
                 if len(value1) != len(value2):
-                    print(f"{field_name}.{field.name}: list length {len(value1)} != {len(value2)}")
+                    print(
+                        f"{field_name}.{field.name}: list length {len(value1)} != {len(value2)}"
+                    )
                     continue
                 for i, (item1, item2) in enumerate(zip(value1, value2)):
                     if isinstance(element_type, DescMessage):
-                        _diff_messages(f"{field_name}.{field.name}[{i}]", element_type, item1, item2)
+                        _diff_messages(
+                            f"{field_name}.{field.name}[{i}]",
+                            element_type,
+                            item1,
+                            item2,
+                        )
                     else:
                         _diff_scalars(f"{field_name}.{field.name}[{i}]", item1, item2)
             case DescFieldValueMap(key=key_type, value=value_type):
@@ -302,7 +324,12 @@ def _diff_messages(field_name: str, desc_message: DescMessage, message1: Message
                     item1 = value1[key]
                     item2 = value2[key]
                     if isinstance(value_type, DescMessage):
-                        _diff_messages(f"{field_name}.{field.name}[{key}]", value_type, item1, item2)
+                        _diff_messages(
+                            f"{field_name}.{field.name}[{key}]",
+                            value_type,
+                            item1,
+                            item2,
+                        )
                     else:
                         _diff_scalars(f"{field_name}.{field.name}[{key}]", item1, item2)
             case _:
@@ -312,10 +339,11 @@ def _diff_messages(field_name: str, desc_message: DescMessage, message1: Message
 def main() -> None:
     parser = argparse.ArgumentParser(description="Diff two Protobuf messages")
     parser.add_argument(
-        "--descriptors",
-        help="Path to the descriptors file for the input messages",
+        "--descriptors", help="Path to the descriptors file for the input messages"
     )
-    parser.add_argument("--type", help="Fully qualified message type name, e.g. 'my.package.Message'")
+    parser.add_argument(
+        "--type", help="Fully qualified message type name, e.g. 'my.package.Message'"
+    )
     parser.add_argument("message1", help="Path to the first message file")
     parser.add_argument("message2", help="Path to the second message file")
     args = parser.parse_args()
@@ -332,6 +360,7 @@ def main() -> None:
     message1 = desc_message.type.from_json(message1_bytes)
     message2 = desc_message.type.from_json(message2_bytes)
     _diff_messages("", desc_message, message1, message2)
+
 
 if __name__ == "__main__":
     main()

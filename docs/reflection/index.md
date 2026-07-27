@@ -46,9 +46,9 @@ Use [`Message.desc()`][protobuf.Message.desc] to retrieve it:
 ```python
 from gen.example_pb import User
 
-desc = User.desc()    # DescMessage
-desc.name             # "User"
-desc.type_name        # "example.User"
+desc = User.desc()  # DescMessage
+desc.name  # "User"
+desc.type_name  # "example.User"
 ```
 
 The file-level descriptor is exported as a getter function from the generated `_pb.py`:
@@ -56,8 +56,8 @@ The file-level descriptor is exported as a getter function from the generated `_
 ```python
 from gen import example_pb
 
-example_pb.desc().name        # "example.proto"
-example_pb.desc().messages    # [DescMessage, ...]
+example_pb.desc().name  # "example.proto"
+example_pb.desc().messages  # [DescMessage, ...]
 ```
 
 ## Next steps

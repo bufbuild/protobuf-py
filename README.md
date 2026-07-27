@@ -32,7 +32,7 @@ data = user.to_binary()
 user = User.from_binary(data)
 
 print(user.first_name)  # Alice
-print(user.to_json())   # {"id": "123", "firstName": "Alice", "lastName": "Smith"}
+print(user.to_json())  # {"id": "123", "firstName": "Alice", "lastName": "Smith"}
 ```
 
 Protobuf is the easiest way to build APIs. We recommend using it with [Connect for Python](https://github.com/connectrpc/connect-py), which generates server stubs for you:
@@ -43,10 +43,14 @@ from connectrpc.request import RequestContext
 from gen.user_connect import UserService, UserServiceASGIApplication
 from gen.user_pb import GetUserRequest, GetUserResponse, User
 
+
 class UserHandler(UserService):
-    async def get_user(self, request: GetUserRequest, ctx: RequestContext) -> GetUserResponse:
+    async def get_user(
+        self, request: GetUserRequest, ctx: RequestContext
+    ) -> GetUserResponse:
         user = User(id=request.id, first_name="Alice", last_name="Smith")
         return GetUserResponse(user=user)
+
 
 # Serve it with any ASGI server, e.g. `uvicorn server:app`.
 app = UserServiceASGIApplication(UserHandler())
@@ -118,12 +122,8 @@ class User(Message[_UserFields]):
     __slots__ = ("id", "first_name", "last_name")
 
     def __init__(
-        self, *,
-        id: str = "",
-        first_name: str = "",
-        last_name: str = "",
-    ) -> None:
-        ...
+        self, *, id: str = "", first_name: str = "", last_name: str = ""
+    ) -> None: ...
 
     id: str
     first_name: str

@@ -57,11 +57,11 @@ The goal is that protobuf messages feel like regular Python classes. A generated
 
 ```python
 msg = Person(name="Alice", id=42)
-msg.name                        # typed attribute access
+msg.name  # typed attribute access
 msg[Person.desc().field["name"]]  # dynamic access by descriptor
-msg.has_field("name")                   # presence check
-msg.clear_field("name")                 # clear to default
-for field in msg:               # iterate set fields
+msg.has_field("name")  # presence check
+msg.clear_field("name")  # clear to default
+for field in msg:  # iterate set fields
     print(field.name, msg[field])
 ```
 
@@ -143,6 +143,7 @@ def generate(schema: Schema) -> None:
         f = schema.generate_file(desc, "_pb.py")
         f.preamble(desc)
         generate_message(f, desc)
+
 
 def main() -> None:
     run("protoc-gen-py", importlib.metadata.version("protoc-gen-py"), generate)

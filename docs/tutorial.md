@@ -205,12 +205,13 @@ the pieces it generates (abbreviated).
 
 ```python title="gen/user_service_connect.py"
 class UserService(Protocol):
-    async def deactivate_user(self, request: User, ctx: RequestContext[User, User]) -> User:
-        raise ConnectError(Code.UNIMPLEMENTED, 'Not implemented')
+    async def deactivate_user(
+        self, request: User, ctx: RequestContext[User, User]
+    ) -> User:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
 
-class UserServiceASGIApplication(ConnectASGIApplication[UserService]):
-    ...
+class UserServiceASGIApplication(ConnectASGIApplication[UserService]): ...
 
 
 class UserServiceClient(ConnectClient):
@@ -220,8 +221,7 @@ class UserServiceClient(ConnectClient):
         *,
         headers: Headers | Mapping[str, str] | None = None,
         timeout_ms: int | None = None,
-    ) -> User:
-        ...
+    ) -> User: ...
 ```
 
 `UserService` is the interface a server implements - one typed method per RPC,
@@ -246,10 +246,12 @@ from gen.user_service_connect import (
     UserServiceClient,
 )
 
+
 class UserServiceImpl(UserService):
     async def deactivate_user(self, request: User, ctx: RequestContext) -> User:
         request.active = False
         return request
+
 
 async def main():
     app = UserServiceASGIApplication(UserServiceImpl())
@@ -265,6 +267,7 @@ async def main():
 
     server.should_exit = True
     await server_task
+
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -403,6 +406,7 @@ isn't sufficient, you can add the `optional` keyword as we did above.
 ```python title="main.py"
 from gen.user_pb import User
 
+
 def print_session_timeout(user: User) -> None:
     if user.has_field("session_timeout_minutes"):
         if user.session_timeout_minutes != 0:
@@ -411,6 +415,7 @@ def print_session_timeout(user: User) -> None:
             print("Session timeout: disabled")
     else:
         print("Session timeout: system default")
+
 
 user = User(session_timeout_minutes=0)
 print_session_timeout(user)
@@ -442,24 +447,17 @@ user = User(
     last_name="Bear",
     display_name="Yabba",
     status=User.Status.ACTIVE,
-    home_address=User.Address(
-        location="123 Main St",
-        city="Jellystone",
-        country="USA",
-    ),
+    home_address=User.Address(location="123 Main St", city="Jellystone", country="USA"),
     work_address=User.Address(
-        location="456 Park Ave",
-        city="Jellystone",
-        country="USA",
+        location="456 Park Ave", city="Jellystone", country="USA"
     ),
-    manager=User(
-        first_name="Ranger",
-        last_name="Smith",
-    ),
+    manager=User(first_name="Ranger", last_name="Smith"),
     hobbies=["picnicking", "fishing"],
     external_usernames={"twitter": "@yogibear", "github": "yogidev"},
     session_timeout_minutes=30,
-    created=Timestamp.from_datetime(datetime(1958, 9, 29, 18, 0, 0, tzinfo=timezone.utc)),
+    created=Timestamp.from_datetime(
+        datetime(1958, 9, 29, 18, 0, 0, tzinfo=timezone.utc)
+    ),
 )
 print(user.to_json())
 ```

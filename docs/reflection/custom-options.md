@@ -4,7 +4,7 @@
 Access them through the `proto` attribute of any descriptor, which holds the raw compiler-generated descriptor message:
 
 ```python
-from gen.options_pb import ext_sensitive   # an Extension[FieldOptions, bool]
+from gen.options_pb import ext_sensitive  # an Extension[FieldOptions, bool]
 
 for field in User.desc().fields:
     if field.proto.options is not None and field.proto.options[ext_sensitive]:
@@ -20,7 +20,7 @@ The `proto` attribute gives you direct access to that message, including its `op
 Custom options extend those option messages, so reading them is the same as reading any extension:
 
 ```python
-from gen.options_pb import ext_deprecated_reason   # Extension[MessageOptions, str]
+from gen.options_pb import ext_deprecated_reason  # Extension[MessageOptions, str]
 
 for msg in example_pb.desc().messages:
     if msg.proto.options is None:

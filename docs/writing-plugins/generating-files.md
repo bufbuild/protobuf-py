@@ -45,8 +45,7 @@ if TYPE_CHECKING:
     from .example_pb import MyRequest, MyResponse
 
 
-def handle(self, request: MyRequest) -> MyResponse:
-    ...
+def handle(self, request: MyRequest) -> MyResponse: ...
 ```
 
 `Ident.for_desc()` accepts `DescMessage`, `DescEnum`, `DescExtension`, or `DescFile` (for the file descriptor variable).
@@ -70,8 +69,8 @@ f.print("class UserService(", _PROTOCOL, "):")
 Absolute paths (no leading dot) generate absolute imports; paths starting with `.` generate relative imports:
 
 ```python
-Module("protobuf")            # from protobuf import ...
-Module(".gen.example_pb")     # from .gen.example_pb import ...
+Module("protobuf")  # from protobuf import ...
+Module(".gen.example_pb")  # from .gen.example_pb import ...
 
 # Derive a relative module path from a proto file descriptor
 Module.for_desc(desc, "_pb")  # e.g. ".example_pb" for "example.proto"
@@ -191,7 +190,13 @@ with f.doc():
         for line in comments.leading.removesuffix("\n").splitlines():
             f.print(line.removeprefix(" "))
         f.print()
-    f.print("Generated from method: '", method_desc.parent.type_name, ".", method_desc.name, "'.")
+    f.print(
+        "Generated from method: '",
+        method_desc.parent.type_name,
+        ".",
+        method_desc.name,
+        "'.",
+    )
 ```
 
 `get_comments()` accepts `DescService`, `DescMethod`, `DescMessage`, `DescField`, `DescEnum`, `DescEnumValue`, `DescOneof`, or `DescExtension`.

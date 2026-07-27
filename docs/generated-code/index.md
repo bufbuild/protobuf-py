@@ -20,7 +20,8 @@ A file-level descriptor object is also exported, accessible with `desc()`:
 
 ```python
 from gen import example_pb
-example_pb.desc()   # DescFile
+
+example_pb.desc()  # DescFile
 ```
 
 This is used to register types in a [`Registry`](../reflection/registry.md) or to walk the schema with [reflection](../reflection/index.md).
@@ -41,19 +42,17 @@ message User {
 ```python title="example_pb.py"
 _UserFields: TypeAlias = Literal["first_name", "last_name", "active"]
 
+
 class User(Message[_UserFields]):
     if TYPE_CHECKING:
+
         def __init__(
-            self,
-            *,
-            first_name: str = "",
-            last_name:  str = "",
-            active:     bool = False,
+            self, *, first_name: str = "", last_name: str = "", active: bool = False
         ) -> None: ...
 
         first_name: str
-        last_name:  str
-        active:     bool
+        last_name: str
+        active: bool
 ```
 
 The `TYPE_CHECKING` block exists only for type checkers and IDEs; the actual runtime behavior is inherited from `Message`.

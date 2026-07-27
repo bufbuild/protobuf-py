@@ -403,6 +403,7 @@ ignore = [
   "PLR0914",  # Too many local variables
   "PLR0915",  # Too many statements
   "PLR0916",  # Too many boolean expressions
+  "PLR0917",  # Too many positional arguments
   "PLR1702",  # Too many nested blocks
 
   # TODO rules
