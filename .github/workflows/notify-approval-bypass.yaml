@@ -7,5 +7,5 @@ permissions:
   pull-requests: read
 jobs:
   approval:
-    uses: bufbuild/base-workflows/.github/workflows/notify-approval-bypass.yaml@b9f8cecd03b72609cd9d965bf0ee4d136eaf069d # main
+    uses: bufbuild/base-workflows/.github/workflows/notify-approval-bypass.yaml@7c0b54b718244c78f00037343ff7cb33ef7caca9 # main
     secrets: inherit
