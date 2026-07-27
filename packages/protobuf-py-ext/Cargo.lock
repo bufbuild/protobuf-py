@@ -16,9 +16,9 @@ dependencies = [
 
 [[package]]
 name = "buffa"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b97ce1f34252b8e2516042e1002d56c160908a7ff8a1c9d47e97836558d1c83a"
+checksum = "cf9e6224bc4ee1f189ad257120c156fb05f95b826f5369d620b24984476c200a"
 dependencies = [
  "bytes",
  "foldhash",
