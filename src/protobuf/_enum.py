@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from ._descriptors import DescEnum
@@ -90,7 +90,7 @@ class Enum(IntEnum):
 
         # Create a pseudo-member for unknown values
         pseudo_member = int.__new__(cls, value)
-        pseudo_member._name_ = None  # type: ignore[attr-defined]
+        pseudo_member._name_ = cast("str", None)  # type: ignore[attr-defined]
         pseudo_member._value_ = value  # type: ignore[attr-defined]
         return pseudo_member  # type: ignore[return-value]
 
