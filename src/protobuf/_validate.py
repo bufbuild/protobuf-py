@@ -112,7 +112,7 @@ def _validate_oneof(desc: DescOneof, value: object) -> None:
             f"{desc.parent.type_name}.{desc.name}: unknown oneof field '{value.field}'"
         )
         raise ValueError(msg)
-    field = desc._fields_by_name[value.field]  # ty: ignore[invalid-argument-type] # fails to narrow this to str.
+    field = desc._fields_by_name[value.field]
     value = value.value
     match field.value:
         case DescFieldValueScalar(scalar=scalar):
