@@ -37,7 +37,7 @@ dev = [
   { include-group = "dev-required" },
   { include-group = "dev-subprojects" },
 ]
-docs = ["mkdocstrings-python==2.0.5", "zensical==0.0.53"]
+docs = ["mkdocstrings-python==2.0.6", "zensical==0.0.55"]
 
 # All dependencies required for CI, including running baseline tests.
 dev-required = [
@@ -48,7 +48,7 @@ dev-required = [
   "upstream-protobuf",
 
   "buf-bin==1.72.0",
-  "hypothesis==6.165.2",
+  "hypothesis==6.165.10",
   "license-header==0.0.1",
   "poethepoet==0.48.0",
   "protoc-runner==35.1",
@@ -56,9 +56,9 @@ dev-required = [
   "pytest==9.1.1",
   "pytest-benchmark==5.2.3",
   "pytest-cov==7.1.0",
-  "ruff==0.16.2",
-  "tombi==1.2.8",
-  "ty==0.0.69",
+  "ruff==0.16.3",
+  "tombi==1.4.1",
+  "ty==0.0.72",
 ]
 
 # Optional dependencies, used for development of optional features. We run tests without

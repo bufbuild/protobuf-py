@@ -23,7 +23,7 @@ conformance_test_runner = "protoc._main:conformance_test_runner"
 protoc = "protoc._main:protoc"
 
 [dependency-groups]
-dev = ["license-header", "poethepoet==0.48.0", "wheel==0.47.0"]
+dev = ["license-header", "poethepoet==0.48.0", "wheel==0.48.0"]
 
 [build-system]
 requires = ["uv_build>=0.12.1,<0.13"]
