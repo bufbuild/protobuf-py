@@ -118,13 +118,11 @@ sequence = [
   "bootstrap",
   "generate",
 ]
-args = [
-  { name = "_version", required = true, help = "The type of version bump to apply", choices = [
-    "patch",
-    "minor",
-    "major"
-  ] }
-]
+args = [{ name = "_version", required = true, help = "The type of version bump to apply", choices = [
+  "patch",
+  "minor",
+  "major",
+] }]
 
 ## Generate
 [tool.poe.tasks.generate]
@@ -206,7 +204,7 @@ sequence = ["format-license-header", "format-python", "format-toml"]
 help = "Format Python files with ruff"
 sequence = [
   { cmd = "ruff check --fix --unsafe-fixes --exit-zero ." },
-  { cmd = "ruff format" }
+  { cmd = "ruff format" },
 ]
 
 [tool.poe.tasks.format-license-header]
@@ -364,7 +362,7 @@ exclude = [
   "**/.*",
   ".venv",
   "**/*_pb2.py",
-  "**/*_pb2.pyi"
+  "**/*_pb2.pyi",
 ]
 # Allow type-checking without actually building the extension module.
 extraPaths = ["packages/protobuf-py-ext"]
@@ -375,7 +373,7 @@ reportMissingModuleSource = false
 addopts = [
   "--benchmark-disable",
   "--benchmark-group-by=func,param:_id",
-  "--doctest-modules"
+  "--doctest-modules",
 ]
 # Turn all warnings into errors
 filterwarnings = ["error"]

@@ -9,12 +9,12 @@ nav = [
   { "About" = "index.md" },
   { "Getting Started" = [
     "getting-started/installation.md",
-    "getting-started/quickstart.md"
+    "getting-started/quickstart.md",
   ] },
   { "Generated Code" = [
     "generated-code/index.md",
     "generated-code/field-types.md",
-    "generated-code/features.md"
+    "generated-code/features.md",
   ] },
   "messages.md",
   "enums.md",
@@ -27,12 +27,12 @@ nav = [
     "reflection/descriptors.md",
     "reflection/registry.md",
     "reflection/dynamic-messaging.md",
-    "reflection/custom-options.md"
+    "reflection/custom-options.md",
   ] },
   { "Writing Plugins" = [
     "writing-plugins/index.md",
     "writing-plugins/generating-files.md",
-    "writing-plugins/options.md"
+    "writing-plugins/options.md",
   ] },
   "tutorial.md",
   { "FAQs" = "faq.md" },
@@ -42,7 +42,7 @@ nav = [
     "api/wkt.md",
     "api/plugin.md",
     "api/txtpb.md",
-  ] }
+  ] },
 ]
 
 extra_css = ["stylesheets/extra.css"]
