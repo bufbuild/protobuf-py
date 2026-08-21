@@ -1,6 +1,6 @@
 [project]
 name = "protoc-runner"
-version = "35.1"
+version = "36.0"
 description = "Packaged protoc and conformance_test_runner for internal testing."
 readme = "README.md"
 requires-python = ">=3.10"
