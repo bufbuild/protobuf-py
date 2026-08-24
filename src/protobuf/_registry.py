@@ -119,7 +119,7 @@ class Registry:
                 case Registry():
                     self._extend(desc_or_reg)
                 case _:
-                    assert_never(desc_or_reg)
+                    assert_never(desc_or_reg)  # ty: ignore[invalid-argument-type] # https://github.com/astral-sh/ty/issues/4370
 
     def file(self, path: str) -> DescFile | None:
         """Look up a file descriptor by its path.
