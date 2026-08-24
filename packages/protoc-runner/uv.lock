@@ -48,7 +48,7 @@ wheels = [
 
 [[package]]
 name = "protoc-runner"
-version = "35.1"
+version = "36.0"
 source = { editable = "." }
 
 [package.dev-dependencies]
