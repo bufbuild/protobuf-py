@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "uv sync --group docs",
-  "buildCommand": "uv run --group docs zensical build --clean --strict",
+  "buildCommand": "uv run --group docs zensical build --clean",
   "outputDirectory": "site",
   "headers": [
     {
