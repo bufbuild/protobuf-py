@@ -6,7 +6,7 @@ dependencies = [
   "PyYAML==6.0.3",
   "buf-bin==1.72.0",
   "fix-protobuf-imports==0.1.7",
-  "protobuf==7.35.1",
+  "protobuf==7.36.0",
 ]
 
 [build-system]
