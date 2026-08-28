@@ -54,7 +54,7 @@ dev-required = [
   "hypothesis==6.165.10",
   "license-header==0.0.1",
   "poethepoet==0.48.0",
-  "protoc-runner==35.1",
+  "protoc-runner==36.0",
   "pyright==1.1.411",
   "pytest==9.1.1",
   "pytest-benchmark==5.3.0",

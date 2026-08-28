@@ -2,7 +2,7 @@
 name = "upstream-protobuf"
 version = "0.0.1"
 requires-python = ">=3.10"
-dependencies = ["license-header", "protoc-runner==35.1"]
+dependencies = ["license-header", "protoc-runner==36.0"]
 
 [project.scripts]
 generate_bootstrap = "bufbuild.upstream_protobuf.generate_bootstrap:main"
