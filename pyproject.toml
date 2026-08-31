@@ -51,7 +51,7 @@ dev-required = [
   "upstream-protobuf",
 
   "buf-bin==1.72.0",
-  "hypothesis==6.165.10",
+  "hypothesis==6.167.1",
   "license-header==0.0.1",
   "poethepoet==0.48.0",
   "protoc-runner==36.0",
@@ -59,15 +59,15 @@ dev-required = [
   "pytest==9.1.1",
   "pytest-benchmark==5.3.0",
   "pytest-cov==7.1.0",
-  "ruff==0.16.4",
-  "tombi==1.4.1",
-  "ty==0.0.74",
+  "ruff==0.16.5",
+  "tombi==1.5.0",
+  "ty==0.0.75",
 ]
 
 # Optional dependencies, used for development of optional features. We run tests without
 # these installed to ensure missing optional dependencies does not introduce breakage.
 dev-optional = [
-  "pydantic==2.13.4",
+  "pydantic==2.13.5",
 ]
 
 # Dev dependencies only used in subprojects. Optimal structure would include these
@@ -80,7 +80,7 @@ dev-optional = [
 dev-subprojects = [
   "PyYAML==6.0.3",
   "fix-protobuf-imports==0.1.7",
-  "maturin==1.14.1",
+  "maturin==1.15.0",
   "protobuf==7.36.0",
   "protobuf-py-bench",
   "pytest-asyncio==1.4.0",

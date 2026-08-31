@@ -28,7 +28,7 @@ Issues = "https://github.com/bufbuild/protobuf-py/issues"
 Source = "https://github.com/bufbuild/protobuf-py"
 
 [dependency-groups]
-dev = ["maturin==1.14.1"]
+dev = ["maturin==1.15.0"]
 
 [build-system]
 requires = ["maturin>=1.12,<2.0"]
