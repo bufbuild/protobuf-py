@@ -21,6 +21,7 @@ from typing_extensions import assert_never
 from ._descriptors import (
     DescEnum,
     DescField,
+    DescFieldValue,
     DescFieldValueEnum,
     DescFieldValueList,
     DescFieldValueMap,
@@ -32,6 +33,7 @@ from ._descriptors import (
     SupportedFieldPresence,
 )
 from ._oneof import Oneof
+from ._wire._binary_reader import DEPTH_LIMIT
 
 if TYPE_CHECKING:
     from ._message import Message
@@ -49,7 +51,7 @@ FLOAT32_MAX = 3.4028234663852886e38
 FLOAT32_MIN = -3.4028234663852886e38
 
 
-def validate(message: Message, /) -> None:
+def validate(message: Message, /, depth: int = 0) -> None:
     """Validate a message for correctness before serialization.
 
     Checks that all field values have the correct types and that
@@ -57,18 +59,25 @@ def validate(message: Message, /) -> None:
 
     Args:
         message: The message to validate.
+        depth: Current message nesting depth.
 
     Raises:
         TypeError: If a field value has the wrong type.
         OverflowError: If a numeric value is out of range.
         ValueError: If an enum or oneof field has an invalid value.
+        RecursionError: If message nesting exceeds the recursion limit.
     """
+    if depth > DEPTH_LIMIT:
+        msg = (
+            f"exceeded maximum recursion depth {DEPTH_LIMIT} while serializing message"
+        )
+        raise RecursionError(msg)
     # Iterate over members instead of fields to validate oneofs instead of
     # silently skipping them.
     for member in message._desc.members:
         if isinstance(member, DescOneof):
             if (value := getattr(message, member.local_name)) is not None:
-                _validate_oneof(member, value)
+                _validate_oneof(member, value, depth)
             continue
         if not message._contains_member(member):
             if member.presence == SupportedFieldPresence.LEGACY_REQUIRED:
@@ -78,33 +87,44 @@ def validate(message: Message, /) -> None:
         value: object = message._get_member(member)
         match member:
             case DescField():
-                match field_value := member.value:
-                    case DescFieldValueScalar():
-                        _validate_scalar_type(field_value.scalar, value)
-                    case DescFieldValueMessage():
-                        _validate_message_value(field_value.message, value)
-                    case DescFieldValueEnum():
-                        _validate_enum(field_value.enum, value)
-                    case DescFieldValueList():
-                        if not isinstance(value, list):
-                            msg = f"expected list, got {type(value)}"
-                            raise TypeError(msg)
-                        for element in value:
-                            _validate_container_element(field_value.element, element)
-                    case DescFieldValueMap():
-                        if not isinstance(value, dict):
-                            msg = f"expected dict, got {type(value)}"
-                            raise TypeError(msg)
-                        for k, v in value.items():
-                            _validate_scalar_type(field_value.key, k)
-                            _validate_container_element(field_value.value, v)
-                    case _:
-                        assert_never(field_value)
+                validate_field_value(member.value, value, depth)
             case _:
                 assert_never(member)
 
 
-def _validate_oneof(desc: DescOneof, value: object) -> None:
+def validate_field_value(
+    field_value: DescFieldValue, value: object, depth: int = 0
+) -> None:
+    """Validate a single field value for correctness before serialization.
+
+    Used both for message fields and for values serialized outside a
+    validated message, such as extension values.
+    """
+    match field_value:
+        case DescFieldValueScalar():
+            _validate_scalar_type(field_value.scalar, value)
+        case DescFieldValueMessage():
+            _validate_message_value(field_value.message, value, depth)
+        case DescFieldValueEnum():
+            _validate_enum(field_value.enum, value)
+        case DescFieldValueList():
+            if not isinstance(value, list):
+                msg = f"expected list, got {type(value)}"
+                raise TypeError(msg)
+            for element in value:
+                _validate_container_element(field_value.element, element, depth)
+        case DescFieldValueMap():
+            if not isinstance(value, dict):
+                msg = f"expected dict, got {type(value)}"
+                raise TypeError(msg)
+            for k, v in value.items():
+                _validate_scalar_type(field_value.key, k)
+                _validate_container_element(field_value.value, v, depth)
+        case _:
+            assert_never(field_value)
+
+
+def _validate_oneof(desc: DescOneof, value: object, depth: int) -> None:
     if not isinstance(value, Oneof):
         msg = f"{desc.parent.type_name}.{desc.name}: expected Oneof, got {type(value)}"
         raise TypeError(msg)
@@ -119,7 +139,7 @@ def _validate_oneof(desc: DescOneof, value: object) -> None:
         case DescFieldValueScalar(scalar=scalar):
             _validate_scalar_type(scalar, value)
         case DescFieldValueMessage(message=message):
-            _validate_message_value(message, value)
+            _validate_message_value(message, value, depth)
         case DescFieldValueEnum(enum=enum):
             _validate_enum(enum, value)
         case _:
@@ -128,7 +148,7 @@ def _validate_oneof(desc: DescOneof, value: object) -> None:
 
 
 def _validate_container_element(
-    element_type: ScalarType | DescEnum | DescMessage, value: object
+    element_type: ScalarType | DescEnum | DescMessage, value: object, depth: int
 ) -> None:
     match element_type:
         case ScalarType():
@@ -136,12 +156,12 @@ def _validate_container_element(
         case DescEnum():
             _validate_enum(element_type, value)
         case DescMessage():
-            _validate_message_value(element_type, value)
+            _validate_message_value(element_type, value, depth)
         case _:
             assert_never(element_type)
 
 
-def _validate_message_value(desc: DescMessage, value: object) -> None:
+def _validate_message_value(desc: DescMessage, value: object, depth: int) -> None:
     from ._message import Message  # noqa: PLC0415
 
     if not isinstance(value, Message):
@@ -150,7 +170,7 @@ def _validate_message_value(desc: DescMessage, value: object) -> None:
     if value._desc.type_name != desc.type_name:
         msg = f"expected {desc.type_name!r}, got {value._desc.type_name!r}"
         raise TypeError(msg)
-    validate(value)
+    validate(value, depth + 1)
 
 
 def _validate_enum(desc: DescEnum, value: object) -> None:

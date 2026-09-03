@@ -540,3 +540,23 @@ def _test_roundtrip(message: Message, expected: Any) -> None:
 
     roundtripped = type(message).from_json(json_str)
     assert roundtripped == message
+
+
+def test_to_json_cyclic_value() -> None:
+    value = Value()
+    value.kind = Oneof(field="list_value", value=ListValue(values=[value]))
+    with pytest.raises(
+        RecursionError,
+        match="exceeded maximum recursion depth 100 while serializing message",
+    ):
+        value.to_json()
+
+
+def test_to_json_cyclic_struct() -> None:
+    struct = Struct()
+    struct.fields = {"self": Value(kind=Oneof(field="struct_value", value=struct))}
+    with pytest.raises(
+        RecursionError,
+        match="exceeded maximum recursion depth 100 while serializing message",
+    ):
+        struct.to_json()

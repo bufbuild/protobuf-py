@@ -198,7 +198,7 @@ impl NativeMessage {
             registry,
         };
         let mut sink = PyValueSink::new(py);
-        marshaler.write_json(py, slf, &mut sink, &opts)?;
+        marshaler.write_json(py, slf, &mut sink, &opts, 0)?;
         sink.finish()
     }
 
@@ -329,7 +329,7 @@ impl NativeMessage {
                 }
             }
             let slf_value = member.attr.get(py, slf)?;
-            let other_value = member.attr.get(py, &other)?;
+            let other_value = member.attr.get(py, other)?;
             if !slf_value.is(&other_value) && !slf_value.eq(&other_value)? {
                 return Ok(false);
             }

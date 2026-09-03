@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use pyo3::{
     Bound, Py, PyAny, PyErr, PyResult, Python,
-    exceptions::{PyOverflowError, PyTypeError, PyValueError},
+    exceptions::{PyOverflowError, PyRecursionError, PyTypeError, PyValueError},
     types::{
         PyAnyMethods as _, PyBool, PyBytes, PyBytesMethods as _, PyDict, PyDictMethods as _, PyInt,
         PyList, PyListMethods as _, PyString, PyStringMethods as _, PyType,
@@ -31,10 +31,24 @@ use crate::{
     reverse_buffer::ReverseBuffer,
 };
 
+const DEPTH_LIMIT: usize = 100;
+
 #[derive(Clone, Copy)]
 pub(crate) struct ToBinaryOpts {
     /// Whether to include unknown fields when writing wire bytes.
     pub(crate) write_unknown_fields: bool,
+    /// Current message nesting depth.
+    pub(crate) depth: usize,
+}
+
+/// Raises if serializing a nested message exceeds the shared recursion limit.
+pub(crate) fn check_serialize_recursion_depth(depth: usize) -> PyResult<()> {
+    if depth > DEPTH_LIMIT {
+        return Err(PyRecursionError::new_err(format!(
+            "exceeded maximum recursion depth {DEPTH_LIMIT} while serializing message"
+        )));
+    }
+    Ok(())
 }
 
 /// Per-field serialization mode and container-specific state.
@@ -579,6 +593,12 @@ impl MessageSerializer {
         buffer: &mut ReverseBuffer,
         opts: ToBinaryOpts,
     ) -> PyResult<()> {
+        check_serialize_recursion_depth(opts.depth)?;
+        let opts = ToBinaryOpts {
+            depth: opts.depth + 1,
+            ..opts
+        };
+
         if !message.is_instance(self.inner.python_type.bind(py))? {
             return Err(PyTypeError::new_err(format!(
                 "expected {}, got '{}'",

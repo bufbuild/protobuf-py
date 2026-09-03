@@ -43,6 +43,7 @@ from ._to_binary import (
     write_message_field,
     write_scalar_field,
 )
+from ._validate import validate_field_value
 from ._wire import BinaryReader, BinaryWriter
 
 if TYPE_CHECKING:
@@ -134,6 +135,8 @@ def get_unknown_field(
 def set_unknown_field(
     message: Message, number: int, field_value: DescFieldValue, value: Any
 ) -> None:
+    # The writers assume validated input, so validate here like to_binary does.
+    validate_field_value(field_value, value)
     writer = BinaryWriter()
     match field_value:
         case DescFieldValueScalar():

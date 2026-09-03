@@ -248,6 +248,7 @@ impl MessageMarshaler {
             &mut buffer,
             ToBinaryOpts {
                 write_unknown_fields,
+                depth: 0,
             },
         )?;
         Ok(buffer.into_py_bytes(py))

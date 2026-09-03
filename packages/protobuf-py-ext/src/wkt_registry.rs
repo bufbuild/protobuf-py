@@ -44,6 +44,7 @@ impl WktTimestamp {
         message: &Bound<'_, NativeMessage>,
         sink: &mut S,
         _opts: &JsonOpts,
+        _depth: usize,
     ) -> PyResult<()> {
         let secs = read_int64_attr(py, message, &self.seconds)?;
         let nanos = read_int32_attr(py, message, &self.nanos)?;
@@ -84,6 +85,7 @@ impl WktDuration {
         message: &Bound<'_, NativeMessage>,
         sink: &mut S,
         _opts: &JsonOpts,
+        _depth: usize,
     ) -> PyResult<()> {
         let secs = read_int64_attr(py, message, &self.seconds)?;
         let nanos = read_int32_attr(py, message, &self.nanos)?;
@@ -124,6 +126,7 @@ impl WktAny {
         message: &Bound<'_, NativeMessage>,
         sink: &mut S,
         opts: &JsonOpts,
+        depth: usize,
     ) -> PyResult<()> {
         let constants = &marshaler.constants;
         let type_url_py = self.type_url.get(py, message.as_any())?;
@@ -161,13 +164,13 @@ impl WktAny {
             // Regular message: inline its fields after `@type`.
             sink.key("@type")?;
             sink.str(type_url)?;
-            inner_marshaler.write_message_fields(py, &inner_msg, sink, opts)?;
+            inner_marshaler.write_message_fields(py, &inner_msg, sink, opts, depth + 1)?;
         } else {
             // Well-known type with a custom JSON representation: wrap in `value`.
             sink.key("@type")?;
             sink.str(type_url)?;
             sink.key("value")?;
-            inner_marshaler.write_json(py, &inner_msg, sink, opts)?;
+            inner_marshaler.write_json(py, &inner_msg, sink, opts, depth + 1)?;
         }
         sink.end_object()?;
         Ok(())
@@ -266,6 +269,7 @@ impl WktFieldMask {
         message: &Bound<'_, NativeMessage>,
         sink: &mut S,
         _opts: &JsonOpts,
+        _depth: usize,
     ) -> PyResult<()> {
         let paths = self
             .paths
@@ -334,6 +338,7 @@ impl WktStruct {
         message: &Bound<'_, NativeMessage>,
         sink: &mut S,
         opts: &JsonOpts,
+        depth: usize,
     ) -> PyResult<()> {
         let map = self
             .fields
@@ -342,7 +347,7 @@ impl WktStruct {
         sink.begin_object()?;
         for (key, entry) in map {
             sink.py_key(key.cast::<PyString>()?)?;
-            write_message_json(py, &self.value, &entry, sink, opts)?;
+            write_message_json(py, &self.value, &entry, sink, opts, depth)?;
         }
         sink.end_object()?;
         Ok(())
@@ -396,6 +401,7 @@ impl WktListValue {
         message: &Bound<'_, NativeMessage>,
         sink: &mut S,
         opts: &JsonOpts,
+        depth: usize,
     ) -> PyResult<()> {
         let values = self
             .values
@@ -403,7 +409,7 @@ impl WktListValue {
             .cast_into::<PyList>()?;
         sink.begin_array()?;
         for item in values.iter() {
-            write_message_json(py, &self.element, &item, sink, opts)?;
+            write_message_json(py, &self.element, &item, sink, opts, depth)?;
         }
         sink.end_array()?;
         Ok(())
@@ -464,6 +470,7 @@ impl WktValue {
         message: &Bound<'_, NativeMessage>,
         sink: &mut S,
         opts: &JsonOpts,
+        depth: usize,
     ) -> PyResult<()> {
         let Ok(oneof) = self.kind.get(py, message.as_any())?.cast_into::<Oneof>() else {
             return Err(PyValueError::new_err(
@@ -484,8 +491,12 @@ impl WktValue {
             }
             "string_value" => sink.py_str(kind_value.cast::<PyString>()?),
             "bool_value" => sink.bool(kind_value.extract::<bool>()?),
-            "struct_value" => write_message_json(py, &self.struct_message, kind_value, sink, opts),
-            "list_value" => write_message_json(py, &self.list_message, kind_value, sink, opts),
+            "struct_value" => {
+                write_message_json(py, &self.struct_message, kind_value, sink, opts, depth)
+            }
+            "list_value" => {
+                write_message_json(py, &self.list_message, kind_value, sink, opts, depth)
+            }
             _ => Err(PyValueError::new_err(
                 "value must have exactly one field set",
             )),
@@ -557,6 +568,7 @@ impl WktWrapper {
         message: &Bound<'_, NativeMessage>,
         sink: &mut S,
         _opts: &JsonOpts,
+        _depth: usize,
     ) -> PyResult<()> {
         let value = self.field.get(py, message.as_any())?;
         write_scalar_json(self.scalar, &value, sink)
@@ -605,16 +617,17 @@ impl WktKind {
         message: &Bound<'_, NativeMessage>,
         sink: &mut S,
         opts: &JsonOpts,
+        depth: usize,
     ) -> PyResult<()> {
         match self {
-            WktKind::Timestamp(w) => w.write_json(marshaler, py, message, sink, opts),
-            WktKind::Duration(w) => w.write_json(marshaler, py, message, sink, opts),
-            WktKind::Any(w) => w.write_json(marshaler, py, message, sink, opts),
-            WktKind::FieldMask(w) => w.write_json(marshaler, py, message, sink, opts),
-            WktKind::Struct(w) => w.write_json(marshaler, py, message, sink, opts),
-            WktKind::ListValue(w) => w.write_json(marshaler, py, message, sink, opts),
-            WktKind::Value(w) => w.write_json(marshaler, py, message, sink, opts),
-            WktKind::Wrapper(w) => w.write_json(marshaler, py, message, sink, opts),
+            WktKind::Timestamp(w) => w.write_json(marshaler, py, message, sink, opts, depth),
+            WktKind::Duration(w) => w.write_json(marshaler, py, message, sink, opts, depth),
+            WktKind::Any(w) => w.write_json(marshaler, py, message, sink, opts, depth),
+            WktKind::FieldMask(w) => w.write_json(marshaler, py, message, sink, opts, depth),
+            WktKind::Struct(w) => w.write_json(marshaler, py, message, sink, opts, depth),
+            WktKind::ListValue(w) => w.write_json(marshaler, py, message, sink, opts, depth),
+            WktKind::Value(w) => w.write_json(marshaler, py, message, sink, opts, depth),
+            WktKind::Wrapper(w) => w.write_json(marshaler, py, message, sink, opts, depth),
         }
     }
 

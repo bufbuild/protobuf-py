@@ -31,7 +31,7 @@ from .gen.json_enum_names_pb import JsonEnumNames, Season
 from .gen.json_names_pb import JsonNames
 from .gen.lists_pb import Lists
 from .gen.maps_pb import Maps
-from .gen.messages_pb import ExplicitFields, ImplicitFields, MixedFields
+from .gen.messages_pb import ExplicitFields, ImplicitFields, MixedFields, Recursive
 from .gen.oneofs_pb import Oneofs
 from .gen.scalars_pb import Scalars
 
@@ -789,3 +789,38 @@ def test_to_json_del_before_multibyte_char() -> None:
     text = msg.to_json()
     assert text.encode("utf-8").decode("utf-8") == text
     assert Scalars.from_json(text) == msg
+
+
+def generate_recursive(depth: int) -> Recursive:
+    if depth == 0:
+        return Recursive()
+    return Recursive(recursive=generate_recursive(depth - 1))
+
+
+def test_to_json_equals_recursion_limit() -> None:
+    msg = generate_recursive(100)
+    assert msg.to_json()
+
+
+def test_to_json_exceeds_recursion_limit() -> None:
+    msg = Recursive(recursive=generate_recursive(100))
+    with pytest.raises(
+        RecursionError,
+        match="exceeded maximum recursion depth 100 while serializing message",
+    ):
+        msg.to_json()
+
+
+def test_to_json_cyclic_message() -> None:
+    msg = Recursive()
+    msg.recursive = msg
+    with pytest.raises(
+        RecursionError,
+        match="exceeded maximum recursion depth 100 while serializing message",
+    ):
+        msg.to_json()
+    with pytest.raises(
+        RecursionError,
+        match="exceeded maximum recursion depth 100 while serializing message",
+    ):
+        message_to_json_value(msg)

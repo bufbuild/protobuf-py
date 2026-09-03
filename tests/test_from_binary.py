@@ -38,6 +38,8 @@ from .gen.messages_pb import Recursive
 from .gen.scalars_pb import Scalars
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from .conftest import Protoc
 
 
@@ -219,26 +221,45 @@ def test_equals_recursion_limit() -> None:
     assert msg == msg2
 
 
+def _wrap_length_delimited(field_number: int, payload: bytes) -> bytes:
+    w = BinaryWriter()
+    w.tag(field_number, WireType.LENGTH_DELIMITED)
+    w.fork()
+    w.raw(payload)
+    w.join()
+    return w.finish()
+
+
+def _wrap_map_entry(payload: bytes) -> bytes:
+    w = BinaryWriter()
+    w.tag(1, WireType.LENGTH_DELIMITED)
+    w.string("a")
+    w.tag(2, WireType.LENGTH_DELIMITED)
+    w.fork()
+    w.raw(payload)
+    w.join()
+    return w.finish()
+
+
 @pytest.mark.parametrize(
-    "msg",
+    "wrap_field",
     [
         pytest.param(
-            Recursive(recursive=generate_recursive(100)), id="recursive field"
+            lambda payload: _wrap_length_delimited(1, payload), id="recursive field"
         ),
         pytest.param(
-            Recursive(repeated_recursive=[generate_recursive(100) for _ in range(10)]),
-            id="repeated field",
+            lambda payload: _wrap_length_delimited(2, payload), id="repeated field"
         ),
         pytest.param(
-            Recursive(
-                map_recursive={str(i): generate_recursive(100) for i in range(10)}
-            ),
+            lambda payload: _wrap_length_delimited(3, _wrap_map_entry(payload)),
             id="map field",
         ),
     ],
 )
-def test_exceed_recursion_limit(msg: Recursive) -> None:
-    data = msg.to_binary()
+def test_exceed_recursion_limit(wrap_field: Callable[[bytes], bytes]) -> None:
+    # The serializer enforces the same depth limit, so serialize the deepest
+    # allowed message and wrap it in one more level of raw bytes.
+    data = wrap_field(generate_recursive(100).to_binary())
     with pytest.raises(
         RecursionError,
         match="exceeded maximum recursion depth 100 while parsing message",
@@ -253,7 +274,13 @@ def generate_recursive_msg(depth: int) -> DelimitedEncoding.Msg:
 
 
 def test_known_group_recursion_limit() -> None:
-    data = DelimitedEncoding(singular=generate_recursive_msg(100)).to_binary()
+    # The serializer enforces the same depth limit, so serialize the deepest
+    # allowed message and wrap it in one more group level of raw bytes.
+    w = BinaryWriter()
+    w.tag(2, WireType.SGROUP)
+    w.raw(generate_recursive_msg(100).to_binary())
+    w.tag(2, WireType.EGROUP)
+    data = w.finish()
 
     with pytest.raises(
         RecursionError,

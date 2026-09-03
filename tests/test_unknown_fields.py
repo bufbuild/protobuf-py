@@ -13,6 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
+import pytest
+
 from protobuf import (
     DescFieldValueEnum,
     DescFieldValueList,
@@ -23,7 +25,7 @@ from protobuf import (
     ScalarType,
 )
 from tests.gen.enums_pb import Color
-from tests.gen.messages_pb import ExplicitFields, ExplicitFieldsWithUnknowns
+from tests.gen.messages_pb import ExplicitFields, ExplicitFieldsWithUnknowns, Recursive
 
 desc_unknown_double_field = DescUnknownField(
     9990, DescFieldValueScalar(ScalarType.DOUBLE, default_value=0.0, oneof=None)
@@ -137,3 +139,20 @@ def test_unknown_fields_access() -> None:
     assert desc_unknown_repeated_field not in msg
     assert desc_unknown_map_field not in msg
     assert desc_unknown_message_field not in msg
+
+
+def test_set_cyclic_unknown_message_field() -> None:
+    desc_field = DescUnknownField(
+        9995,
+        DescFieldValueMessage(
+            message=Recursive.desc(), delimited_encoding=False, oneof=None
+        ),
+    )
+    value = Recursive()
+    value.recursive = value
+    msg = ExplicitFields()
+    with pytest.raises(
+        RecursionError,
+        match="exceeded maximum recursion depth 100 while serializing message",
+    ):
+        msg[desc_field] = value

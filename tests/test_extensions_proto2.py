@@ -277,3 +277,9 @@ def test_closed_repeated_enum_known_and_unknown_values() -> None:
     msg = Proto2Extendee.from_binary(data)
     assert ext_repeated_enum_ext in msg
     assert msg[ext_repeated_enum_ext] == [Proto2ExtEnum.NO]
+
+
+def test_set_extension_wrong_message_type() -> None:
+    msg = Proto2Extendee()
+    with pytest.raises(TypeError, match=r"expected 'proto2ext\.Proto2ExtMessage'"):
+        msg[ext_message_ext] = cast("Any", User())

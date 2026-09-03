@@ -17,7 +17,10 @@ use crate::{
     json_sink::{JsonSink, StringSink},
     marshaler::MessageMarshaler,
     nativemessage::NativeMessage,
-    serializer::{FieldSerializer, FieldSerializerType, FieldSerializerValue, MessageSerializer},
+    serializer::{
+        FieldSerializer, FieldSerializerType, FieldSerializerValue, MessageSerializer,
+        check_serialize_recursion_depth,
+    },
 };
 
 const INT32_MIN: i64 = -(1 << 31);
@@ -42,7 +45,7 @@ impl MessageMarshaler {
         opts: &JsonOpts,
     ) -> PyResult<Py<PyString>> {
         let mut sink = StringSink::new();
-        self.write_json(py, message, &mut sink, opts)?;
+        self.write_json(py, message, &mut sink, opts, 0)?;
         Ok(PyString::new(py, &sink.finish()).unbind())
     }
 
@@ -53,10 +56,12 @@ impl MessageMarshaler {
         message: &Bound<'_, NativeMessage>,
         sink: &mut S,
         opts: &JsonOpts,
+        depth: usize,
     ) -> PyResult<()> {
+        check_serialize_recursion_depth(depth)?;
         match &self.wkt {
-            Some(wkt) => wkt.write_json(self, py, message, sink, opts),
-            None => self.write_message_object(py, message, sink, opts),
+            Some(wkt) => wkt.write_json(self, py, message, sink, opts, depth),
+            None => self.write_message_object(py, message, sink, opts, depth),
         }
     }
 
@@ -67,9 +72,10 @@ impl MessageMarshaler {
         message: &Bound<'_, NativeMessage>,
         sink: &mut S,
         opts: &JsonOpts,
+        depth: usize,
     ) -> PyResult<()> {
         sink.begin_object()?;
-        self.write_message_fields(py, message, sink, opts)?;
+        self.write_message_fields(py, message, sink, opts, depth)?;
         sink.end_object()?;
         Ok(())
     }
@@ -82,6 +88,7 @@ impl MessageMarshaler {
         message: &Bound<'_, NativeMessage>,
         sink: &mut S,
         opts: &JsonOpts,
+        depth: usize,
     ) -> PyResult<()> {
         self.serializer.validate_oneofs(py, message.as_any())?;
         for field in self.serializer.fields() {
@@ -96,11 +103,13 @@ impl MessageMarshaler {
                 field.json_name.bind(py)
             };
             sink.py_key(key)?;
-            field.serializer.write_json_value(py, &value, sink, opts)?;
+            field
+                .serializer
+                .write_json_value(py, &value, sink, opts, depth)?;
         }
         if let Some(registry) = &opts.registry {
             let registry = registry.bind(py);
-            self.write_extensions(py, message, sink, opts, registry)?;
+            self.write_extensions(py, message, sink, opts, registry, depth)?;
         }
         Ok(())
     }
@@ -112,6 +121,7 @@ impl MessageMarshaler {
         sink: &mut S,
         opts: &JsonOpts,
         registry: &Bound<'_, PyAny>,
+        depth: usize,
     ) -> PyResult<()> {
         let Some(unknown_fields) = message.get().unknown_fields(py) else {
             return Ok(());
@@ -136,7 +146,7 @@ impl MessageMarshaler {
             let type_name = ext_desc.getattr(&self.constants.type_name)?;
             let type_name = type_name.extract::<&str>()?;
             sink.key(&format!("[{type_name}]"))?;
-            write_desc_field_value(py, &field_value, &value, sink, opts)?;
+            write_desc_field_value(py, &field_value, &value, sink, opts, depth)?;
         }
         Ok(())
     }
@@ -150,14 +160,17 @@ impl FieldSerializer {
         value: &Bound<'_, PyAny>,
         sink: &mut S,
         opts: &JsonOpts,
+        depth: usize,
     ) -> PyResult<()> {
         match &self.type_ {
-            FieldSerializerType::Singular => self.write_single_json_value(py, value, sink, opts),
+            FieldSerializerType::Singular => {
+                self.write_single_json_value(py, value, sink, opts, depth)
+            }
             FieldSerializerType::List { .. } => {
                 let list = value.cast::<PyList>()?;
                 sink.begin_array()?;
                 for item in list {
-                    self.write_single_json_value(py, &item, sink, opts)?;
+                    self.write_single_json_value(py, &item, sink, opts, depth)?;
                 }
                 sink.end_array()?;
                 Ok(())
@@ -173,7 +186,7 @@ impl FieldSerializer {
                 sink.begin_object()?;
                 for (key, val) in dict {
                     write_map_key(*key_type, &key, sink)?;
-                    value_serializer.write_single_json_value(py, &val, sink, opts)?;
+                    value_serializer.write_single_json_value(py, &val, sink, opts, depth)?;
                 }
                 sink.end_object()?;
                 Ok(())
@@ -188,12 +201,13 @@ impl FieldSerializer {
         value: &Bound<'_, PyAny>,
         sink: &mut S,
         opts: &JsonOpts,
+        depth: usize,
     ) -> PyResult<()> {
         match &self.value {
             FieldSerializerValue::Scalar(scalar) => write_scalar_json(*scalar, value, sink),
             FieldSerializerValue::Enum(enum_) => write_enum_json(py, enum_, value, sink, opts),
             FieldSerializerValue::Message { message, .. } => {
-                write_message_json(py, message, value, sink, opts)
+                write_message_json(py, message, value, sink, opts, depth)
             }
         }
     }
@@ -207,18 +221,19 @@ fn write_desc_field_value<S: JsonSink>(
     value: &Bound<'_, PyAny>,
     sink: &mut S,
     opts: &JsonOpts,
+    depth: usize,
 ) -> PyResult<()> {
     match field_value {
         DescFieldValue::Scalar { scalar_type, .. } => write_scalar_json(*scalar_type, value, sink),
         DescFieldValue::Enum { enum_, .. } => write_enum_json(py, enum_, value, sink, opts),
         DescFieldValue::Message { message, .. } => {
-            write_message_json(py, message, value, sink, opts)
+            write_message_json(py, message, value, sink, opts, depth)
         }
         DescFieldValue::List { element, .. } => {
             let list = value.cast::<PyList>()?;
             sink.begin_array()?;
             for item in list.iter() {
-                write_single_desc_value(py, element, &item, sink, opts)?;
+                write_single_desc_value(py, element, &item, sink, opts, depth)?;
             }
             sink.end_array()?;
             Ok(())
@@ -235,12 +250,13 @@ fn write_single_desc_value<S: JsonSink>(
     value: &Bound<'_, PyAny>,
     sink: &mut S,
     opts: &JsonOpts,
+    depth: usize,
 ) -> PyResult<()> {
     match element {
         DescSingleValue::Scalar(scalar) => write_scalar_json(*scalar, value, sink),
         DescSingleValue::Enum(enum_) => write_enum_json(py, enum_, value, sink, opts),
         DescSingleValue::Message { message, .. } => {
-            write_message_json(py, message, value, sink, opts)
+            write_message_json(py, message, value, sink, opts, depth)
         }
     }
 }
@@ -276,6 +292,7 @@ pub(crate) fn write_message_json<S: JsonSink>(
     value: &Bound<'_, PyAny>,
     sink: &mut S,
     opts: &JsonOpts,
+    depth: usize,
 ) -> PyResult<()> {
     let expected_type = message_desc.get_python_type(py);
     if !value.is_instance(expected_type)? {
@@ -287,7 +304,7 @@ pub(crate) fn write_message_json<S: JsonSink>(
     }
     let value = value.cast::<NativeMessage>()?;
     let marshaler = NativeMessage::get_marshaler(value)?;
-    marshaler.write_json(py, value, sink, opts)
+    marshaler.write_json(py, value, sink, opts, depth + 1)
 }
 
 fn write_enum_json<S: JsonSink>(
