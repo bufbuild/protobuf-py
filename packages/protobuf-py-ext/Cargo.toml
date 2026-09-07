@@ -10,7 +10,7 @@ name = "protobuf_ext"
 [dependencies]
 base64 = "0.23.1"
 bitvec = "1.1.1"
-buffa = { version = "0.9.1", features = ["json"] }
+buffa = { version = "0.9.2", features = ["json"] }
 bytes = "1.12.1"
 itoa = "1.0.18"
 jiter = { version = "0.16.0", features = ["num-bigint"] }
