@@ -79,11 +79,11 @@ def get_unknown_field(
         case DescFieldValueScalar():
             reader = BinaryReader(memoryview(binary_fields[-1]))
             reader.tag()
-            return read_scalar(field_value.scalar, reader)
+            return read_scalar(field_value.scalar, reader, opts.budget)
         case DescFieldValueEnum():
             reader = BinaryReader(memoryview(binary_fields[-1]))
             reader.tag()
-            enum_value = read_enum(field_value.enum, reader)
+            enum_value = read_enum(field_value.enum, reader, opts.budget)
             if isinstance(enum_value, Enum):
                 return enum_value
             return None

@@ -4,6 +4,7 @@ use pyo3::prelude::*;
 mod alloc;
 mod attribute_access;
 mod bitset;
+mod budget;
 mod buffer;
 mod constants;
 mod descriptor;
