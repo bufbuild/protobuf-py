@@ -40,7 +40,7 @@ dev = [
   { include-group = "dev-required" },
   { include-group = "dev-subprojects" },
 ]
-docs = ["mkdocstrings-python==2.0.7", "zensical==0.0.57"]
+docs = ["mkdocstrings-python==2.0.8", "zensical==0.0.59"]
 
 # All dependencies required for CI, including running baseline tests.
 dev-required = [
@@ -51,7 +51,7 @@ dev-required = [
   "upstream-protobuf",
 
   "buf-bin==1.72.0",
-  "googleapis-googleapis-bufbuild-py==0.3.0.2.20260414192239+c17df5b2beca",
+  "googleapis-googleapis-bufbuild-py==0.4.0.2.20260414192239+c17df5b2beca",
   "hypothesis==6.167.1",
   "license-header==0.0.1",
   "poethepoet==0.48.0",
@@ -60,9 +60,9 @@ dev-required = [
   "pytest==9.1.1",
   "pytest-benchmark==5.3.0",
   "pytest-cov==7.1.0",
-  "ruff==0.16.5",
-  "tombi==1.5.0",
-  "ty==0.0.75",
+  "ruff==0.16.6",
+  "tombi==1.5.2",
+  "ty==0.0.78",
 ]
 
 # Optional dependencies, used for development of optional features. We run tests without
@@ -82,7 +82,7 @@ dev-subprojects = [
   "PyYAML==6.0.3",
   "fix-protobuf-imports==0.1.7",
   "maturin==1.15.0",
-  "protobuf==7.36.0",
+  "protobuf==7.36.1",
   "protobuf-py-bench",
   "pytest-asyncio==1.4.0",
 ]
