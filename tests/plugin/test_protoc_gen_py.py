@@ -148,7 +148,7 @@ class TestOptions:
                 """,
             },
             files_to_generate=["app/main.proto"],
-            parameter="rewrite_imports=./buf/validate/**/*_pb.py:",
+            parameter="map_imports=buf/validate/:",
         )
 
         assert resp.error == ""

@@ -22,12 +22,12 @@ from typing_extensions import assert_never
 
 from protobuf import DescEnum, DescExtension, DescFile, DescMessage, ScalarType
 from protobuf.plugin._ident import Ident, Module
-from protobuf.plugin._rewrite_imports import rewrite_module_path
+from protobuf.plugin._map_imports import map_import_target
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable, Iterator
 
-    from protobuf.plugin._rewrite_imports import RewriteImports
+    from protobuf.plugin._map_imports import MapImports
 
 _INDENT = " " * 4
 
@@ -223,7 +223,7 @@ class _File:
         parameter: str,
         *,
         escape_module_with_hash: bool = False,
-        rewrite_imports: RewriteImports = (),
+        map_imports: MapImports = (),
     ) -> None:
         self.path = path
         self.module = module
@@ -232,7 +232,7 @@ class _File:
         self._plugin_version = plugin_version
         self._parameter = parameter
         self._escape_module_with_hash = escape_module_with_hash
-        self._rewrite_imports = rewrite_imports
+        self._map_imports = map_imports
         self._indent = 0
         self._type_checking = False
         self._in_doc = False
@@ -334,39 +334,45 @@ class _File:
                 )
             case _:
                 return repr(v)
-        ident = self._relativize(self._rewrite_import(ident))
+        ident = self._relativize(self._map_import(ident))
         if ident.type_only:
             self._type_imports[ident.module].add(ident)
         else:
             self._runtime_imports[ident.module].add(ident)
         return ident
 
-    def _rewrite_import(self, ident: Ident) -> Ident:
-        if not self._rewrite_imports:
+    def _map_import(self, ident: Ident) -> Ident:
+        # Only imports derived from a descriptor know their Protobuf file.
+        if not self._map_imports or ident._desc is None:
             return ident
-        # A DescFile ident imports the module itself, so its import
-        # path includes the ident name.
+        if not _is_relative(ident.module):
+            return ident
         is_module_import = isinstance(ident._desc, DescFile)
-        module_path = ident.module.path
-        if is_module_import:
-            sep = "" if module_path.endswith(".") else "."
-            module_path = f"{module_path}{sep}{ident.name}"
-        elif _is_relative(ident.module) and _module_segments(
-            ident.module
-        ) == _module_segments(self.module):
+        if not is_module_import and _module_segments(ident.module) == _module_segments(
+            self.module
+        ):
             # References to symbols in this file are not imports.
             return ident
-        rewritten = rewrite_module_path(module_path, self._rewrite_imports)
-        if rewritten is None:
+        file = ident._desc if isinstance(ident._desc, DescFile) else ident._desc.file
+        target = map_import_target(file.name, self._map_imports)
+        if target is None:
             return ident
+        module_path = ident.module.path
         if is_module_import:
-            parent, _, name = rewritten.rpartition(".")
+            # A DescFile ident imports the module itself, so the module
+            # path includes the ident name.
+            sep = "" if module_path.endswith(".") else "."
+            module_path = f"{module_path}{sep}{ident.name}"
+        dotted = module_path.removeprefix(".")
+        mapped = f"{target}.{dotted}" if target else dotted
+        if is_module_import:
+            parent, _, name = mapped.rpartition(".")
             # A module import that lands at the top level is written as
             # a plain `import X` statement, keyed by the module itself.
             module = Module(parent) if parent else Module(name)
             return Ident(name, module, type_only=ident.type_only, _desc=ident._desc)
         return Ident(
-            ident.name, Module(rewritten), type_only=ident.type_only, _desc=ident._desc
+            ident.name, Module(mapped), type_only=ident.type_only, _desc=ident._desc
         )
 
     def _relativize(self, ident: Ident) -> Ident:

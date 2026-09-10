@@ -20,85 +20,71 @@ import pytest
 
 from protobuf.plugin import Ident, Module
 from protobuf.plugin._file import _File, write as gen_write
-from protobuf.plugin._rewrite_imports import (
-    compile_rewrite_imports,
-    rewrite_module_path,
-)
+from protobuf.plugin._map_imports import compile_map_imports, map_import_target
 
 if TYPE_CHECKING:
     from protobuf import DescFile
     from tests.conftest import Protoc
 
 
-class TestRewriteModulePath:
+class TestMapImportTarget:
     @pytest.mark.parametrize(
-        ("pattern", "module_path", "expected"),
+        ("pattern", "matches"),
         [
-            pytest.param("./foo/*_pb.py", ".foo.bar_pb", "pkg.foo.bar_pb", id="star"),
-            pytest.param(
-                "./foo/*_pb.py",
-                ".foo.baz.bar_pb",
-                None,
-                id="star_does_not_cross_separator",
-            ),
-            pytest.param(
-                "./foo/**/*_pb.py",
-                ".foo.baz.qux.bar_pb",
-                "pkg.foo.baz.qux.bar_pb",
-                id="globstar",
-            ),
-            pytest.param(
-                "./foo/**/*_pb.py",
-                ".foo.bar_pb",
-                "pkg.foo.bar_pb",
-                id="globstar_matches_zero_elements",
-            ),
-            pytest.param("./**/*_pb.py", ".bar_pb", "pkg.bar_pb", id="root_globstar"),
-            pytest.param("./foo/*_pb.py", ".foo.bar_px", None, id="suffix_mismatch"),
-            pytest.param("./bar/*_pb.py", ".foo.bar_pb", None, id="prefix_mismatch"),
-            pytest.param("foo/*_pb.py", ".foo.bar_pb", None, id="missing_leading_dot"),
-            pytest.param("./b.r_pb.py", ".bar_pb", None, id="dot_is_literal"),
-            pytest.param(
-                "protobuf/wkt", "protobuf.wkt", "pkg", id="absolute_replaced_entirely"
-            ),
-            pytest.param("protobuf/*", "protobuf.wkt", "pkg", id="absolute_star"),
-            pytest.param(
-                "./protobuf/wkt.py", "protobuf.wkt", None, id="absolute_not_relative"
-            ),
+            pytest.param("google/rpc/status.proto", True, id="exact"),
+            pytest.param("google/rpc/", True, id="trailing_slash"),
+            pytest.param("google/", True, id="trailing_slash_parent"),
+            pytest.param("google/rpc/*", True, id="star"),
+            pytest.param("google/rpc/*.proto", True, id="star_suffix"),
+            pytest.param("google/rpc/**", True, id="trailing_globstar"),
+            pytest.param("google/**", True, id="trailing_globstar_parent"),
+            pytest.param("**", True, id="globstar_only"),
+            pytest.param("**/status.proto", True, id="leading_globstar"),
+            pytest.param("google/**/status.proto", True, id="globstar_zero_elements"),
+            pytest.param("**/*.proto", True, id="globstar_star"),
+            pytest.param("google/rpc", False, id="directory_without_slash"),
+            pytest.param("google/*", False, id="star_does_not_cross_separator"),
+            pytest.param("google/*.proto", False, id="star_suffix_wrong_depth"),
+            pytest.param("google/rpc/status", False, id="missing_extension"),
+            pytest.param("google/rpc/s.atus.proto", False, id="dot_is_literal"),
+            pytest.param("rpc/", False, id="not_anchored"),
+            pytest.param("google/rpc/status.proto/", False, id="file_with_slash"),
         ],
     )
-    def test_single_pattern(
-        self, pattern: str, module_path: str, expected: str | None
-    ) -> None:
-        rewrites = compile_rewrite_imports({pattern: "pkg"})
-        assert rewrite_module_path(module_path, rewrites) == expected
+    def test_pattern(self, pattern: str, *, matches: bool) -> None:
+        mappings = compile_map_imports({pattern: "pkg"})
+        expected = "pkg" if matches else None
+        assert map_import_target("google/rpc/status.proto", mappings) == expected
 
     def test_first_match_wins(self) -> None:
-        rewrites = compile_rewrite_imports(
-            {"./foo/*_pb.py": "first", "./**/*_pb.py": "second"}
-        )
-        assert rewrite_module_path(".foo.bar_pb", rewrites) == "first.foo.bar_pb"
-        assert rewrite_module_path(".other.bar_pb", rewrites) == "second.other.bar_pb"
+        mappings = compile_map_imports({"google/rpc/": "first", "google/": "second"})
+        assert map_import_target("google/rpc/status.proto", mappings) == "first"
+        assert map_import_target("google/type/date.proto", mappings) == "second"
 
     def test_target_trailing_dot_stripped(self) -> None:
-        rewrites = compile_rewrite_imports({"./*_pb.py": "pkg."})
-        assert rewrite_module_path(".bar_pb", rewrites) == "pkg.bar_pb"
+        mappings = compile_map_imports({"**": "pkg."})
+        assert map_import_target("foo.proto", mappings) == "pkg"
 
     @pytest.mark.parametrize("target", ["", "."])
     def test_empty_target_is_canonical(self, target: str) -> None:
-        rewrites = compile_rewrite_imports({"./**/*_pb.py": target})
-        assert rewrite_module_path(".foo.bar_pb", rewrites) == "foo.bar_pb"
-        assert rewrite_module_path(".bar_pb", rewrites) == "bar_pb"
+        mappings = compile_map_imports({"**": target})
+        assert map_import_target("foo.proto", mappings) == ""
 
-    def test_empty_target_absolute_raises(self) -> None:
-        rewrites = compile_rewrite_imports({"protobuf/*": ""})
-        with pytest.raises(ValueError, match="rewrite_imports"):
-            rewrite_module_path("protobuf.wkt", rewrites)
+    @pytest.mark.parametrize(
+        "target", ["my-pkg", ".pkg", "..", "a..b", "pkg/sub", "1pkg", "pkg:x"]
+    )
+    def test_invalid_target_raises(self, target: str) -> None:
+        with pytest.raises(ValueError, match="map_imports"):
+            compile_map_imports({"**": target})
+
+    def test_empty_pattern_raises(self) -> None:
+        with pytest.raises(ValueError, match="map_imports"):
+            compile_map_imports({"": "pkg"})
 
 
-class TestFileRewrites:
+class TestFileMaps:
     def test_symbol_import(self, desc: DescFile) -> None:
-        f = _file(desc, {"./dep_pb.py": "mypkg.gen"})
+        f = _file(desc, {"dep.proto": "mypkg.gen"})
         f.print("x: ", desc.dependencies[0].messages[0])
         assert gen_write(f, f.path) == dedent(
             """\
@@ -112,7 +98,7 @@ class TestFileRewrites:
         )
 
     def test_module_import(self, desc: DescFile) -> None:
-        f = _file(desc, {"./pkg/**/*_pb.py": "mypkg.gen"})
+        f = _file(desc, {"pkg/": "mypkg.gen"})
         f.print("d = ", desc.dependencies[1], ".desc()")
         assert gen_write(f, f.path) == dedent(
             """\
@@ -125,8 +111,8 @@ class TestFileRewrites:
             """
         )
 
-    def test_own_symbols_not_rewritten(self, desc: DescFile) -> None:
-        f = _file(desc, {"./**/*_pb.py": "mypkg.gen"})
+    def test_own_symbols_not_mapped(self, desc: DescFile) -> None:
+        f = _file(desc, {"**": "mypkg.gen"})
         f.print("x: ", desc.messages[0])
         f.print("y: ", desc.dependencies[0].messages[0])
         assert gen_write(f, f.path) == dedent(
@@ -142,7 +128,7 @@ class TestFileRewrites:
         )
 
     def test_unmatched_import_stays_relative(self, desc: DescFile) -> None:
-        f = _file(desc, {"./pkg/**/*_pb.py": "mypkg.gen"})
+        f = _file(desc, {"pkg/": "mypkg.gen"})
         f.print("x: ", desc.dependencies[0].messages[0])
         assert gen_write(f, f.path) == dedent(
             """\
@@ -156,7 +142,7 @@ class TestFileRewrites:
         )
 
     def test_type_only_import(self, desc: DescFile) -> None:
-        f = _file(desc, {"./dep_pb.py": "mypkg.gen"})
+        f = _file(desc, {"dep.proto": "mypkg.gen"})
         f.print("x: ", Ident.for_desc(desc.dependencies[0].messages[0], type_only=True))
         assert gen_write(f, f.path) == dedent(
             """\
@@ -172,14 +158,35 @@ class TestFileRewrites:
             """
         )
 
-    def test_absolute_import_replaced(self, desc: DescFile) -> None:
-        f = _file(desc, {"protobuf/wkt": "vendored.wkt"})
-        f.print("x: ", Module("protobuf.wkt").ident("Timestamp"))
+    def test_plain_ident_not_mapped(self, desc: DescFile) -> None:
+        f = _file(desc, {"**": "mypkg.gen"})
+        f.print("x: ", Module(".dep_pb").ident("Dep"))
         assert gen_write(f, f.path) == dedent(
             """\
             from __future__ import annotations
 
-            from vendored.wkt import Timestamp
+            from .dep_pb import Dep
+
+
+            x: Dep
+            """
+        )
+
+    def test_wkt_not_mapped(self, protoc: Protoc) -> None:
+        desc = protoc.compile_file(
+            """
+            syntax = "proto3";
+            import "google/protobuf/timestamp.proto";
+            message Foo { google.protobuf.Timestamp ts = 1; }
+            """
+        )
+        f = _file(desc, {"google/": "mypkg.gen"})
+        f.print("x: ", desc.dependencies[0].messages[0])
+        assert gen_write(f, f.path) == dedent(
+            """\
+            from __future__ import annotations
+
+            from protobuf.wkt import Timestamp
 
 
             x: Timestamp
@@ -206,7 +213,7 @@ class TestFileRewrites:
             "include_imports",
         )
         dep = files["buf/validate/validate.proto"]
-        f = _file(files["app/main.proto"], {"./buf/validate/**/*_pb.py": ""})
+        f = _file(files["app/main.proto"], {"buf/validate/": ""})
         f.print(dep, ".desc()")
         f.print("rule: ", dep.messages[0])
         assert gen_write(f, f.path) == dedent(
@@ -241,7 +248,7 @@ class TestFileRewrites:
             "include_imports",
         )
         dep = files["dep.proto"]
-        f = _file(files["main.proto"], {"./dep_pb.py": ""})
+        f = _file(files["main.proto"], {"dep.proto": ""})
         f.print(dep, ".desc()")
         f.print("dep: ", dep.messages[0])
         assert gen_write(f, f.path) == dedent(
@@ -277,7 +284,7 @@ class TestFileRewrites:
         )["input.proto"]
 
 
-def _file(desc: DescFile, rewrites: dict[str, str]) -> _File:
+def _file(desc: DescFile, mappings: dict[str, str]) -> _File:
     module = Module.for_desc(desc, "_pb")
     return _File(
         path=f"{module.path.removeprefix('.').replace('.', '/')}.py",
@@ -286,5 +293,5 @@ def _file(desc: DescFile, rewrites: dict[str, str]) -> _File:
         plugin_name="test",
         plugin_version="0.0.0",
         parameter="",
-        rewrite_imports=compile_rewrite_imports(rewrites),
+        map_imports=compile_map_imports(mappings),
     )

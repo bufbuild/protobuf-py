@@ -3,4 +3,4 @@ clean: true
 plugins:
   - local: protoc-gen-py
     out: gen_buf
-    opt: "rewrite_imports=./google/**/*_pb.py:"
+    opt: "map_imports=google/:"

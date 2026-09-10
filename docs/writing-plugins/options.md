@@ -38,7 +38,7 @@ Supported field types: `str`, `bool`, `int`, `float`, `Literal[...]`, `StrEnum`,
 
 ## Framework-reserved options
 
-The framework reserves certain option names for all plugins, currently: `no_fmt_off`, `escape_module_with_hash`, and `rewrite_imports`.
+The framework reserves certain option names for all plugins, currently: `no_fmt_off`, `escape_module_with_hash`, and `map_imports`.
 If your `Options` dataclass defines a field with a reserved name, `run()` raises a `ValueError`.
 
 ### no_fmt_off
@@ -66,45 +66,48 @@ plugins:
     opt: escape_module_with_hash
 ```
 
-### rewrite_imports
+### map_imports
 
-Rewrites imports of generated modules that match a glob pattern to an absolute package.
-This makes it possible to reference generated code published from a separate package.
+By default, generated code imports dependencies from the local output with a relative import.
+For example, the module generated for `foo/bar.proto` imports a message from `buf/validate/validate.proto` as `from ..buf.validate.validate_pb import Rule`.
 
-The option takes the form `rewrite_imports=<pattern>:<target>` and can be given multiple times; the first matching pattern wins.
-The pattern is a very reduced subset of glob:
-
-- `*` matches zero or more characters except `/`.
-- `**/` matches zero or more path elements, where an element is one or more characters with a trailing `/`.
-
-The pattern is matched against the import path of the module before it is made relative to the file importing it.
-A generated module such as `.google.type.foo_pb` is matched as the file path `./google/type/foo_pb.py`, relative to the generation root.
-On a match, the target package is prepended:
+If a dependency is provided by a package instead, use `map_imports` to import it from there.
+The option takes the form `map_imports=<pattern>:<target>` and can be given multiple times.
+The pattern is matched against the path of the Protobuf file, and the first matching pattern wins.
+The target is a Python package that is prepended to the module path derived from the Protobuf file:
 
 ```yaml title="buf.gen.yaml"
 plugins:
   - local: protoc-gen-hello
     out: src/gen
-    opt: rewrite_imports=./google/type/**/*_pb.py:mypkg.gen
+    opt: map_imports=google/type/:mypkg.gen
 ```
 
-With this option, `from .google.type.foo_pb import Foo` is generated as `from mypkg.gen.google.type.foo_pb import Foo` instead.
-References to symbols defined in the file being generated are not imports and are never rewritten.
+With this option, a message from `google/type/date.proto` is imported as `from mypkg.gen.google.type.date_pb import Date`.
 
-An empty target rewrites matching imports to the canonical import path, the module path derived from the proto file name, relative to the root of `sys.path`.
+Patterns support a subset of glob:
+
+- `*` matches zero or more characters except `/`.
+- `**` matches zero or more characters, including `/`.
+- `**/` matches zero or more directories.
+- A trailing `/` matches every file in the directory and its subdirectories.
+
+An empty target imports from the canonical module path: the module path derived from the Protobuf file, relative to the root of `sys.path`.
+This is the layout of generated SDKs installed as separate packages, such as those from the Buf Python registry.
 For example, when `buf/validate/validate.proto` is provided by an installed package:
 
 ```yaml title="buf.gen.yaml"
 plugins:
   - local: protoc-gen-hello
     out: src/gen
-    opt: rewrite_imports=./buf/validate/**/*_pb.py:
+    opt: "map_imports=buf/validate/:"
 ```
 
-This generates `from buf.validate import validate_pb` instead of a relative import that points at a location that does not exist in the output directory.
-A rewritten module import that lands at the top level (for example a proto file at the root of the module) is written as a plain `import foo_pb` statement.
+This generates `from buf.validate import validate_pb` and `from buf.validate.validate_pb import Rule`.
+A mapped module at the top level, such as one generated for a Protobuf file at the root, is written as a plain `import foo_pb` statement.
 
-Absolute imports (such as `protobuf.wkt`) are matched without a leading `./` and `.py` extension (for example `protobuf/wkt`), and are replaced by the target entirely.
+Mapping applies to imports derived from descriptors.
+Identifiers constructed directly from a `Module` are not mapped, and well-known types are always imported from `protobuf.wkt`.
 
 ## Example: Sensitive fields plugin
 

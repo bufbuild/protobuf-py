@@ -17,7 +17,7 @@
 The proto_buf module depends on buf.build/googleapis/googleapis, which is not
 generated into gen_buf. Instead, its generated code is provided by the
 googleapis-googleapis-bufbuild-py package, and gen_buf is generated with
-rewrite_imports mapping google/** to the canonical import path it provides.
+map_imports mapping google/ to the canonical import path it provides.
 """
 
 from __future__ import annotations

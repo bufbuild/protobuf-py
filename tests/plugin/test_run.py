@@ -220,7 +220,7 @@ class TestFrameworkOptions:
         assert len(resp.file) == 1
         assert resp.file[0].name == "foo/bar_module/baz_service_pb.py"
 
-    def test_rewrite_imports(self, protoc: Protoc) -> None:
+    def test_map_imports(self, protoc: Protoc) -> None:
         def generate(schema: Schema[None]) -> None:
             for desc in schema.files_to_generate:
                 f = schema.generate_file(desc, "_pb.py")
@@ -234,14 +234,14 @@ class TestFrameworkOptions:
                 "dep/dep.proto": 'syntax = "proto3"; package dep; message Dep {}',
             },
             files_to_generate=["main.proto"],
-            parameter="rewrite_imports=./dep/**/*_pb.py:mypkg.gen",
+            parameter="map_imports=dep/:mypkg.gen",
         )
         assert resp.error == ""
         content = resp.file[0].content
         assert "from mypkg.gen.dep import dep_pb" in content
         assert "from mypkg.gen.dep.dep_pb import Dep" in content
 
-    def test_rewrite_imports_in_preamble(self, protoc: Protoc) -> None:
+    def test_map_imports_in_preamble(self, protoc: Protoc) -> None:
         def generate(schema: Schema[None]) -> None:
             for desc in schema.files_to_generate:
                 f = schema.generate_file(desc, "_pb.py")
@@ -250,22 +250,20 @@ class TestFrameworkOptions:
         resp = protoc.run_plugin(
             Plugin(generate),
             {"test.proto": 'syntax = "proto3";'},
-            parameter="no_fmt_off,rewrite_imports=./**/*_pb.py:mypkg",
+            parameter="no_fmt_off,map_imports=**:mypkg",
         )
         assert resp.error == ""
         content = resp.file[0].content
-        assert (
-            'with parameter "no_fmt_off,rewrite_imports=./**/*_pb.py:mypkg"' in content
-        )
+        assert 'with parameter "no_fmt_off,map_imports=**:mypkg"' in content
 
-    def test_rewrite_imports_without_colon_is_error(self, protoc: Protoc) -> None:
+    def test_map_imports_without_colon_is_error(self, protoc: Protoc) -> None:
         resp = protoc.run_plugin(
             Plugin(lambda _: None),
             {"test.proto": 'syntax = "proto3";'},
-            parameter="rewrite_imports=./foo_pb.py",
+            parameter="map_imports=foo.proto",
         )
         assert resp.error != ""
-        assert "rewrite_imports" in resp.error
+        assert "map_imports" in resp.error
 
     def test_invalid_framework_option_value_is_error(self, protoc: Protoc) -> None:
         resp = protoc.run_plugin(
