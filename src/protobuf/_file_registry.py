@@ -488,7 +488,7 @@ def _add_extension(
         reg.message(proto.extendee.removeprefix(".")),
         f"could not find extendee message: {proto.extendee}",
     )
-    stub = cast("Extension", _find_stub(type_name, file, stubs))
+    stub = cast("Extension | None", _find_stub(type_name, file, stubs))
 
     field_value = _build_field_value(reg, proto, file, None, _FileMapEntries())
     assert not isinstance(field_value, DescFieldValueMap), (  # noqa: S101
