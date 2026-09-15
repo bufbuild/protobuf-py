@@ -29,6 +29,7 @@ from protobuf import (
     merge_from_binary,
 )
 from protobuf._wire import BinaryWriter, WireType
+from protobuf.wkt import FileDescriptorSet
 
 from .gen.delimited_encoding_pb import DelimitedEncoding
 from .gen.enums_pb import ClosedColor, EnumMessage
@@ -398,3 +399,55 @@ class TestWireTypeMismatch:
         # Should be enough to check every field is there without asserting the content.
         assert msg._unknown_fields is not None
         assert {2, 3} == set(msg._unknown_fields.keys())
+
+
+class TestAllocationLimit:
+    def test_within_limit(self) -> None:
+        data = Scalars(string_field="a" * 1000).to_binary()
+        msg = Scalars.from_binary(data, allocation_limit=1024 * 1024)
+        assert msg.string_field == "a" * 1000
+
+    def test_string_exceeds_limit(self) -> None:
+        data = Scalars(string_field="a" * 1000).to_binary()
+        with pytest.raises(ValueError, match="allocation budget exceeded"):
+            Scalars.from_binary(data, allocation_limit=500)
+
+    def test_repeated_exceeds_limit(self) -> None:
+        data = Lists(string_list=["a" * 100] * 100).to_binary()
+        with pytest.raises(ValueError, match="allocation budget exceeded"):
+            Lists.from_binary(data, allocation_limit=5000)
+
+    def test_nested_messages_exceed_limit(self) -> None:
+        data = Lists(msg_list=[Lists.Msg() for _ in range(1000)]).to_binary()
+        with pytest.raises(ValueError, match="allocation budget exceeded"):
+            Lists.from_binary(data, allocation_limit=10_000)
+
+    def test_unknown_fields_exceed_limit(self) -> None:
+        w = BinaryWriter()
+        w.tag(1000, WireType.LENGTH_DELIMITED)
+        w.bytes_(b"x" * 10_000)
+        data = w.finish()
+        with pytest.raises(ValueError, match="allocation budget exceeded"):
+            Scalars.from_binary(data, allocation_limit=5000)
+
+    def test_no_limit_by_default(self) -> None:
+        data = Lists(string_list=["a" * 100] * 100).to_binary()
+        msg = Lists.from_binary(data)
+        assert len(msg.string_list) == 100
+
+    def test_merge_from_binary_limit(self) -> None:
+        data = Scalars(string_field="a" * 1000).to_binary()
+        msg = Scalars()
+        with pytest.raises(ValueError, match="allocation budget exceeded"):
+            merge_from_binary(msg, data, allocation_limit=500)
+
+    def test_descriptor_set_amplification_rejected(self) -> None:
+        # Each empty FileDescriptorProto is two wire bytes (b"\x0a\x00": field 1,
+        # LEN, length 0) yet allocates a full descriptor instance with all its
+        # default containers -- ~700 bytes each, a ~350x blow-up. 1.9M entries
+        # is 3.8 MB on the wire but ~1.3 GB parsed.
+        rpc_read_limit = 4 * 1024 * 1024
+        data = b"\x0a\x00" * 1_900_000
+        assert len(data) < rpc_read_limit
+        with pytest.raises(ValueError, match="allocation budget exceeded"):
+            FileDescriptorSet.from_binary(data, allocation_limit=64 * 1024 * 1024)
