@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, TypeAlias, cast
 
+from ._budget import BYTES_OVERHEAD, INT_SIZE, LIST_SLOT_SIZE, STR_OVERHEAD
 from ._descriptors import (
     DescEnum,
     DescField,
@@ -98,7 +99,7 @@ class WktTimestamp:
             nanos_str = nanos_str[:6]
         return f"{iso_secs}.{nanos_str}Z"
 
-    def from_json(self, msg: Message, json: JsonValue, _opts: FromJsonOptions) -> bool:
+    def from_json(self, msg: Message, json: JsonValue, opts: FromJsonOptions) -> bool:
         from .wkt import Timestamp  # noqa: PLC0415
 
         value = cast("Timestamp", msg)
@@ -128,6 +129,7 @@ class WktTimestamp:
                 " 0001-01-01T00:00:00Z to 9999-12-31T23:59:59Z inclusive"
             )
             raise ValueError(err)
+        opts.budget.charge(2 * INT_SIZE)
         value.seconds = Timestamp.from_datetime(dt).seconds
         value.nanos = nanos
         return True
@@ -170,7 +172,7 @@ class WktDuration:
             text = "-" + text
         return text + "s"
 
-    def from_json(self, msg: Message, json: JsonValue, _opts: FromJsonOptions) -> bool:
+    def from_json(self, msg: Message, json: JsonValue, opts: FromJsonOptions) -> bool:
         from .wkt._mixin._const import DURATION_SECONDS_MAX  # noqa: PLC0415
 
         value = cast("Duration", msg)
@@ -190,6 +192,7 @@ class WktDuration:
             nanos = int(duration_match[2] + "0" * (9 - len(duration_match[2])))
             if seconds < 0 or duration_match[1] == "-0":
                 nanos = -nanos
+        opts.budget.charge(2 * INT_SIZE)
         value.seconds = seconds
         value.nanos = nanos
         return True
@@ -248,6 +251,7 @@ class WktAny:
         if not desc:
             err = f"cannot decode {Any._desc.type_name} from JSON: {type_url} is not in the type registry"
             raise ValueError(err)
+        opts.budget.charge_message(desc)
         message = desc.type()
         if _has_custom_json(desc) and "value" in json:
             _read_message(message, json["value"], opts)
@@ -256,6 +260,8 @@ class WktAny:
             del json["@type"]
             _read_message(message, json, opts)
         any_ = Any.pack(message)
+        opts.budget.charge(STR_OVERHEAD + len(any_.type_url))
+        opts.budget.charge(BYTES_OVERHEAD + len(any_.value))
         value.type_url = any_.type_url
         value.value = any_.value
         return True
@@ -283,7 +289,7 @@ class WktFieldMask:
             parts.append(proto_camel_path)
         return ",".join(parts)
 
-    def from_json(self, msg: Message, json: JsonValue, _opts: FromJsonOptions) -> bool:
+    def from_json(self, msg: Message, json: JsonValue, opts: FromJsonOptions) -> bool:
         from ._names import proto_snake_case  # noqa: PLC0415
 
         value = cast("FieldMask", msg)
@@ -296,6 +302,7 @@ class WktFieldMask:
             if "_" in path:
                 err = f"cannot decode {value._desc.type_name} from JSON: path names must be lowerCamelCase"
                 raise ValueError(err)
+            opts.budget.charge(STR_OVERHEAD + len(path) + LIST_SLOT_SIZE)
             value.paths.append(proto_snake_case(path))
         return True
 
@@ -378,13 +385,15 @@ class WktWrapper:
 
         return _scalar_to_json_value(self.value.scalar, msg[self.field])
 
-    def from_json(self, msg: Message, json: JsonValue, _opts: FromJsonOptions) -> bool:
+    def from_json(self, msg: Message, json: JsonValue, opts: FromJsonOptions) -> bool:
         from ._from_json import _read_scalar  # noqa: PLC0415
 
         if json is None:
             del msg[self.field]
         else:
-            msg[self.field] = _read_scalar(self.field, self.value.scalar, json)
+            msg[self.field] = _read_scalar(
+                self.field, self.value.scalar, json, opts.budget
+            )
         return True
 
     def mixin(self) -> type | None:
