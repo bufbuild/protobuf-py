@@ -295,6 +295,7 @@ def read_map_entry(
 
     key: Any = None
     value: Any = None
+    message_value: Message | None = None
 
     while reader.offset < end:
         tag = reader.tag()
@@ -322,8 +323,14 @@ def read_map_entry(
                         )
                         return None
                 case DescMessage():
-                    value = field_value.value.type()
-                    read_message(value, reader, opts, depth + 1, length=reader.varint())
+                    # A repeated value field within one entry merges into the
+                    # previous value, like any other singular message field.
+                    if message_value is None:
+                        message_value = field_value.value.type()
+                    read_message(
+                        message_value, reader, opts, depth + 1, length=reader.varint()
+                    )
+                    value = message_value
                 case _:
                     assert_never(field_value.value)
         else:

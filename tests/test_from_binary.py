@@ -108,7 +108,10 @@ def maps_message_desc(protoc: Protoc) -> DescMessage:
     return protoc.compile_message("""\
         edition = "2023";
         message MapsMessage {
-          message Nested { int32 a = 1; }
+          message Nested {
+            int32 a = 1;
+            int32 b = 2;
+          }
           enum Color {
             COLOR_UNSPECIFIED = 0;
             COLOR_RED = 1;
@@ -148,6 +151,68 @@ def test_map_missing_key(maps_message_desc: DescMessage) -> None:
     data = encode_map_entry(map_field, key=None, value=42)
     msg = maps_message_desc.type.from_binary(data)
     assert msg[map_field][""] == 42
+
+
+def encode_map_entry_repeated_value(
+    desc_field: DescField, *, key: str, values: list[Any]
+) -> bytes:
+    """Build a single map entry with the value field occurring multiple times."""
+    assert isinstance(desc_field.value, DescFieldValueMap)
+    w = BinaryWriter()
+    w.tag(desc_field.number, WireType.LENGTH_DELIMITED)
+    w.fork()
+    w.tag(1, WireType.LENGTH_DELIMITED)
+    w.string(key)
+    for value in values:
+        match desc_field.value.value:
+            case ScalarType() | DescEnum():
+                w.tag(2, WireType.VARINT)
+                w.int32(value)
+            case DescMessage():
+                w.tag(2, WireType.LENGTH_DELIMITED)
+                w.fork()
+                w.raw(value.to_binary())
+                w.join()
+            case _:
+                assert_never(desc_field.value.value)
+    w.join()
+    return w.finish()
+
+
+def test_map_repeated_message_value_merges(maps_message_desc: DescMessage) -> None:
+    map_field = maps_message_desc._fields_by_local_name["message_map"]
+    nested_type = maps_message_desc.nested_messages[0].type
+    data = encode_map_entry_repeated_value(
+        map_field, key="k", values=[nested_type(a=1, b=1), nested_type(b=2)]
+    )
+    msg = maps_message_desc.type.from_binary(data)
+    assert msg[map_field]["k"] == nested_type(a=1, b=2)
+
+
+def test_map_repeated_message_value_empty_keeps_previous(
+    maps_message_desc: DescMessage,
+) -> None:
+    map_field = maps_message_desc._fields_by_local_name["message_map"]
+    nested_type = maps_message_desc.nested_messages[0].type
+    data = encode_map_entry_repeated_value(
+        map_field, key="k", values=[nested_type(a=1), nested_type()]
+    )
+    msg = maps_message_desc.type.from_binary(data)
+    assert msg[map_field]["k"] == nested_type(a=1)
+
+
+def test_map_repeated_scalar_value_replaces(maps_message_desc: DescMessage) -> None:
+    map_field = maps_message_desc._fields_by_local_name["scalar_map"]
+    data = encode_map_entry_repeated_value(map_field, key="k", values=[1, 2])
+    msg = maps_message_desc.type.from_binary(data)
+    assert msg[map_field]["k"] == 2
+
+
+def test_map_repeated_enum_value_replaces(maps_message_desc: DescMessage) -> None:
+    map_field = maps_message_desc._fields_by_local_name["enum_map"]
+    data = encode_map_entry_repeated_value(map_field, key="k", values=[1, 0])
+    msg = maps_message_desc.type.from_binary(data)
+    assert msg[map_field]["k"] == 0
 
 
 @pytest.mark.parametrize("ignore_unknown_fields", [True, False])

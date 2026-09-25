@@ -48,6 +48,16 @@ enum SingleValue<'py> {
     UnknownEnumValue(i32),
 }
 
+/// Where to find an existing message value to merge a parsed message into.
+enum ExistingValue<'a, 'py> {
+    /// No existing value, always create a new message.
+    None,
+    /// Look up the field on the parent message.
+    Parent(&'a Bound<'py, NativeMessage>),
+    /// Value already decoded, e.g. from a repeated value field in a map entry.
+    Value(Bound<'py, PyAny>),
+}
+
 /// Parser-local value metadata needed for decoding field payloads.
 pub(crate) enum FieldParserValue {
     /// Scalar value decoding info.
@@ -314,8 +324,15 @@ impl FieldParser {
         oneof_attr: Option<&AttributeAccess>,
         requires_presence: bool,
     ) -> PyResult<()> {
-        let value =
-            self.read_single_value(py, tag, wire_type, Some(message), buffer, opts, depth)?;
+        let value = self.read_single_value(
+            py,
+            tag,
+            wire_type,
+            ExistingValue::Parent(message),
+            buffer,
+            opts,
+            depth,
+        )?;
         match value {
             SingleValue::Parsed(value) => {
                 self.assign_singular(py, message, &value, oneof_attr, requires_presence)?;
@@ -377,7 +394,7 @@ impl FieldParser {
                     py,
                     tag,
                     wire_type,
-                    None,
+                    ExistingValue::None,
                     &mut list_buffer,
                     opts,
                     depth,
@@ -397,7 +414,15 @@ impl FieldParser {
                 }
             }
         } else {
-            let value = self.read_single_value(py, tag, wire_type, None, buffer, opts, depth)?;
+            let value = self.read_single_value(
+                py,
+                tag,
+                wire_type,
+                ExistingValue::None,
+                buffer,
+                opts,
+                depth,
+            )?;
             match value {
                 SingleValue::Parsed(value) => list.append(value)?,
                 SingleValue::UnknownEnumValue(number) => {
@@ -460,11 +485,17 @@ impl FieldParser {
                             opts,
                         );
                     }
+                    // A repeated value field within one entry merges into the
+                    // previous value, like any other singular message field.
+                    let existing = match &value {
+                        Some(SingleValue::Parsed(value)) => ExistingValue::Value(value.clone()),
+                        _ => ExistingValue::None,
+                    };
                     value = Some(value_parser.read_single_value(
                         py,
                         tag,
                         wire_type,
-                        None,
+                        existing,
                         &mut entry_buffer,
                         opts,
                         depth,
@@ -530,7 +561,7 @@ impl FieldParser {
         py: Python<'py>,
         tag: u32,
         wire_type: WireType,
-        message: Option<&Bound<'py, NativeMessage>>,
+        existing: ExistingValue<'_, 'py>,
         buffer: &mut Bytes,
         opts: FromBinaryOpts,
         depth: usize,
@@ -554,10 +585,10 @@ impl FieldParser {
                 };
                 let marshaler = message_desc.get_marshaler(py)?;
                 let parser = &marshaler.parser;
-                let existing = if let Some(message) = message {
-                    self.get_field_value(py, message)?
-                } else {
-                    None
+                let existing = match existing {
+                    ExistingValue::None => None,
+                    ExistingValue::Parent(message) => self.get_field_value(py, message)?,
+                    ExistingValue::Value(value) => Some(value),
                 };
                 let message_instance = if let Some(existing) = existing
                     && !existing.is_none()
