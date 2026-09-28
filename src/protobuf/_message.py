@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Generic, overload
 from typing_extensions import Buffer, TypeVar
 
 from . import _native_message
+from ._budget import Budget
 from ._descriptors import (
     DescField,
     DescFieldValueEnum,
@@ -584,6 +585,7 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
         *,
         ignore_unknown_fields: bool = False,
         registry: Registry | None = None,
+        allocation_limit: int | None = None,
     ) -> Self:
         """Create a new message from a ProtoJSON string.
 
@@ -596,6 +598,9 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
             registry:
                 This option is required to read `google.protobuf.Any` and extensions
                 from JSON format.
+            allocation_limit:
+                If set, the approximate number of bytes of Python objects the
+                parse may allocate before raising a ValueError.
 
         Raises:
             json.JSONDecodeError: If json_source is not valid JSON.
@@ -605,13 +610,20 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
         """
         msg = cls()
         msg._merge_from_json(
-            json, ignore_unknown_fields=ignore_unknown_fields, registry=registry
+            json,
+            ignore_unknown_fields=ignore_unknown_fields,
+            registry=registry,
+            allocation_limit=allocation_limit,
         )
         return msg
 
     @classmethod
     def from_binary(
-        cls: type[Self], data: Buffer, *, ignore_unknown_fields: bool = False
+        cls: type[Self],
+        data: Buffer,
+        *,
+        ignore_unknown_fields: bool = False,
+        allocation_limit: int | None = None,
     ) -> Self:
         """Create a new message by parsing serialized binary data.
 
@@ -620,9 +632,16 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
         Args:
             data: Serialized binary protobuf data. Must not be mutated during parsing.
             ignore_unknown_fields: If `True`, unknown fields in the binary data are silently discarded.
+            allocation_limit:
+                If set, the approximate number of bytes of Python objects the
+                parse may allocate before raising a ValueError.
         """
         message = cls()
-        message._merge_from_binary(data, ignore_unknown_fields=ignore_unknown_fields)
+        message._merge_from_binary(
+            data,
+            ignore_unknown_fields=ignore_unknown_fields,
+            allocation_limit=allocation_limit,
+        )
         return message
 
     @classmethod
@@ -671,8 +690,20 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
 
     # Marshaling methods overridden in native code when available.
 
-    def _merge_from_binary(self, data: Buffer, ignore_unknown_fields: bool) -> None:  # noqa: FBT001
-        opts = FromBinaryOptions(ignore_unknown_fields=ignore_unknown_fields)
+    def _merge_from_binary(
+        self,
+        data: Buffer,
+        ignore_unknown_fields: bool,  # noqa: FBT001
+        allocation_limit: int | None = None,
+    ) -> None:
+        budget = Budget(allocation_limit)
+        # The root is charged here rather than in from_binary so both entry
+        # points share one budget semantic; a merge into an existing message
+        # overcharges by one base size.
+        budget.charge_message(self._desc)
+        opts = FromBinaryOptions(
+            ignore_unknown_fields=ignore_unknown_fields, budget=budget
+        )
         view = memoryview(data)
         read_message(self, BinaryReader(view), opts, depth=0, length=len(view))
 
@@ -682,6 +713,7 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
         *,
         ignore_unknown_fields: bool = False,
         registry: Registry | None = None,
+        allocation_limit: int | None = None,
     ) -> None:
         from json import loads as parse_json  # noqa: PLC0415
 
@@ -689,8 +721,13 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
         from ._from_json import FromJsonOptions, _read_message  # noqa: PLC0415
 
         json_value = parse_json(json)
+        budget = Budget(allocation_limit)
+        # See _merge_from_binary for why the root is charged here.
+        budget.charge_message(self._desc)
         opts = FromJsonOptions(
-            ignore_unknown_fields=ignore_unknown_fields, registry=registry
+            ignore_unknown_fields=ignore_unknown_fields,
+            registry=registry,
+            budget=budget,
         )
         _read_message(self, json_value, opts)
 
@@ -730,16 +767,21 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
         *,
         ignore_unknown_fields: bool = False,
         registry: Registry | None = None,
+        allocation_limit: int | None = None,
     ) -> Self:
         # Needs to be lazy import since JSON specially handles many WKTs.
         from ._from_json import FromJsonOptions, _read_message  # noqa: PLC0415
 
+        budget = Budget(allocation_limit)
+        budget.charge_message(cls._desc)
         message = cls()
         _read_message(
             message,
             data,
             FromJsonOptions(
-                ignore_unknown_fields=ignore_unknown_fields, registry=registry
+                ignore_unknown_fields=ignore_unknown_fields,
+                registry=registry,
+                budget=budget,
             ),
         )
         return message

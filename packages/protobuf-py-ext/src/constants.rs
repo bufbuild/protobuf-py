@@ -93,6 +93,8 @@ pub(crate) struct ConstantsInner {
 
     /// The string `__new__`.
     pub(crate) dunder_new: Py<PyString>,
+    /// The string `__basicsize__`.
+    pub(crate) dunder_basicsize: Py<PyString>,
 
     /// Python types.
     pub(crate) types: Types,
@@ -146,6 +148,7 @@ impl Constants {
                 values: PyString::new(py, "values").unbind(),
 
                 dunder_new: PyString::new(py, "__new__").unbind(),
+                dunder_basicsize: PyString::new(py, "__basicsize__").unbind(),
 
                 types: Types {
                     desc_field: mod_descriptors

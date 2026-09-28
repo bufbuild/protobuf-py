@@ -25,6 +25,7 @@ from protobuf import (
     message_from_json_value,
     message_to_json_value,
 )
+from protobuf.wkt import FileDescriptorSet, Struct
 
 from .gen.enums_pb import ClosedColor, Color, EnumMessage
 from .gen.json_enum_names_pb import JsonEnumNames, Season
@@ -824,3 +825,56 @@ def test_to_json_cyclic_message() -> None:
         match="exceeded maximum recursion depth 100 while serializing message",
     ):
         message_to_json_value(msg)
+
+
+class TestAllocationLimit:
+    def test_within_limit(self) -> None:
+        data = Scalars(string_field="a" * 1000).to_json()
+        msg = Scalars.from_json(data, allocation_limit=1024 * 1024)
+        assert msg.string_field == "a" * 1000
+
+    def test_string_exceeds_limit(self) -> None:
+        data = Scalars(string_field="a" * 1000).to_json()
+        with pytest.raises(ValueError, match="allocation budget exceeded"):
+            Scalars.from_json(data, allocation_limit=500)
+
+    def test_repeated_exceeds_limit(self) -> None:
+        data = Lists(string_list=["a" * 100] * 100).to_json()
+        with pytest.raises(ValueError, match="allocation budget exceeded"):
+            Lists.from_json(data, allocation_limit=5000)
+
+    def test_nested_messages_exceed_limit(self) -> None:
+        data = Lists(msg_list=[Lists.Msg() for _ in range(1000)]).to_json()
+        with pytest.raises(ValueError, match="allocation budget exceeded"):
+            Lists.from_json(data, allocation_limit=10_000)
+
+    def test_map_exceeds_limit(self) -> None:
+        data = Maps(
+            string_to_string={f"key{i}": "x" * 50 for i in range(100)}
+        ).to_json()
+        with pytest.raises(ValueError, match="allocation budget exceeded"):
+            Maps.from_json(data, allocation_limit=2000)
+
+    def test_struct_exceeds_limit(self) -> None:
+        data = json.dumps({f"key{i}": "x" * 50 for i in range(100)})
+        with pytest.raises(ValueError, match="allocation budget exceeded"):
+            Struct.from_json(data, allocation_limit=2000)
+
+    def test_from_json_value_limit(self) -> None:
+        data = cast("dict[str, Any]", {"stringList": ["a" * 100] * 100})
+        with pytest.raises(ValueError, match="allocation budget exceeded"):
+            message_from_json_value(Lists, data, allocation_limit=5000)
+
+    def test_no_limit_by_default(self) -> None:
+        data = Lists(string_list=["a" * 100] * 100).to_json()
+        msg = Lists.from_json(data)
+        assert len(msg.string_list) == 100
+
+    def test_descriptor_set_amplification_rejected(self) -> None:
+        # Each empty "{}" in "file" for FileDescriptorSet
+        # parses to a full FileDescriptorProto (~700 bytes) from ~3 JSON bytes.
+        rpc_read_limit = 4 * 1024 * 1024
+        data = '{"file":[' + ",".join(["{}"] * 1_200_000) + "]}"
+        assert len(data) < rpc_read_limit
+        with pytest.raises(ValueError, match="allocation budget exceeded"):
+            FileDescriptorSet.from_json(data, allocation_limit=64 * 1024 * 1024)

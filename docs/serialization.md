@@ -22,6 +22,8 @@ user = User.from_binary(data)
 
 ### Options
 
+#### Unknown Fields
+
 When a message is parsed from binary data containing field numbers it doesn't recognize, the unknown fields are stored internally and re-emitted during serialization.
 This means a message can pass through an intermediary that doesn't know about newer fields without losing data.
 
@@ -35,6 +37,37 @@ data = user.to_binary(write_unknown_fields=False)
 
 ```python
 user = User.from_binary(data, ignore_unknown_fields=True)
+```
+
+#### Allocation Limit
+
+Because protobuf serialization can create very compact binary payloads, it is possible for the memory usage of a
+parsed message to differ drastically from the input number of bytes. When parsing untrusted payloads,
+such as in an external-facing API server, this can allow malicious users to send small messages that take
+a large amount of memory or potentially crashing the server. This is most pronounced in schemas with
+repeated fields of message type with a large number of fields.
+
+You can mitigate this using the `allocation_limit` option in `from_binary`. When set, an estimate of the
+memory usage of a message is maintained while it is parsed, and if it goes over the limit, the parse fails
+immediately before processing the entire payload. The limit is based on the schema and content, not the environment,
+i.e., it charges a value for a string field based on the number of characters with a fixed overhead for a Python
+string. The overhead can change between Python versions, so the allocation budget should not be considered
+a precise value. Such changes are generally relatively small and fixed so an allocation limit determined for
+one environment should generally work fine when i.e., updating Python.
+
+The allocation budget is an upper bound, so it is possible that a message that would be under the limit is
+rejected. For example, when parsing binary the string is charged with the number of utf8 bytes in the payload.
+For ASCII strings, this will be the precise number, but for i.e. certain CJK characters, it overcharges by
+~30%.
+
+It is recommended to set an allocation limit for applications parsing untrusted payloads based on your target
+memory usage. You may need to experiment with values to see the effective memory utilization due to potential
+overcharging.
+
+```python
+user = User.from_binary(
+    data, allocation_limit=8 * 1024 * 1024
+)  # Roughly cap memory usage of parsed message to 8MB
 ```
 
 ## JSON
