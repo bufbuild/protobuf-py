@@ -17,7 +17,8 @@ from typing import Literal, TypeAlias
 
 from typing_extensions import assert_never
 
-from protobuf import Oneof
+from protobuf import Message, Oneof
+from protobuf.wkt import Struct, Value
 from tests.gen.messages_pb import MixedFields
 
 # Type alias for pattern matching test
@@ -63,6 +64,27 @@ def test_oneof_pattern_matching() -> None:
     # Test with int case
     int_val: StringOrInt = Oneof[Literal["number"], int](field="number", value=21)
     assert process_value(int_val) == "Number: 42"
+
+
+def test_oneof_covariance() -> None:
+    """Test that generated oneofs are assignable to wider Oneof types."""
+
+    def describe(o: Oneof[str, object]) -> str:
+        return f"{o.field}={o.value!r}"
+
+    def active_message(o: Oneof[str, Message]) -> Message:
+        return o.value
+
+    v = Value.from_python("hi")
+    assert v.kind is not None
+    # Literal field name widens to str, value type widens to object
+    assert describe(v.kind) == "string_value='hi'"
+
+    s = Value.from_python({"a": 1})
+    assert s.kind is not None
+    assert s.kind.field == "struct_value"
+    # Struct widens to Message
+    assert isinstance(active_message(s.kind), Struct)
 
 
 def test_oneof_descriptor_access() -> None:

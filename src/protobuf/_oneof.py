@@ -18,12 +18,12 @@ from typing import Final, Generic, TypeVar, final
 
 __all__ = ["Oneof"]
 
-C = TypeVar("C", bound=str)
-V = TypeVar("V")
+C_co = TypeVar("C_co", bound=str, covariant=True)
+V_co = TypeVar("V_co", covariant=True)
 
 
 @final
-class Oneof(Generic[C, V]):  # noqa: PLW1641
+class Oneof(Generic[C_co, V_co]):  # noqa: PLW1641
     """A oneof value with a field name and typed value.
 
     This class represents a oneof field value in protobuf messages. It combines
@@ -49,10 +49,10 @@ class Oneof(Generic[C, V]):  # noqa: PLW1641
     __slots__ = ("field", "value")
     __match_args__ = ("field", "value")
 
-    field: Final[C]
-    value: Final[V]
+    field: Final[C_co]
+    value: Final[V_co]
 
-    def __init__(self, field: C, value: V) -> None:
+    def __init__(self, field: C_co, value: V_co) -> None:
         """Initializes a new Oneof.
 
         Args:
