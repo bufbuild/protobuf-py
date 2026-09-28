@@ -820,7 +820,7 @@ dev = [
     { name = "protobuf", specifier = "==7.36.2" },
     { name = "protobuf-py-bench", editable = "packages/bench" },
     { name = "protoc-gen-py", editable = "packages/protoc-gen-py" },
-    { name = "protoc-runner", specifier = "==36.1" },
+    { name = "protoc-runner", specifier = "==36.2" },
     { name = "pydantic", specifier = "==2.13.5" },
     { name = "pyright", specifier = "==1.1.414" },
     { name = "pytest", specifier = "==9.1.1" },
@@ -843,7 +843,7 @@ dev-required = [
     { name = "license-header", specifier = "==0.0.1" },
     { name = "poethepoet", specifier = "==0.48.0" },
     { name = "protoc-gen-py", editable = "packages/protoc-gen-py" },
-    { name = "protoc-runner", specifier = "==36.1" },
+    { name = "protoc-runner", specifier = "==36.2" },
     { name = "pyright", specifier = "==1.1.414" },
     { name = "pytest", specifier = "==9.1.1" },
     { name = "pytest-benchmark", specifier = "==5.3.0" },
@@ -921,14 +921,14 @@ dev = [{ name = "upstream-protobuf", editable = "packages/upstream-protobuf" }]
 
 [[package]]
 name = "protoc-runner"
-version = "36.1"
+version = "36.2"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/89/ae/f34220566ea7815cc384140a4622bac585360805ab91325fc9fe1e076aef/protoc_runner-36.1-py3-none-macosx_12_0_arm64.whl", hash = "sha256:e265068eb476ba7368b11c1a199ce3a72ef51ef70fb9c4513a6d248c8f1db130", size = 7771826, upload-time = "2026-09-07T01:11:35.872Z" },
-    { url = "https://files.pythonhosted.org/packages/87/06/d2ffe36b0655b3a4fc303116fcb59c6e603ebc224b0b4bbeaf28b2d497fc/protoc_runner-36.1-py3-none-macosx_12_0_x86_64.whl", hash = "sha256:dc70ebcb6f888a485858d11f85db8c4e0c2bcc71b0274ff0024dfc85e4334f95", size = 7635236, upload-time = "2026-09-07T01:11:38.51Z" },
-    { url = "https://files.pythonhosted.org/packages/f1/7f/9facf58529b373d67281b2825cee5c6d5a66f89ae0eb2b9696f3614dd57d/protoc_runner-36.1-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:03b0f9bee44c5ce2ac601a88c8b35ea5b25e30d585ce95e67b32d35f14015edf", size = 8207099, upload-time = "2026-09-07T01:11:40.42Z" },
-    { url = "https://files.pythonhosted.org/packages/2b/56/210a1411a9b51f5ef06135f175b84edfe6b8f2188801a26cda70248e28a7/protoc_runner-36.1-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.musllinux_1_1_x86_64.whl", hash = "sha256:7dc4894afdc87f213fcc51a974520ac68d6641406811d671ef23caa2ecd88220", size = 8274274, upload-time = "2026-09-07T01:11:43.197Z" },
-    { url = "https://files.pythonhosted.org/packages/7f/2a/81e196f3410dcdfec692d556bff7af0fc09386f5ad634fd8c18cb57ebd20/protoc_runner-36.1-py3-none-win_amd64.whl", hash = "sha256:085b917e64764f849fea9e8cdf80ee402f3374210c6d69056563dfd07767b95e", size = 3589157, upload-time = "2026-09-07T01:11:45.46Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/2e/d04f63a4dc1cd0b49cf70ef3f8a2b76b22eddf26a4abc01d0a910378371c/protoc_runner-36.2-py3-none-macosx_12_0_arm64.whl", hash = "sha256:42a45d3ab92cdfc8b367cfdf08e423e16f94540e7df2a75db079f0a5a92f0c1e", size = 7773885, upload-time = "2026-09-21T08:48:10.509Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/09/056099c032f7ff30770db6add7fee987ccdaebc9546ecca82388a1635a46/protoc_runner-36.2-py3-none-macosx_12_0_x86_64.whl", hash = "sha256:0fc81930b282f76566da9e824b0a144aef5ec0a9f16a1ee2b3db968d69a1f6e8", size = 7638166, upload-time = "2026-09-21T08:48:12.677Z" },
+    { url = "https://files.pythonhosted.org/packages/35/35/0fdd10e9864ce55867947440f1398876a4a33f20aedbb7bb7a947c12ddd8/protoc_runner-36.2-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:107e2e5991175cfc61a8cc18a6c987c96e2b59e79888f86b2f81c2d88fed1fcc", size = 8209225, upload-time = "2026-09-21T08:48:14.384Z" },
+    { url = "https://files.pythonhosted.org/packages/2e/08/ab7768c35ecce4eb5a9ba1ae28919b0ba51894d386c9b97815102353150f/protoc_runner-36.2-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.musllinux_1_1_x86_64.whl", hash = "sha256:8e4a57bc49f893f8050eb03923927615fd5f1950c63ede27d5ed153e67af3973", size = 8277110, upload-time = "2026-09-21T08:48:15.922Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/1a/fe43682bd5aa55e825e21ffaaa20b4ac61b83158edee96cfc7fe5b061dbc/protoc_runner-36.2-py3-none-win_amd64.whl", hash = "sha256:8b777175ca2e27e8189e56594f1493cc13de01fa817890fe60e6c2ac7c577694", size = 3593366, upload-time = "2026-09-21T08:48:17.754Z" },
 ]
 
 [[package]]
@@ -1430,7 +1430,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "license-header" },
-    { name = "protoc-runner", specifier = "==36.1" },
+    { name = "protoc-runner", specifier = "==36.2" },
 ]
 
 [[package]]
