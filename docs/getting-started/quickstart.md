@@ -75,6 +75,11 @@ The generated file is checked in to version control; re-run generation only when
     Generated files should never be edited by hand.
     They contain a `DO NOT EDIT` comment and will be overwritten on the next `buf generate`.
 
+!!! note
+    Code generated with a version of `protoc-gen-py` will continue to work with any newer version of `protobuf-py`
+    within the same major version series, but may not work with older versions, e.g., code generated with 1.2
+    will work with 1.4, but may not work with 2.0 or 1.1.
+
 ## Create messages
 
 Import and instantiate the generated class using keyword arguments:
