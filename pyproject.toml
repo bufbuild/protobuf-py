@@ -40,7 +40,7 @@ dev = [
   { include-group = "dev-required" },
   { include-group = "dev-subprojects" },
 ]
-docs = ["mkdocstrings-python==2.0.9", "zensical==0.0.65"]
+docs = ["mkdocstrings-python==2.0.9", "zensical==0.0.67"]
 
 # All dependencies required for CI, including running baseline tests.
 dev-required = [
@@ -51,8 +51,8 @@ dev-required = [
   "upstream-protobuf",
 
   "buf-bin==1.73.0",
-  "googleapis-googleapis-bufbuild-py==0.5.0.2.20260414192239+c17df5b2beca",
-  "hypothesis==6.168.2",
+  "googleapis-googleapis-bufbuild-py==0.6.0.1.20260414192239+c17df5b2beca",
+  "hypothesis==6.168.3",
   "license-header==0.0.1",
   "poethepoet==0.48.0",
   "protoc-runner==36.2",
@@ -60,8 +60,8 @@ dev-required = [
   "pytest==9.1.1",
   "pytest-benchmark==5.3.0",
   "pytest-cov==7.1.0",
-  "ruff==0.16.9",
-  "tombi==1.5.7",
+  "ruff==0.16.10",
+  "tombi==1.7.2",
   "ty==0.0.84",
 ]
 
