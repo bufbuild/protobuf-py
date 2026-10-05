@@ -52,8 +52,7 @@ class Inner(Message[_InnerFields]):
             self,
             *,
             name: str = "",
-        ) -> None:
-            pass
+        ) -> None: ...
 
         name: str
 

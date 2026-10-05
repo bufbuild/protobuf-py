@@ -52,8 +52,7 @@ class ComplexMessage(Message[_ComplexMessageFields]):
             self,
             *,
             d: int | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         d: int
 
@@ -557,8 +556,7 @@ class TestAllTypesEdition2023(Message[_TestAllTypesEdition2023Fields]):
             groupliketype: TestAllTypesEdition2023.GroupLikeType | None = None,
             delimited_field: TestAllTypesEdition2023.GroupLikeType | None = None,
             map_recursive: dict[int, TestAllTypesEdition2023] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         optional_int32: int
         optional_int64: int
@@ -683,8 +681,7 @@ class TestAllTypesEdition2023(Message[_TestAllTypesEdition2023Fields]):
                 *,
                 a: int | None = None,
                 corecursive: TestAllTypesEdition2023 | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             a: int
             corecursive: TestAllTypesEdition2023 | None
@@ -719,8 +716,7 @@ class TestAllTypesEdition2023(Message[_TestAllTypesEdition2023Fields]):
                 *,
                 group_int32: int | None = None,
                 group_uint32: int | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             group_int32: int
             group_uint32: int
@@ -780,8 +776,7 @@ class ForeignMessageEdition2023(Message[_ForeignMessageEdition2023Fields]):
             self,
             *,
             c: int | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         c: int
 
@@ -808,8 +803,7 @@ class GroupLikeType(Message[_GroupLikeTypeFields]):
             self,
             *,
             c: int | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         c: int
 

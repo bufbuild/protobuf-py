@@ -1,0 +1,68 @@
+// Copyright (c) 2025-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package deprecated;
+
+message DeprecatedMessage {
+  option deprecated = true;
+
+  message NestedDeprecatedMessage {
+    option deprecated = true;
+  }
+
+  int32 value = 1;
+  DeprecatedMessage recursive = 2;
+  int32 deprecated_value = 3 [deprecated = true];
+}
+
+enum DeprecatedEnum {
+  option deprecated = true;
+
+  DEPRECATED_ENUM_UNSPECIFIED = 0;
+}
+
+enum EnumWithDeprecatedValue {
+  ENUM_WITH_DEPRECATED_VALUE_UNSPECIFIED = 0;
+  ENUM_WITH_DEPRECATED_VALUE_OLD = 1 [deprecated = true];
+  ENUM_WITH_DEPRECATED_VALUE_NEW = 2;
+}
+
+// Fields named deprecated, property and overload shadow the names generated
+// code would otherwise use to mark the deprecated declarations.
+message MessageWithDeprecatedFields {
+  message NestedDeprecatedMessage {
+    option deprecated = true;
+  }
+
+  enum NestedEnum {
+    NESTED_ENUM_UNSPECIFIED = 0;
+    NESTED_ENUM_OLD = 1 [deprecated = true];
+  }
+
+  DeprecatedMessage message = 1;
+  DeprecatedEnum enum = 2;
+  int32 deprecated_field = 3 [deprecated = true];
+  repeated int32 deprecated_list = 4 [deprecated = true];
+  map<string, int32> deprecated_map = 5 [deprecated = true];
+  MessageWithDeprecatedFields deprecated_message = 6 [deprecated = true];
+  oneof choice {
+    int32 deprecated_choice = 7 [deprecated = true];
+    int32 other_choice = 8;
+  }
+  int32 value = 9;
+  bool deprecated = 10;
+  bool property = 11;
+  bool overload = 12;
+}

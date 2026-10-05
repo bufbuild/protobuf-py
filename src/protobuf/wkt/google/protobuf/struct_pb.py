@@ -65,8 +65,7 @@ class Struct(Message[_StructFields], StructMixin):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, fields: dict[str, Value] | None = None) -> None:
-            pass
+        def __init__(self, *, fields: dict[str, Value] | None = None) -> None: ...
 
         fields: dict[str, Value]
 
@@ -117,8 +116,7 @@ class Value(Message[_ValueFields], ValueMixin):
             | Oneof[Literal["struct_value"], Struct]
             | Oneof[Literal["list_value"], ListValue]
             | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         kind: (
             Oneof[Literal["null_value"], NullValue]
@@ -155,8 +153,7 @@ class ListValue(Message[_ListValueFields], ListValueMixin):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, values: list[Value] | None = None) -> None:
-            pass
+        def __init__(self, *, values: list[Value] | None = None) -> None: ...
 
         values: list[Value]
 

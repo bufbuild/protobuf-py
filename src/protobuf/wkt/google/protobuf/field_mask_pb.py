@@ -248,8 +248,7 @@ class FieldMask(Message[_FieldMaskFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, paths: list[str] | None = None) -> None:
-            pass
+        def __init__(self, *, paths: list[str] | None = None) -> None: ...
 
         paths: list[str]
 

@@ -82,8 +82,7 @@ class DelimitedEncoding(Message[_DelimitedEncodingFields]):
             message_map: dict[str, DelimitedEncoding.Msg] | None = None,
             scalar_map: dict[str, int] | None = None,
             choice: Oneof[Literal["choice_string"], str] | Oneof[Literal["choice_message"], DelimitedEncoding.Msg] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         name: str
         singular: DelimitedEncoding.Msg | None
@@ -121,8 +120,7 @@ class DelimitedEncoding(Message[_DelimitedEncodingFields]):
                 *,
                 value: int | None = None,
                 child: DelimitedEncoding.Msg | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             value: int
             child: DelimitedEncoding.Msg | None

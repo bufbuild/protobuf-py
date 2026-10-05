@@ -23,15 +23,23 @@ from typing import Literal, TYPE_CHECKING, TypeAlias
 
 from protobuf import Message
 from protobuf._codegen import file_desc
+from typing_extensions import deprecated
 
 from . import source_context_pb, type_pb
 
 if TYPE_CHECKING:
+    from typing import overload
+
     from protobuf import DescFile
 
     from .source_context_pb import SourceContext
     from .type_pb import Option, Syntax
 
+
+_deprecated = deprecated
+if TYPE_CHECKING:
+    _overload = overload
+    _property = property
 
 _ApiFields: TypeAlias = Literal[
     "name",
@@ -161,8 +169,7 @@ class Api(Message[_ApiFields]):
             mixins: list[Mixin] | None = None,
             syntax: Syntax | None = None,
             edition: str = "",
-        ) -> None:
-            pass
+        ) -> None: ...
 
         name: str
         methods: list[Method]
@@ -256,19 +263,33 @@ class Method(Message[_MethodFields]):
             ```
     """
 
-    __slots__ = (
-        "name",
-        "request_type_url",
-        "request_streaming",
-        "response_type_url",
-        "response_streaming",
-        "options",
-        "syntax",
-        "edition",
-    )
+    if not TYPE_CHECKING:
+        __slots__ = (
+            "name",
+            "request_type_url",
+            "request_streaming",
+            "response_type_url",
+            "response_streaming",
+            "options",
+            "syntax",
+            "edition",
+        )
 
     if TYPE_CHECKING:
 
+        @_overload
+        def __init__(
+            self,
+            *,
+            name: str = "",
+            request_type_url: str = "",
+            request_streaming: bool = False,
+            response_type_url: str = "",
+            response_streaming: bool = False,
+            options: list[Option] | None = None,
+        ) -> None: ...
+        @_overload
+        @_deprecated("deprecated fields passed to init", category=None)
         def __init__(
             self,
             *,
@@ -280,8 +301,19 @@ class Method(Message[_MethodFields]):
             options: list[Option] | None = None,
             syntax: Syntax | None = None,
             edition: str = "",
-        ) -> None:
-            pass
+        ) -> None: ...
+        def __init__(
+            self,
+            *,
+            name: str = "",
+            request_type_url: str = "",
+            request_streaming: bool = False,
+            response_type_url: str = "",
+            response_streaming: bool = False,
+            options: list[Option] | None = None,
+            syntax: Syntax | None = None,
+            edition: str = "",
+        ) -> None: ...
 
         name: str
         request_type_url: str
@@ -289,8 +321,19 @@ class Method(Message[_MethodFields]):
         response_type_url: str
         response_streaming: bool
         options: list[Option]
-        syntax: Syntax
-        edition: str
+
+        @_property
+        @_deprecated("google.protobuf.Method.syntax is deprecated.", category=None)
+        def syntax(self) -> Syntax: ...
+        @syntax.setter
+        @_deprecated("google.protobuf.Method.syntax is deprecated.", category=None)
+        def syntax(self, value: Syntax) -> None: ...
+        @_property
+        @_deprecated("google.protobuf.Method.edition is deprecated.", category=None)
+        def edition(self) -> str: ...
+        @edition.setter
+        @_deprecated("google.protobuf.Method.edition is deprecated.", category=None)
+        def edition(self, value: str) -> None: ...
 
 
 _MixinFields: TypeAlias = Literal["name", "root"]
@@ -401,8 +444,7 @@ class Mixin(Message[_MixinFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, name: str = "", root: str = "") -> None:
-            pass
+        def __init__(self, *, name: str = "", root: str = "") -> None: ...
 
         name: str
         root: str

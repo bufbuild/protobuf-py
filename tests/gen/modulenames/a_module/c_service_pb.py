@@ -52,8 +52,7 @@ class Baz(Message[_BazFields]):
             self,
             *,
             name: str = "",
-        ) -> None:
-            pass
+        ) -> None: ...
 
         name: str
 

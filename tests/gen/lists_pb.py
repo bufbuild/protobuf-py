@@ -141,8 +141,7 @@ class Lists(Message[_ListsFields]):
             enum_list: list[Color] | None = None,
             msg_list: list[Lists.Msg] | None = None,
             recursive_list: list[Lists] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         double_list: list[float]
         float_list: list[float]
@@ -186,8 +185,7 @@ class Lists(Message[_ListsFields]):
                 self,
                 *,
                 value: str | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             value: str
 

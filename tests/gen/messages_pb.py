@@ -100,8 +100,7 @@ class MixedFields(Message[_MixedFieldsFields]):
             oneof_group: Oneof[Literal["oneof_field"], str] | Oneof[Literal["oneof_baz"], int] | None = None,
             implicit_enum_field: MixedFields.E | None = None,
             explicit_enum_field: MixedFields.E | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         explicit_field: int
         implicit_field: int
@@ -136,8 +135,7 @@ class MixedFields(Message[_MixedFieldsFields]):
                 self,
                 *,
                 value: str | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             value: str
 
@@ -239,8 +237,7 @@ class MixedFieldsWithRequired(Message[_MixedFieldsWithRequiredFields]):
             oneof_group: Oneof[Literal["oneof_field"], str] | Oneof[Literal["oneof_baz"], int] | None = None,
             implicit_enum_field: MixedFieldsWithRequired.E | None = None,
             explicit_enum_field: MixedFieldsWithRequired.E | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         explicit_field: int
         implicit_field: int
@@ -276,8 +273,7 @@ class MixedFieldsWithRequired(Message[_MixedFieldsWithRequiredFields]):
                 self,
                 *,
                 value: str | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             value: str
 
@@ -416,8 +412,7 @@ class ImplicitFields(Message[_ImplicitFieldsFields]):
             enum_field: Color | None = None,
             repeated_field: list[str] | None = None,
             map_field: dict[str, int] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         double_field: float
         float_field: float
@@ -548,8 +543,7 @@ class ExplicitFields(Message[_ExplicitFieldsFields]):
             enum_field: Color | None = None,
             message_field: ExplicitFields.Msg | None = None,
             oneof_group: Oneof[Literal["oneof_string"], str] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         double_field: float
         float_field: float
@@ -593,8 +587,7 @@ class ExplicitFields(Message[_ExplicitFieldsFields]):
                 self,
                 *,
                 value: str | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             value: str
 
@@ -733,8 +726,7 @@ class ExplicitFieldsWithUnknowns(Message[_ExplicitFieldsWithUnknownsFields]):
             unknown_repeated_field: list[str] | None = None,
             unknown_map_field: dict[str, int] | None = None,
             unknown_message_field: ExplicitFieldsWithUnknowns.Msg | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         double_field: float
         float_field: float
@@ -783,8 +775,7 @@ class ExplicitFieldsWithUnknowns(Message[_ExplicitFieldsWithUnknownsFields]):
                 self,
                 *,
                 value: str | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             value: str
 
@@ -888,8 +879,7 @@ class LegacyRequiredFields(Message[_LegacyRequiredFieldsFields]):
             string_field: str | None = None,
             bytes_field: bytes | None = None,
             enum_field: Color | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         double_field: float
         float_field: float
@@ -941,8 +931,7 @@ class Recursive(Message[_RecursiveFields]):
             recursive: Recursive | None = None,
             repeated_recursive: list[Recursive] | None = None,
             map_recursive: dict[str, Recursive] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         recursive: Recursive | None
         repeated_recursive: list[Recursive]

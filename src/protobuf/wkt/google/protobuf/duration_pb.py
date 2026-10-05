@@ -123,8 +123,7 @@ class Duration(Message[_DurationFields], DurationMixin):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, seconds: int = 0, nanos: int = 0) -> None:
-            pass
+        def __init__(self, *, seconds: int = 0, nanos: int = 0) -> None: ...
 
         seconds: int
         nanos: int

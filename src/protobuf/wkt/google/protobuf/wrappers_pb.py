@@ -57,8 +57,7 @@ class DoubleValue(Message[_DoubleValueFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, value: float = 0) -> None:
-            pass
+        def __init__(self, *, value: float = 0) -> None: ...
 
         value: float
 
@@ -92,8 +91,7 @@ class FloatValue(Message[_FloatValueFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, value: float = 0) -> None:
-            pass
+        def __init__(self, *, value: float = 0) -> None: ...
 
         value: float
 
@@ -127,8 +125,7 @@ class Int64Value(Message[_Int64ValueFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, value: int = 0) -> None:
-            pass
+        def __init__(self, *, value: int = 0) -> None: ...
 
         value: int
 
@@ -162,8 +159,7 @@ class UInt64Value(Message[_UInt64ValueFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, value: int = 0) -> None:
-            pass
+        def __init__(self, *, value: int = 0) -> None: ...
 
         value: int
 
@@ -197,8 +193,7 @@ class Int32Value(Message[_Int32ValueFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, value: int = 0) -> None:
-            pass
+        def __init__(self, *, value: int = 0) -> None: ...
 
         value: int
 
@@ -232,8 +227,7 @@ class UInt32Value(Message[_UInt32ValueFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, value: int = 0) -> None:
-            pass
+        def __init__(self, *, value: int = 0) -> None: ...
 
         value: int
 
@@ -267,8 +261,7 @@ class BoolValue(Message[_BoolValueFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, value: bool = False) -> None:
-            pass
+        def __init__(self, *, value: bool = False) -> None: ...
 
         value: bool
 
@@ -302,8 +295,7 @@ class StringValue(Message[_StringValueFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, value: str = "") -> None:
-            pass
+        def __init__(self, *, value: str = "") -> None: ...
 
         value: str
 
@@ -337,8 +329,7 @@ class BytesValue(Message[_BytesValueFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, value: bytes = b"") -> None:
-            pass
+        def __init__(self, *, value: bytes = b"") -> None: ...
 
         value: bytes
 

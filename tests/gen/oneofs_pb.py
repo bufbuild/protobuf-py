@@ -66,8 +66,7 @@ class Oneofs(Message[_OneofsFields]):
             scalars: Oneof[Literal["double_field"], float] | Oneof[Literal["float_field"], float] | Oneof[Literal["int32_field"], int] | Oneof[Literal["int64_field"], int] | Oneof[Literal["uint32_field"], int] | Oneof[Literal["uint64_field"], int] | Oneof[Literal["sint32_field"], int] | Oneof[Literal["sint64_field"], int] | Oneof[Literal["fixed32_field"], int] | Oneof[Literal["fixed64_field"], int] | Oneof[Literal["sfixed32_field"], int] | Oneof[Literal["sfixed64_field"], int] | Oneof[Literal["bool_field"], bool] | Oneof[Literal["string_field"], str] | Oneof[Literal["bytes_field"], bytes] | None = None,
             single: Oneof[Literal["only_field"], str] | None = None,
             mixed: Oneof[Literal["enum_field"], Color] | Oneof[Literal["msg_field"], Oneofs.Msg] | Oneof[Literal["recursive_field"], Oneofs] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         scalars: Oneof[Literal["double_field"], float] | Oneof[Literal["float_field"], float] | Oneof[Literal["int32_field"], int] | Oneof[Literal["int64_field"], int] | Oneof[Literal["uint32_field"], int] | Oneof[Literal["uint64_field"], int] | Oneof[Literal["sint32_field"], int] | Oneof[Literal["sint64_field"], int] | Oneof[Literal["fixed32_field"], int] | Oneof[Literal["fixed64_field"], int] | Oneof[Literal["sfixed32_field"], int] | Oneof[Literal["sfixed64_field"], int] | Oneof[Literal["bool_field"], bool] | Oneof[Literal["string_field"], str] | Oneof[Literal["bytes_field"], bytes] | None
         single: Oneof[Literal["only_field"], str] | None
@@ -96,8 +95,7 @@ class Oneofs(Message[_OneofsFields]):
                 self,
                 *,
                 value: str | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             value: str
 

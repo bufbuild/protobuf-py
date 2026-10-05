@@ -82,8 +82,7 @@ class CppFeatures(Message[_CppFeaturesFields]):
             string_type: CppFeatures.StringType | None = None,
             enum_name_uses_string_view: bool | None = None,
             repeated_type: CppFeatures.RepeatedType | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         legacy_closed_enum: bool
         string_type: CppFeatures.StringType

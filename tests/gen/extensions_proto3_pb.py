@@ -56,8 +56,7 @@ class Proto3ExtMessage(Message[_Proto3ExtMessageFields]):
             self,
             *,
             string_field: str = "",
-        ) -> None:
-            pass
+        ) -> None: ...
 
         string_field: str
 

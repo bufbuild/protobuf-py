@@ -83,8 +83,7 @@ class JsonNames(Message[_JsonNamesFields]):
             enum_field: Color | None = None,
             msg_field: JsonNames.Msg | None = None,
             value: Oneof[Literal["oneof_string"], str] | Oneof[Literal["oneof_int"], int] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         scalar_field: int
         repeated_field: list[str]
@@ -116,8 +115,7 @@ class JsonNames(Message[_JsonNamesFields]):
                 self,
                 *,
                 value: str | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             value: str
 
@@ -176,8 +174,7 @@ class JsonNameEdgeCases(Message[_JsonNameEdgeCasesFields]):
             same_as_proto: int | None = None,
             special_chars: int | None = None,
             backslash: int | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         at_type: int
         hyphen: int

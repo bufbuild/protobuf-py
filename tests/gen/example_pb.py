@@ -77,8 +77,7 @@ class User(Message[_UserFields]):
             manager: User | None = None,
             locations: list[str] | None = None,
             projects: dict[str, str] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         first_name: str
         last_name: str

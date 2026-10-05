@@ -55,8 +55,7 @@ class CSharpFeatures(Message[_CSharpFeaturesFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, nullable_reference_types: bool | None = None) -> None:
-            pass
+        def __init__(self, *, nullable_reference_types: bool | None = None) -> None: ...
 
         nullable_reference_types: bool
 

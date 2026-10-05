@@ -162,8 +162,7 @@ class Maps(Message[_MapsFields]):
             int32_to_msg: dict[int, Maps.Msg] | None = None,
             bool_to_msg: dict[bool, Maps.Msg] | None = None,
             string_to_recursive: dict[str, Maps] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         int32_to_int32: dict[int, int]
         int64_to_int64: dict[int, int]
@@ -210,8 +209,7 @@ class Maps(Message[_MapsFields]):
                 self,
                 *,
                 value: str | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             value: str
 

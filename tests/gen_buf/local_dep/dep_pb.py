@@ -59,8 +59,7 @@ class Dep(Message[_DepFields]):
             *,
             value: str = "",
             status: Status | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         value: str
         status: Status | None

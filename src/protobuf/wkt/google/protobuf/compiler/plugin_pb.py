@@ -76,8 +76,7 @@ class Version(Message[_VersionFields]):
             minor: int | None = None,
             patch: int | None = None,
             suffix: str | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         major: int
         minor: int
@@ -175,8 +174,7 @@ class CodeGeneratorRequest(Message[_CodeGeneratorRequestFields]):
             proto_file: list[FileDescriptorProto] | None = None,
             source_file_descriptors: list[FileDescriptorProto] | None = None,
             compiler_version: Version | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         file_to_generate: list[str]
         parameter: str
@@ -261,8 +259,7 @@ class CodeGeneratorResponse(Message[_CodeGeneratorResponseFields]):
             minimum_edition: int | None = None,
             maximum_edition: int | None = None,
             file: list[CodeGeneratorResponse.File] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         error: str
         supported_features: int
@@ -368,8 +365,7 @@ class CodeGeneratorResponse(Message[_CodeGeneratorResponseFields]):
                 insertion_point: str | None = None,
                 content: str | None = None,
                 generated_code_info: GeneratedCodeInfo | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             name: str
             insertion_point: str

@@ -52,8 +52,7 @@ class Zero(Message[_ZeroFields]):
             self,
             *,
             name: str = "",
-        ) -> None:
-            pass
+        ) -> None: ...
 
         name: str
 

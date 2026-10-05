@@ -715,8 +715,7 @@ class TestAllTypesProto2(Message[_TestAllTypesProto2Fields]):
             field_name17__: int | None = None,
             Field_name18__: int | None = None,
             message_set_correct: TestAllTypesProto2.MessageSetCorrect | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         optional_int32: int
         optional_int64: int
@@ -876,8 +875,7 @@ class TestAllTypesProto2(Message[_TestAllTypesProto2Fields]):
                 *,
                 a: int | None = None,
                 corecursive: TestAllTypesProto2 | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             a: int
             corecursive: TestAllTypesProto2 | None
@@ -912,8 +910,7 @@ class TestAllTypesProto2(Message[_TestAllTypesProto2Fields]):
                 *,
                 group_int32: int | None = None,
                 group_uint32: int | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             group_int32: int
             group_uint32: int
@@ -946,8 +943,7 @@ class TestAllTypesProto2(Message[_TestAllTypesProto2Fields]):
                 *,
                 group_int32: int | None = None,
                 group_uint32: int | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             group_int32: int
             group_uint32: int
@@ -969,8 +965,7 @@ class TestAllTypesProto2(Message[_TestAllTypesProto2Fields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
     _MessageSetCorrectExtension1Fields: TypeAlias = Literal["str"]
 
@@ -995,8 +990,7 @@ class TestAllTypesProto2(Message[_TestAllTypesProto2Fields]):
                 self,
                 *,
                 str: str | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             str: str
 
@@ -1035,8 +1029,7 @@ class TestAllTypesProto2(Message[_TestAllTypesProto2Fields]):
                 *,
                 i: int | None = None,
                 sub_msg: TestAllTypesProto2.MessageSetCorrect | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             i: int
             sub_msg: TestAllTypesProto2.MessageSetCorrect | None
@@ -1071,8 +1064,7 @@ class TestAllTypesProto2(Message[_TestAllTypesProto2Fields]):
                 self,
                 *,
                 oneof_field: Oneof[Literal["a"], int] | Oneof[Literal["b"], int] | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             oneof_field: Oneof[Literal["a"], int] | Oneof[Literal["b"], int] | None
 
@@ -1138,8 +1130,7 @@ class ForeignMessageProto2(Message[_ForeignMessageProto2Fields]):
             self,
             *,
             c: int | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         c: int
 
@@ -1171,8 +1162,7 @@ class GroupField(Message[_GroupFieldFields]):
             *,
             group_int32: int | None = None,
             group_uint32: int | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         group_int32: int
         group_uint32: int
@@ -1225,8 +1215,7 @@ class UnknownToTestAllTypes(Message[_UnknownToTestAllTypesFields]):
             optionalgroup: UnknownToTestAllTypes.OptionalGroup | None = None,
             optional_bool: bool | None = None,
             repeated_int32: list[int] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         optional_int32: int
         optional_string: str
@@ -1258,8 +1247,7 @@ class UnknownToTestAllTypes(Message[_UnknownToTestAllTypesFields]):
                 self,
                 *,
                 a: int | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             a: int
 
@@ -1278,8 +1266,7 @@ class NullHypothesisProto2(Message[_NullHypothesisProto2Fields]):
 
         def __init__(
             self,
-        ) -> None:
-            pass
+        ) -> None: ...
 
 _EnumOnlyProto2Fields: TypeAlias = NoReturn
 
@@ -1296,8 +1283,7 @@ class EnumOnlyProto2(Message[_EnumOnlyProto2Fields]):
 
         def __init__(
             self,
-        ) -> None:
-            pass
+        ) -> None: ...
 
     class Bool(Enum):
         """
@@ -1342,8 +1328,7 @@ class OneStringProto2(Message[_OneStringProto2Fields]):
             self,
             *,
             data: str | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         data: str
 
@@ -1380,8 +1365,7 @@ class ProtoWithKeywords(Message[_ProtoWithKeywordsFields]):
             inline: int | None = None,
             concept: str | None = None,
             requires: list[str] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         inline: int
         concept: str
@@ -1604,8 +1588,7 @@ class TestAllRequiredTypesProto2(Message[_TestAllRequiredTypesProto2Fields]):
             default_bool: bool | None = None,
             default_string: str | None = None,
             default_bytes: bytes | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         required_int32: int
         required_int64: int
@@ -1680,8 +1663,7 @@ class TestAllRequiredTypesProto2(Message[_TestAllRequiredTypesProto2Fields]):
                 a: int | None = None,
                 corecursive: TestAllRequiredTypesProto2 | None = None,
                 optional_corecursive: TestAllRequiredTypesProto2 | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             a: int
             corecursive: TestAllRequiredTypesProto2 | None
@@ -1717,8 +1699,7 @@ class TestAllRequiredTypesProto2(Message[_TestAllRequiredTypesProto2Fields]):
                 *,
                 group_int32: int | None = None,
                 group_uint32: int | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             group_int32: int
             group_uint32: int
@@ -1740,8 +1721,7 @@ class TestAllRequiredTypesProto2(Message[_TestAllRequiredTypesProto2Fields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
     _MessageSetCorrectExtension1Fields: TypeAlias = Literal["str"]
 
@@ -1766,8 +1746,7 @@ class TestAllRequiredTypesProto2(Message[_TestAllRequiredTypesProto2Fields]):
                 self,
                 *,
                 str: str | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             str: str
 
@@ -1801,8 +1780,7 @@ class TestAllRequiredTypesProto2(Message[_TestAllRequiredTypesProto2Fields]):
                 self,
                 *,
                 i: int | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             i: int
 
@@ -1868,8 +1846,7 @@ class TestLargeOneof(Message[_TestLargeOneofFields]):
             self,
             *,
             large_oneof: Oneof[Literal["a1"], TestLargeOneof.A1] | Oneof[Literal["a2"], TestLargeOneof.A2] | Oneof[Literal["a3"], TestLargeOneof.A3] | Oneof[Literal["a4"], TestLargeOneof.A4] | Oneof[Literal["a5"], TestLargeOneof.A5] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         large_oneof: Oneof[Literal["a1"], TestLargeOneof.A1] | Oneof[Literal["a2"], TestLargeOneof.A2] | Oneof[Literal["a3"], TestLargeOneof.A3] | Oneof[Literal["a4"], TestLargeOneof.A4] | Oneof[Literal["a5"], TestLargeOneof.A5] | None
 
@@ -1888,8 +1865,7 @@ class TestLargeOneof(Message[_TestLargeOneofFields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
     _A2Fields: TypeAlias = NoReturn
 
@@ -1906,8 +1882,7 @@ class TestLargeOneof(Message[_TestLargeOneofFields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
     _A3Fields: TypeAlias = NoReturn
 
@@ -1924,8 +1899,7 @@ class TestLargeOneof(Message[_TestLargeOneofFields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
     _A4Fields: TypeAlias = NoReturn
 
@@ -1942,8 +1916,7 @@ class TestLargeOneof(Message[_TestLargeOneofFields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
     _A5Fields: TypeAlias = NoReturn
 
@@ -1960,8 +1933,7 @@ class TestLargeOneof(Message[_TestLargeOneofFields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
 class ForeignEnumProto2(Enum):
     """

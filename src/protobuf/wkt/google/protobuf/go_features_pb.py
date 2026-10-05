@@ -82,8 +82,7 @@ class GoFeatures(Message[_GoFeaturesFields]):
             api_level: GoFeatures.APILevel | None = None,
             strip_enum_prefix: GoFeatures.StripEnumPrefix | None = None,
             optimize_mode: GoFeatures.OptimizeModeFeature.OptimizeMode | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         legacy_unmarshal_json_enum: bool
         api_level: GoFeatures.APILevel
@@ -106,8 +105,7 @@ class GoFeatures(Message[_GoFeaturesFields]):
 
         if TYPE_CHECKING:
 
-            def __init__(self) -> None:
-                pass
+            def __init__(self) -> None: ...
 
         class OptimizeMode(Enum):
             """

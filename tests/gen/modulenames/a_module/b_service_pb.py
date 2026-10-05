@@ -52,8 +52,7 @@ class Foo(Message[_FooFields]):
             self,
             *,
             name: str = "",
-        ) -> None:
-            pass
+        ) -> None: ...
 
         name: str
 

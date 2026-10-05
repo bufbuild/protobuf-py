@@ -52,8 +52,7 @@ class Bar(Message[_BarFields]):
             self,
             *,
             name: str = "",
-        ) -> None:
-            pass
+        ) -> None: ...
 
         name: str
 

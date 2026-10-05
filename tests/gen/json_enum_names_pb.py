@@ -63,8 +63,7 @@ class JsonEnumNames(Message[_JsonEnumNamesFields]):
             season_field: Season | None = None,
             repeated_field: list[Season] | None = None,
             map_field: dict[str, Season] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         season_field: Season
         repeated_field: list[Season]

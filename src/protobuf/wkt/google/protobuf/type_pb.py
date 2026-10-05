@@ -118,8 +118,7 @@ class Type(Message[_TypeFields]):
             source_context: SourceContext | None = None,
             syntax: Syntax | None = None,
             edition: str = "",
-        ) -> None:
-            pass
+        ) -> None: ...
 
         name: str
         fields: list[Field]
@@ -250,8 +249,7 @@ class Field(Message[_FieldFields]):
             options: list[Option] | None = None,
             json_name: str = "",
             default_value: str = "",
-        ) -> None:
-            pass
+        ) -> None: ...
 
         kind: Field.Kind
         cardinality: Field.Cardinality
@@ -520,8 +518,7 @@ class Enum(Message[_EnumFields]):
             source_context: SourceContext | None = None,
             syntax: Syntax | None = None,
             edition: str = "",
-        ) -> None:
-            pass
+        ) -> None: ...
 
         name: str
         enumvalue: list[EnumValue]
@@ -578,8 +575,7 @@ class EnumValue(Message[_EnumValueFields]):
             name: str = "",
             number: int = 0,
             options: list[Option] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         name: str
         number: int
@@ -627,8 +623,7 @@ class Option(Message[_OptionFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, name: str = "", value: Any | None = None) -> None:
-            pass
+        def __init__(self, *, name: str = "", value: Any | None = None) -> None: ...
 
         name: str
         value: Any | None

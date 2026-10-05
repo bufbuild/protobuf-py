@@ -122,8 +122,7 @@ class Scalars(Message[_ScalarsFields]):
             bool_field: bool | None = None,
             string_field: str | None = None,
             bytes_field: bytes | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         double_field: float
         float_field: float

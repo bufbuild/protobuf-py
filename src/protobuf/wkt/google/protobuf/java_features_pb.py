@@ -106,8 +106,7 @@ class JavaFeatures(Message[_JavaFeaturesFields]):
             use_old_outer_classname_default: bool | None = None,
             nest_in_file_class: JavaFeatures.NestInFileClassFeature.NestInFileClass
             | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         legacy_closed_enum: bool
         utf8_validation: JavaFeatures.Utf8Validation
@@ -128,8 +127,7 @@ class JavaFeatures(Message[_JavaFeaturesFields]):
 
         if TYPE_CHECKING:
 
-            def __init__(self) -> None:
-                pass
+            def __init__(self) -> None: ...
 
         class NestInFileClass(Enum):
             """

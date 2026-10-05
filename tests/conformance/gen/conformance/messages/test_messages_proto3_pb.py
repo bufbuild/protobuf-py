@@ -799,8 +799,7 @@ class TestAllTypesProto3(Message[_TestAllTypesProto3Fields]):
             field__Name16: int = 0,
             field_name17__: int = 0,
             Field_name18__: int = 0,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         optional_int32: int
         optional_int64: int
@@ -975,8 +974,7 @@ class TestAllTypesProto3(Message[_TestAllTypesProto3Fields]):
                 *,
                 a: int = 0,
                 corecursive: TestAllTypesProto3 | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             a: int
             corecursive: TestAllTypesProto3 | None
@@ -1076,8 +1074,7 @@ class ForeignMessage(Message[_ForeignMessageFields]):
             self,
             *,
             c: int = 0,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         c: int
 
@@ -1096,8 +1093,7 @@ class NullHypothesisProto3(Message[_NullHypothesisProto3Fields]):
 
         def __init__(
             self,
-        ) -> None:
-            pass
+        ) -> None: ...
 
 _EnumOnlyProto3Fields: TypeAlias = NoReturn
 
@@ -1114,8 +1110,7 @@ class EnumOnlyProto3(Message[_EnumOnlyProto3Fields]):
 
         def __init__(
             self,
-        ) -> None:
-            pass
+        ) -> None: ...
 
     class Bool(Enum):
         """

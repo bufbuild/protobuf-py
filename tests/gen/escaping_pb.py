@@ -49,8 +49,7 @@ class MyMessage(Message_[_MyMessageFields]):
 
         def __init__(
             self,
-        ) -> None:
-            pass
+        ) -> None: ...
 
 _matchFields: TypeAlias = NoReturn
 
@@ -69,8 +68,7 @@ class match(Message_[_matchFields]):
 
         def __init__(
             self,
-        ) -> None:
-            pass
+        ) -> None: ...
 
 _list_Fields: TypeAlias = Literal["repeated_field"]
 
@@ -97,8 +95,7 @@ class list_(Message_[_list_Fields]):
             self,
             *,
             repeated_field: list[str] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         repeated_field: list[str]
 
@@ -119,8 +116,7 @@ class Message(Message_[_MessageFields]):
 
         def __init__(
             self,
-        ) -> None:
-            pass
+        ) -> None: ...
 
 _file_descFields: TypeAlias = NoReturn
 
@@ -139,8 +135,7 @@ class file_desc(Message_[_file_descFields]):
 
         def __init__(
             self,
-        ) -> None:
-            pass
+        ) -> None: ...
 
 _class_Fields: TypeAlias = NoReturn
 
@@ -159,8 +154,7 @@ class class_(Message_[_class_Fields]):
 
         def __init__(
             self,
-        ) -> None:
-            pass
+        ) -> None: ...
 
 _pb__FooFields: TypeAlias = NoReturn
 
@@ -179,8 +173,7 @@ class pb__Foo(Message_[_pb__FooFields]):
 
         def __init__(
             self,
-        ) -> None:
-            pass
+        ) -> None: ...
 
 _desc_Fields: TypeAlias = NoReturn
 
@@ -199,8 +192,7 @@ class desc_(Message_[_desc_Fields]):
 
         def __init__(
             self,
-        ) -> None:
-            pass
+        ) -> None: ...
 
 _MessageMembersFields: TypeAlias = Literal["name", "count", "msg", "oneof_field", "type", "from", "class", "foo", "desc", "to_json", "__init__", "__eq__", "__hash__", "_foo", "self"]
 
@@ -325,8 +317,7 @@ class MessageMembers(Message_[_MessageMembersFields]):
             pb___hash__: str | None = None,
             pb__foo: str | None = None,
             self_: str | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         name: str
         count: int
@@ -361,8 +352,7 @@ class MessageNested(Message_[_MessageNestedFields]):
 
         def __init__(
             self,
-        ) -> None:
-            pass
+        ) -> None: ...
 
     _BarFields: TypeAlias = NoReturn
 
@@ -381,8 +371,7 @@ class MessageNested(Message_[_MessageNestedFields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
     _class_Fields: TypeAlias = NoReturn
 
@@ -401,8 +390,7 @@ class MessageNested(Message_[_MessageNestedFields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
         ext_bar: Final[Extension[MessageOptions, str]] = Extension()
         """
@@ -436,8 +424,7 @@ class MessageNested(Message_[_MessageNestedFields]):
                 self,
                 *,
                 repeated_field: list[str] | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             repeated_field: list[str]
 
@@ -458,8 +445,7 @@ class MessageNested(Message_[_MessageNestedFields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
     _file_descFields: TypeAlias = NoReturn
 
@@ -478,8 +464,7 @@ class MessageNested(Message_[_MessageNestedFields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
     _MessageNestedFields: TypeAlias = Literal["a", "b"]
 
@@ -515,8 +500,7 @@ class MessageNested(Message_[_MessageNestedFields]):
                 *,
                 a: MessageNested.MessageNested | None = None,
                 b: MessageNested | None = None,
-            ) -> None:
-                pass
+            ) -> None: ...
 
             a: MessageNested.MessageNested | None
             b: MessageNested | None
@@ -538,8 +522,7 @@ class MessageNested(Message_[_MessageNestedFields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
     _pb___eq__Fields: TypeAlias = NoReturn
 
@@ -558,8 +541,7 @@ class MessageNested(Message_[_MessageNestedFields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
     class Status(Enum):
         """
@@ -623,8 +605,7 @@ class EnumContainer(Message_[_EnumContainerFields]):
             *,
             int__: str | None = None,
             str___: str | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         int__: str
         str___: str
@@ -644,8 +625,7 @@ class EnumContainer(Message_[_EnumContainerFields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
     class AnotherEnum(Enum):
         """
@@ -702,8 +682,7 @@ class ExtCollision(Message_[_ExtCollisionFields]):
             self,
             *,
             pb_ext_bar: str | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         pb_ext_bar: str
 

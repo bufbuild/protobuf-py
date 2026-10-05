@@ -66,8 +66,7 @@ class WellKnownTypes(Message[_WellKnownTypesFields]):
             any: Any | None = None,
             duration: Duration | None = None,
             timestamp: Timestamp | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         any: Any | None
         duration: Duration | None

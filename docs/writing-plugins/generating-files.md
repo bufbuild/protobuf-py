@@ -224,6 +224,16 @@ It also emits `# ruff: noqa` to suppress linting on generated code, and
 Use the `no_fmt_off` option (see [Options](./options.md#no_fmt_off)) to omit
 `# fmt: off` if you want ruff to format the output.
 
+If the generated code references deprecated members, pass
+`suppress_deprecated=True` to also emit directives that stop pyright and ty from
+reporting it:
+
+```python
+f.preamble(desc, suppress_deprecated=True)
+```
+
+Only pass it when needed, since ty reports the directive as unused otherwise.
+
 !!! note
     Every `.py` file also has `from __future__ import annotations` inserted
     automatically — with or without a preamble.

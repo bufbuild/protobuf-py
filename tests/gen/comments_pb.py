@@ -74,8 +74,7 @@ class MessageWithComments(Message[_MessageWithCommentsFields]):
             *,
             x: int = 0,
             oneof_example: Oneof[Literal["a"], int] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         x: int
         oneof_example: Oneof[Literal["a"], int] | None
@@ -113,8 +112,7 @@ class MessageWithComments(Message[_MessageWithCommentsFields]):
                 self,
                 *,
                 name: str = "",
-            ) -> None:
-                pass
+            ) -> None: ...
 
             name: str
 

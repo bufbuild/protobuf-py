@@ -77,8 +77,7 @@ class EnumMessage(Message[_EnumMessageFields]):
             closed_color_list: list[ClosedColor] | None = None,
             string_to_color: dict[str, Color] | None = None,
             string_to_closed_color: dict[str, ClosedColor] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         color_field: Color
         closed_color_field: ClosedColor

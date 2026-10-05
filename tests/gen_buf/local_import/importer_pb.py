@@ -56,8 +56,7 @@ class Importer(Message[_ImporterFields]):
             self,
             *,
             dep: Dep | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         dep: Dep | None
 

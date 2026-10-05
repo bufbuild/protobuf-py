@@ -116,8 +116,7 @@ class Any(Message[_AnyFields], AnyMixin):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, type_url: str = "", value: bytes = b"") -> None:
-            pass
+        def __init__(self, *, type_url: str = "", value: bytes = b"") -> None: ...
 
         type_url: str
         value: bytes

@@ -67,8 +67,7 @@ class User(Message[_UserFields]):
             first_name: str = "",
             last_name: str = "",
             active: bool = False,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         user_id: str
         first_name: str
@@ -98,8 +97,7 @@ class GetUserRequest(Message[_GetUserRequestFields]):
             self,
             *,
             user_id: str = "",
-        ) -> None:
-            pass
+        ) -> None: ...
 
         user_id: str
 
@@ -126,8 +124,7 @@ class GetUserResponse(Message[_GetUserResponseFields]):
             self,
             *,
             user: User | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         user: User | None
 
@@ -154,8 +151,7 @@ class CreateUserRequest(Message[_CreateUserRequestFields]):
             self,
             *,
             user: User | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         user: User | None
 
@@ -182,8 +178,7 @@ class CreateUserResponse(Message[_CreateUserResponseFields]):
             self,
             *,
             user: User | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         user: User | None
 
@@ -210,8 +205,7 @@ class ListUsersRequest(Message[_ListUsersRequestFields]):
             self,
             *,
             active_only: bool = False,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         active_only: bool
 
@@ -238,8 +232,7 @@ class ListUsersResponse(Message[_ListUsersResponseFields]):
             self,
             *,
             users: list[User] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         users: list[User]
 

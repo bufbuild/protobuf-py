@@ -50,8 +50,7 @@ class Empty(Message[_EmptyFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self) -> None:
-            pass
+        def __init__(self) -> None: ...
 
 
 _DESC = file_desc(

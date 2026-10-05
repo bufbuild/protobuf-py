@@ -49,6 +49,8 @@ from protobuf.plugin import File, Ident, Module, Schema, get_comments, run
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
 
+    from protobuf import DescFieldValue
+
 _PROTOBUF = Module("protobuf")
 _DESC_FILE = _PROTOBUF.ident("DescFile", type_only=True)
 _MESSAGE = _PROTOBUF.ident("Message")
@@ -66,6 +68,15 @@ _FINAL = _TYPING.ident("Final")
 _LITERAL = _TYPING.ident("Literal")
 _NO_RETURN = _TYPING.ident("NoReturn")
 _TYPE_ALIAS = _TYPING.ident("TypeAlias")
+_TYPE_CHECKING = _TYPING.ident("TYPE_CHECKING")
+_OVERLOAD = _TYPING.ident("overload")
+_ENUM_META = Module("enum").ident("EnumMeta")
+_DEPRECATED = Module("typing_extensions").ident("deprecated")
+# Use private aliases to prevent collisions with gencode.
+_DEPRECATED_ALIAS = "_deprecated"
+_OVERLOAD_ALIAS = "_overload"
+_PROPERTY_ALIAS = "_property"
+_DEPRECATED_INIT = "deprecated fields passed to init"
 _WKT_MIXIN = Module("protobuf.wkt._mixin")
 _ANY_MIXIN = _WKT_MIXIN.ident("AnyMixin")
 _DURATION_MIXIN = _WKT_MIXIN.ident("DurationMixin")
@@ -98,7 +109,8 @@ def _generate(schema: Schema[_Options]) -> None:
 
 
 def _generate_file(f: File, desc: DescFile) -> None:
-    f.preamble(desc)
+    f.preamble(desc, suppress_deprecated=_uses_deprecated_types(desc))
+    _generate_deprecated_aliases(f, desc)
     for msg in desc.messages:
         _generate_message(f, msg)
     for enum in desc.enums:
@@ -107,6 +119,87 @@ def _generate_file(f: File, desc: DescFile) -> None:
         _generate_extension(f, ext)
 
     _generate_desc(f, desc)
+
+
+def _generate_deprecated_aliases(f: File, desc: DescFile) -> None:
+    symbols = list(_all_symbols_in_file(desc))
+    has_deprecated_members = any(_has_deprecated_members(s) for s in symbols)
+    if not has_deprecated_members and not any(
+        isinstance(s, DescMessage | DescEnum) and s.deprecated for s in symbols
+    ):
+        return
+    f.print(_DEPRECATED_ALIAS, " = ", _DEPRECATED)
+    if has_deprecated_members:
+        with f.type_checking():
+            f.print(_OVERLOAD_ALIAS, " = ", _OVERLOAD)
+            f.print(_PROPERTY_ALIAS, " = property")
+    f.print()
+
+
+def _uses_deprecated_types(desc: DescFile) -> bool:
+    # Deprecated fields and enum values are only declared, never referenced, by
+    # generated code. Deprecated types are referenced by annotations and the
+    # file descriptor's stub map.
+    if desc.name == _BOOT_FILE_PATH:
+        # The boot code constructs descriptor messages with deprecated fields.
+        return True
+    for symbol in _all_symbols_in_file(desc):
+        match symbol:
+            case DescMessage():
+                if _is_deprecated_type(symbol) or any(
+                    _is_deprecated_field_value_type(field.value)
+                    for field in symbol.fields
+                ):
+                    return True
+            case DescEnum():
+                if _is_deprecated_type(symbol):
+                    return True
+            case DescExtension():
+                if _is_deprecated_type(
+                    symbol.extendee
+                ) or _is_deprecated_field_value_type(symbol.value):
+                    return True
+    return False
+
+
+def _is_deprecated_field_value_type(value: DescFieldValue) -> bool:
+    match value:
+        case DescFieldValueMessage(message=message):
+            return _is_deprecated_type(message)
+        case DescFieldValueScalar():
+            return False
+        case DescFieldValueEnum(enum=enum):
+            return _is_deprecated_type(enum)
+        case DescFieldValueList(element=element):
+            return _is_deprecated_type(element)
+        case DescFieldValueMap(value=map_value):
+            return _is_deprecated_type(map_value)
+
+
+def _is_deprecated_type(desc: DescMessage | DescEnum | ScalarType) -> bool:
+    # A type nested in a deprecated message is referenced through it.
+    parent = desc
+    while isinstance(parent, DescMessage | DescEnum):
+        if parent.deprecated:
+            return True
+        parent = parent.parent
+    return False
+
+
+def _has_deprecated_members(desc: DescMessage | DescEnum | DescExtension) -> bool:
+    match desc:
+        case DescMessage():
+            return any(_is_deprecated_field(m) for m in desc.members)
+        case DescEnum():
+            return any(value.deprecated for value in desc.values)
+        case DescExtension():
+            # Type checkers can't report access to a deprecated module
+            # attribute, so we can't currently handle them.
+            return False
+
+
+def _is_deprecated_field(member: DescField | DescOneof) -> bool:
+    return isinstance(member, DescField) and member.deprecated
 
 
 def _get_mixin(msg: DescMessage) -> Ident | None:
@@ -165,9 +258,16 @@ def _generate_message(f: File, msg: DescMessage) -> None:
         else [message, "[", field_names_var, "], ", mixin]
     )
 
+    _generate_deprecated(f, msg)
     with f.scope("class ", f.ident(msg._local_name), "(", *base, "):"):
         _generate_message_docstring(f, msg)
-        f.print("__slots__ = (", slots_str, ")")
+        if any(_is_deprecated_field(m) for m in msg.members):
+            # Type checkers would resolve a deprecated field to its slot instead
+            # of its property.
+            with f.scope("if not ", _TYPE_CHECKING, ":"):
+                f.print("__slots__ = (", slots_str, ")")
+        else:
+            f.print("__slots__ = (", slots_str, ")")
         f.print()
         with f.type_checking():
             f.print()
@@ -182,6 +282,21 @@ def _generate_message(f: File, msg: DescMessage) -> None:
 
 
 def _generate_message_init(f: File, members: Sequence[DescField | DescOneof]) -> None:
+    if any(_is_deprecated_field(m) for m in members):
+        # An individual parameter cannot be deprecated, so generate a non-deprecated
+        # init overload with no deprecated fields and a deprecated init overload with
+        # all fields. Invoking without deprecated fields will select the
+        # non-deprecated overload.
+        f.print("@", _OVERLOAD_ALIAS)
+        _generate_init_signature(f, [m for m in members if not _is_deprecated_field(m)])
+        f.print("@", _OVERLOAD_ALIAS)
+        f.print("@", _DEPRECATED_ALIAS, '("', _DEPRECATED_INIT, '", category=None)')
+        _generate_init_signature(f, members)
+    _generate_init_signature(f, members)
+    f.print()
+
+
+def _generate_init_signature(f: File, members: Sequence[DescField | DescOneof]) -> None:
     with f.scope("def __init__("):
         f.print("self,")
         if len(members) > 0:
@@ -196,9 +311,7 @@ def _generate_message_init(f: File, members: Sequence[DescField | DescOneof]) ->
                 _member_init_default(member),
                 ",",
             )
-    with f.scope(") -> None:"):
-        f.print("pass")
-    f.print()
+    f.print(") -> None: ...")
 
 
 def _generate_message_members(
@@ -210,14 +323,23 @@ def _generate_message_members(
                 allow_none = True
             case _:
                 allow_none = False
-        f.print(
-            member.local_name,
-            ": ",
+        member_type = [
             _oneof_type(member)
             if isinstance(member, DescOneof)
             else _field_type(member),
             " | None" if allow_none else "",
-        )
+        ]
+        if isinstance(member, DescField) and member.deprecated:
+            _generate_deprecated_property(
+                f,
+                f"{member.parent.type_name}.{member.name}",
+                member.local_name,
+                "self",
+                member_type,
+                setter=True,
+            )
+        else:
+            f.print(member.local_name, ": ", member_type)
     if len(members) > 0:
         f.print()
 
@@ -235,10 +357,38 @@ def _generate_message_docstring(f: File, msg: DescMessage) -> None:
 
 
 def _generate_enum(f: File, enum: DescEnum) -> None:
-    with f.scope("class ", f.ident(enum._local_name), "(", _ENUM, "):"):
+    base: list[object] = [_ENUM]
+    deprecated_values = [value for value in enum.values if value.deprecated]
+    if deprecated_values:
+        # Type checkers report access to a deprecated metaclass property, which
+        # is the only way to mark an enum member as deprecated.
+        meta = f.ident(f"_{enum._local_name}Meta")
+        with f.type_checking(), f.scope("class ", meta, "(", _ENUM_META, "):"):
+            for value in deprecated_values:
+                _generate_deprecated_property(
+                    f,
+                    f"{enum.type_name}.{value.name}",
+                    value.local_name,
+                    "cls",
+                    enum,
+                    setter=False,
+                )
+        with f.scope("else:"):
+            f.print(meta, " = ", _ENUM, ".__class__")
+        f.print()
+        base = [_ENUM, ", metaclass=", meta]
+
+    _generate_deprecated(f, enum)
+    with f.scope("class ", f.ident(enum._local_name), "(", *base, "):"):
         _generate_enum_docstring(f, enum)
         for value in enum.values:
-            f.print(value.local_name, " = ", value.number)
+            if value.deprecated:
+                # Type checkers would resolve the member instead of the
+                # metaclass property.
+                with f.scope("if not ", _TYPE_CHECKING, ":"):
+                    f.print(value.local_name, " = ", value.number)
+            else:
+                f.print(value.local_name, " = ", value.number)
     f.print()
 
 
@@ -252,6 +402,35 @@ def _generate_enum_docstring(f: File, enum: DescEnum) -> None:
                     with f.scope(value.local_name, ":"):
                         _generate_docstring(f, value)
     f.print()
+
+
+def _generate_deprecated(f: File, desc: DescMessage | DescEnum) -> None:
+    if desc.deprecated:
+        f.print(_deprecated_decorator(desc.type_name))
+
+
+def _deprecated_decorator(name: str) -> list[object]:
+    # category=None only marks the element for type checkers, without emitting
+    # a DeprecationWarning at runtime.
+    return ["@", _DEPRECATED_ALIAS, '("', name, ' is deprecated.", category=None)']
+
+
+def _generate_deprecated_property(
+    f: File,
+    full_name: str,
+    name: str,
+    self_name: str,
+    value_type: object,
+    *,
+    setter: bool,
+) -> None:
+    f.print("@", _PROPERTY_ALIAS)
+    f.print(_deprecated_decorator(full_name))
+    f.print("def ", name, "(", self_name, ") -> ", value_type, ": ...")
+    if setter:
+        f.print("@", name, ".setter")
+        f.print(_deprecated_decorator(full_name))
+        f.print("def ", name, "(", self_name, ", value: ", value_type, ") -> None: ...")
 
 
 def _generate_extension(f: File, ext: DescExtension) -> None:

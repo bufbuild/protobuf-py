@@ -59,8 +59,7 @@ class Outer(Message[_OuterFields]):
             self,
             *,
             inner: Inner | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         inner: Inner | None
 

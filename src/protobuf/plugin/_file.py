@@ -154,11 +154,14 @@ class File(Protocol):
         """
         ...
 
-    def preamble(self, desc: DescFile) -> None:
+    def preamble(self, desc: DescFile, *, suppress_deprecated: bool = False) -> None:
         """Add a `DO NOT EDIT` preamble derived from `desc`.
 
         Args:
             desc: The file descriptor whose proto name is used in the preamble.
+            suppress_deprecated: Whether to add directives that stop type
+                checkers from reporting use of deprecated symbols. Set this
+                when the generated code references deprecated types.
         """
         ...
 
@@ -250,6 +253,7 @@ class _File:
         self._in_doc = False
         self._has_preamble = False
         self._preamble_proto_name: str | None = None
+        self._preamble_suppress_deprecated = False
         self._elements: list[str | Ident] = []
         self._runtime_imports: dict[Module, set[Ident]] = defaultdict(set)
         self._type_imports: dict[Module, set[Ident]] = defaultdict(set)
@@ -286,9 +290,10 @@ class _File:
         finally:
             self._type_checking = False
 
-    def preamble(self, desc: DescFile) -> None:
+    def preamble(self, desc: DescFile, *, suppress_deprecated: bool = False) -> None:
         self._has_preamble = True
         self._preamble_proto_name = desc.name
+        self._preamble_suppress_deprecated = suppress_deprecated
 
     @contextmanager
     def doc(self, *args: object) -> Generator[None, Any, None]:
@@ -456,6 +461,7 @@ def write(file: _File, path: str, *, no_fmt_off: bool = False) -> str:
                     file._plugin_version,
                     file._parameter,
                     no_fmt_off=no_fmt_off,
+                    suppress_deprecated=file._preamble_suppress_deprecated,
                 ),
                 "",
             ]
@@ -490,6 +496,7 @@ def _preamble(
     parameter: str,
     *,
     no_fmt_off: bool,
+    suppress_deprecated: bool,
 ) -> str:
     """Return the DO NOT EDIT file header for a generated proto file."""
     lines = [
@@ -498,6 +505,8 @@ def _preamble(
         "# ruff: noqa: PGH004",
         "# ruff: noqa",
     ]
+    if suppress_deprecated:
+        lines.extend(["# pyright: reportDeprecated=false", "# ty: ignore[deprecated]"])
     if not no_fmt_off:
         lines.append("# fmt: off")
     return "\n".join(lines)

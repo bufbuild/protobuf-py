@@ -54,8 +54,7 @@ class SourceContext(Message[_SourceContextFields]):
 
     if TYPE_CHECKING:
 
-        def __init__(self, *, file_name: str = "") -> None:
-            pass
+        def __init__(self, *, file_name: str = "") -> None: ...
 
         file_name: str
 

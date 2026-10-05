@@ -131,8 +131,7 @@ class Defaults(Message[_DefaultsFields]):
             string_field: str | None = None,
             bytes_field: bytes | None = None,
             enum_field: Color | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         double_field: float
         float_field: float

@@ -57,8 +57,7 @@ class Proto2Extendee(Message[_Proto2ExtendeeFields]):
             self,
             *,
             own_field: int | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         own_field: int
 
@@ -87,8 +86,7 @@ class Proto2ExtMessage(Message[_Proto2ExtMessageFields]):
             self,
             *,
             string_field: str | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         string_field: str
 
@@ -120,8 +118,7 @@ class GroupExt(Message[_GroupExtFields]):
             *,
             a: int | None = None,
             b: int | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         a: int
         b: int
@@ -154,8 +151,7 @@ class RepeatedGroupExt(Message[_RepeatedGroupExtFields]):
             *,
             a: int | None = None,
             b: int | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         a: int
         b: int
@@ -177,8 +173,7 @@ class Proto2ExtContainer(Message[_Proto2ExtContainerFields]):
 
         def __init__(
             self,
-        ) -> None:
-            pass
+        ) -> None: ...
 
     _ChildFields: TypeAlias = NoReturn
 
@@ -195,8 +190,7 @@ class Proto2ExtContainer(Message[_Proto2ExtContainerFields]):
 
             def __init__(
                 self,
-            ) -> None:
-                pass
+            ) -> None: ...
 
         ext_uint32_ext: Final[Extension[Proto2Extendee, int]] = Extension()
         """

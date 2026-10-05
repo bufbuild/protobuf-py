@@ -52,8 +52,7 @@ class ComplexMessage(Message[_ComplexMessageFields]):
             self,
             *,
             d: int | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         d: int
 
@@ -158,8 +157,7 @@ class TestAllTypesEditionUnstable(Message[_TestAllTypesEditionUnstableFields]):
             optional_bytes: bytes | None = None,
             repeated_bytes: list[bytes] | None = None,
             map_string_bytes: dict[str, bytes] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         optional_int32: int
         optional_foreign_message: ForeignMessageEditionUnstable | None
@@ -200,8 +198,7 @@ class ForeignMessageEditionUnstable(Message[_ForeignMessageEditionUnstableFields
             self,
             *,
             c: int | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         c: int
 

@@ -69,8 +69,7 @@ class TestStatus(Message[_TestStatusFields]):
             name: str = "",
             failure_message: str = "",
             matched_name: str = "",
-        ) -> None:
-            pass
+        ) -> None: ...
 
         name: str
         failure_message: str
@@ -103,8 +102,7 @@ class FailureSet(Message[_FailureSetFields]):
             self,
             *,
             test: list[TestStatus] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         test: list[TestStatus]
 
@@ -185,8 +183,7 @@ class ConformanceRequest(Message[_ConformanceRequestFields]):
             test_category: TestCategory | None = None,
             jspb_encoding_options: JspbEncodingConfig | None = None,
             print_unknown_fields: bool = False,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         payload: Oneof[Literal["protobuf_payload"], bytes] | Oneof[Literal["json_payload"], str] | Oneof[Literal["jspb_payload"], str] | Oneof[Literal["text_payload"], str] | None
         requested_output_format: WireFormat
@@ -220,8 +217,7 @@ class ConformanceResponse(Message[_ConformanceResponseFields]):
             self,
             *,
             result: Oneof[Literal["parse_error"], str] | Oneof[Literal["serialize_error"], str] | Oneof[Literal["timeout_error"], str] | Oneof[Literal["runtime_error"], str] | Oneof[Literal["protobuf_payload"], bytes] | Oneof[Literal["json_payload"], str] | Oneof[Literal["skipped"], str] | Oneof[Literal["jspb_payload"], str] | Oneof[Literal["text_payload"], str] | None = None,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         result: Oneof[Literal["parse_error"], str] | Oneof[Literal["serialize_error"], str] | Oneof[Literal["timeout_error"], str] | Oneof[Literal["runtime_error"], str] | Oneof[Literal["protobuf_payload"], bytes] | Oneof[Literal["json_payload"], str] | Oneof[Literal["skipped"], str] | Oneof[Literal["jspb_payload"], str] | Oneof[Literal["text_payload"], str] | None
 
@@ -252,8 +248,7 @@ class JspbEncodingConfig(Message[_JspbEncodingConfigFields]):
             self,
             *,
             use_jspb_array_any_format: bool = False,
-        ) -> None:
-            pass
+        ) -> None: ...
 
         use_jspb_array_any_format: bool
 
