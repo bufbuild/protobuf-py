@@ -3,7 +3,7 @@ name = "protobuf-py"
 version = "0.6.0"
 description = "Idiomatic Protocol Buffers for Python."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 keywords = ["protobuf"]
@@ -13,11 +13,11 @@ classifiers = [
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Programming Language :: Python :: Free Threading",
   "Topic :: File Formats",
   "Topic :: Software Development :: Libraries :: Python Modules",
@@ -394,7 +394,7 @@ skip-magic-trailing-comma = true
 docstring-code-format = true
 
 [tool.ruff.lint]
-typing-extensions = false
+typing-extensions = true
 select = ["ALL"]
 ignore = [
   # Rules recommended to ignore when using ruff formatting

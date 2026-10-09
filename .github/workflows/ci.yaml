@@ -23,7 +23,6 @@ jobs:
           - macos-15
           - windows-2025
         python-version:
-          - "3.10"
           - "3.11"
           - "3.12"
           - "3.13"
@@ -32,13 +31,9 @@ jobs:
           - "3.15"
           - "3.15t"
         native-ext: [true, false]
-        exclude:
-          # Currently many dependencies need wheel builds on 3.15 which is slow, so only run on push
-          - python-version: ${{ github.event_name == 'pull_request' && '3.15' }}
-          - python-version: ${{ github.event_name == 'pull_request' && '3.15t' }}
     env:
       # When bumping, also bump top-level env in release.yaml
-      MATURIN_ARGS: ${{ matrix.python-version == '3.11' && '--features pyo3/abi3-py311' || '' }}
+      MATURIN_ARGS: ${{ (matrix.python-version == '3.11' || matrix.python-version == '3.12') && '--features pyo3/abi3-py311' || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install uv with Python ${{ matrix.python-version }}
@@ -96,7 +91,7 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           version: "0.12.23"
-          python-version: "3.10"
+          python-version: "3.11"
       - run: uv sync --locked
       - run: uv run poe lint
       - run: uv run poe format

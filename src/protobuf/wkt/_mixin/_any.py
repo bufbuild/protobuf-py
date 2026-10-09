@@ -14,12 +14,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Self, TypeVar, cast, overload
 
 from protobuf import DescMessage, Message
 
 T = TypeVar("T", bound=Message)
-Self = TypeVar("Self", bound="AnyMixin")
 
 
 class AnyMixin:

@@ -16,126 +16,71 @@ permissions:
 env:
   # When bumping, also bump MATURIN_ARGS in ci.yaml
   # maturin flags to build targets we publish non-abi3 wheels for
-  UNSTABLE_API_FLAGS: -i 3.10 -i 3.12 -i 3.13 -i 3.14 -i 3.14t
+  UNSTABLE_API_FLAGS: -i 3.13 -i 3.14 -i 3.14t -i 3.15 -i 3.15t
   # maturin flags to build targets we publish abi3 wheels for
   ABI3_FLAGS: -i 3.11 --features pyo3/abi3-py311
+  ABI3T_FLAGS: -i 3.15t --features pyo3/abi3t-py315
 
 jobs:
-  ext-linux:
-    runs-on: ${{ matrix.platform.runner }}
+  ext:
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        platform:
+        include:
           - runner: ubuntu-24.04
             target: x86_64
+            manylinux: auto
+          - runner: ubuntu-24.04
+            target: x86_64
+            manylinux: musllinux_1_2
           - runner: ubuntu-24.04-arm
             target: aarch64
-        manylinux:
-          - auto
-          - musllinux_1_2
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: 3.x
-
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
-
-      - name: Build wheels
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
-        with:
-          target: ${{ matrix.platform.target }}
-          args: --release --out ../../dist ${{ env.UNSTABLE_API_FLAGS }}
-          sccache: true
-          manylinux: ${{ matrix.manylinux }}
-          working-directory: packages/protobuf-py-ext
-
-      - name: Build abi3 wheels
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
-        with:
-          target: ${{ matrix.platform.target }}
-          args: --release --out ../../dist ${{ env.ABI3_FLAGS }}
-          sccache: true
-          manylinux: ${{ matrix.manylinux }}
-          working-directory: packages/protobuf-py-ext
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: wheels-linux-${{ matrix.platform.target }}-${{ matrix.manylinux }}
-          path: dist
-
-  # We only publish abi3 wheels for Windows
-  ext-windows:
-    runs-on: ${{ matrix.platform.runner }}
-    strategy:
-      matrix:
-        platform:
+            manylinux: auto
+          - runner: ubuntu-24.04-arm
+            target: aarch64
+            manylinux: musllinux_1_2
           - runner: windows-2025
             target: x86_64
           - runner: windows-11-arm
             target: aarch64
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
-
-      - name: Build abi3 wheels
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
-        with:
-          args: --release --out ../../dist ${{ env.ABI3_FLAGS }} --features pyo3/generate-import-lib
-          sccache: true
-          working-directory: packages/protobuf-py-ext
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: wheels-windows-${{ matrix.platform.target }}
-          path: dist
-
-  ext-macos:
-    runs-on: ${{ matrix.platform.runner }}
-    strategy:
-      matrix:
-        platform:
           - runner: macos-15
             target: aarch64
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: |
-            3.10
-            3.11
-            3.12
-            3.13
-            3.14
-            3.14t
-
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
-
+      # We only publish abi3 wheels for Windows
       - name: Build wheels
+        if: runner.os != 'Windows'
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
-          target: ${{ matrix.platform.target }}
+          target: ${{ matrix.target }}
           args: --release --out ../../dist ${{ env.UNSTABLE_API_FLAGS }}
           sccache: true
+          manylinux: ${{ matrix.manylinux }}
           working-directory: packages/protobuf-py-ext
 
-      - name: Build abi3 wheels
+      - name: Build abi3 wheel
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
-          target: ${{ matrix.platform.target }}
+          target: ${{ matrix.target }}
           args: --release --out ../../dist ${{ env.ABI3_FLAGS }}
           sccache: true
+          manylinux: ${{ matrix.manylinux }}
+          working-directory: packages/protobuf-py-ext
+
+      - name: Build abi3t wheel
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out ../../dist ${{ env.ABI3T_FLAGS }}
+          sccache: true
+          manylinux: ${{ matrix.manylinux }}
           working-directory: packages/protobuf-py-ext
 
       - name: Upload wheels
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: wheels-macos-${{ matrix.platform.target }}
+          name: wheels-${{ matrix.runner }}-${{ matrix.target }}${{ matrix.manylinux && format('-{0}', matrix.manylinux) || '' }}
           path: dist
 
   ext-sdist:
@@ -160,9 +105,7 @@ jobs:
     runs-on: ubuntu-26.04
     environment: ${{ (github.event_name == 'workflow_dispatch' && 'pypi-test') || (github.event_name == 'push' && github.ref_type == 'tag' && 'pypi-release') || null }}
     needs:
-      - ext-linux
-      - ext-windows
-      - ext-macos
+      - ext
       - ext-sdist
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
