@@ -40,7 +40,7 @@ dev = [
   { include-group = "dev-required" },
   { include-group = "dev-subprojects" },
 ]
-docs = ["mkdocstrings-python==2.0.9", "zensical==0.0.67"]
+docs = ["mkdocstrings-python==2.0.9", "zensical==0.0.69"]
 
 # All dependencies required for CI, including running baseline tests.
 dev-required = [
@@ -52,7 +52,7 @@ dev-required = [
 
   "buf-bin==1.73.0",
   "googleapis-googleapis-bufbuild-py==0.6.0.1.20260414192239+c17df5b2beca",
-  "hypothesis==6.168.3",
+  "hypothesis==6.169.0",
   "license-header==0.0.1",
   "poethepoet==0.48.0",
   "protoc-runner==36.2",
@@ -60,15 +60,15 @@ dev-required = [
   "pytest==9.1.1",
   "pytest-benchmark==5.3.0",
   "pytest-cov==7.1.0",
-  "ruff==0.16.10",
-  "tombi==1.7.2",
-  "ty==0.0.84",
+  "ruff==0.17.0",
+  "tombi==1.8.2",
+  "ty==0.0.86",
 ]
 
 # Optional dependencies, used for development of optional features. We run tests without
 # these installed to ensure missing optional dependencies does not introduce breakage.
 dev-optional = [
-  "pydantic==2.13.5",
+  "pydantic==2.14.1",
 ]
 
 # Dev dependencies only used in subprojects. Optimal structure would include these
@@ -88,7 +88,7 @@ dev-subprojects = [
 ]
 
 [build-system]
-requires = ["uv_build>=0.12.1,<0.13"]
+requires = ["uv_build>=0.13,<0.14"]
 build-backend = "uv_build"
 
 ## License headers
