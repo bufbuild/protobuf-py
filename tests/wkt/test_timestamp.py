@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import time
 from datetime import timezone
 
@@ -81,17 +81,15 @@ def test_timestamp_to_from_nanos() -> None:
 @pytest.mark.parametrize(
     ("timestamp", "expected"),
     [
-        (Timestamp(), datetime.datetime(1970, 1, 1, tzinfo=timezone.utc)),
+        (Timestamp(), dt.datetime(1970, 1, 1, tzinfo=timezone.utc)),
         (
             Timestamp(seconds=818035920, nanos=123456789),
-            datetime.datetime(1970, 1, 1, tzinfo=timezone.utc)
-            + datetime.timedelta(seconds=818035920, microseconds=123457),
+            dt.datetime(1970, 1, 1, tzinfo=timezone.utc)
+            + dt.timedelta(seconds=818035920, microseconds=123457),
         ),
     ],
 )
-def test_timestamp_to_datetime(
-    timestamp: Timestamp, expected: datetime.datetime
-) -> None:
+def test_timestamp_to_datetime(timestamp: Timestamp, expected: dt.datetime) -> None:
     assert timestamp.to_datetime() == expected
 
 

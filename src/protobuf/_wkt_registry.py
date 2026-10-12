@@ -141,10 +141,7 @@ class WktTimestamp:
 @dataclass(frozen=True, slots=True)
 class WktDuration:
     def to_json_value(self, msg: Message, _opts: ToJsonOptions) -> JsonValue:
-        from .wkt._mixin._const import (  # noqa: PLC0415
-            DURATION_SECONDS_MAX,
-            NANOS_PER_SECOND_MAX,
-        )
+        from .wkt._mixin._const import DURATION_SECONDS_MAX, NANOS_PER_SECOND_MAX  # noqa: PLC0415
 
         value = cast("Duration", msg)
         if not (-DURATION_SECONDS_MAX <= value.seconds <= DURATION_SECONDS_MAX):

@@ -32,7 +32,7 @@ def file_desc(
     stubs: Mapping[str, type[Message | Enum] | Extension],
 ) -> DescFile:
     """Create a DescFile from a serialized FileDescriptorProto."""
-    from protobuf.wkt.google.protobuf.descriptor_pb import FileDescriptorProto  # noqa: PLC0415, I001
+    from protobuf.wkt.google.protobuf.descriptor_pb import FileDescriptorProto  # noqa: PLC0415
 
     proto = FileDescriptorProto.from_binary(proto_bytes)
     reg = create_file_registry(
