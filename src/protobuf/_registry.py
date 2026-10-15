@@ -207,7 +207,7 @@ class Registry:
             The descriptor for the extension, or `None` if not found.
         """
         msg_type_name = _resolve_type_name(type_info)
-        return self._extendees[msg_type_name].get(number)
+        return self._extendees.get(msg_type_name, {}).get(number)
 
     def _get_type(self, type_name: str, typ: type[_T]) -> _T | None:
         msg = self._types.get(type_name)
