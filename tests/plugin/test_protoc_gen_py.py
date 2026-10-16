@@ -18,10 +18,10 @@ from typing import TYPE_CHECKING
 
 from protoc_gen_py import _generate, _Options
 
-from tests.conftest import Plugin
+from tests._protoc import Plugin
 
 if TYPE_CHECKING:
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 # We test protoc-gen-py within the protobuf plugin's unit test to reuse test harnesses.

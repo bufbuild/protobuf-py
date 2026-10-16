@@ -12,6 +12,11 @@ our [Code of Conduct][code-of-conduct] before participating.
 
 ## How Can I Contribute?
 
+To work with the repository, you will need the following installed:
+
+- [uv](https://docs.astral.sh/uv/)
+- [Rust](https://rust-lang.org/tools/install/)
+
 First, clone the repository:
 
 ```
@@ -19,7 +24,7 @@ git clone git@github.com:bufbuild/protobuf-py.git
 cd protobuf-py
 ```
 
-Next, install the project manager [uv](https://docs.astral.sh/uv/), and install the project dependencies:
+Next, install the project dependencies:
 
 ```
 uv sync
@@ -33,6 +38,18 @@ uv run poe all
 ```
 
 For a list of other useful tasks, run `uv run poe`.
+
+### Marshaler Implementations
+
+protobuf-py consists of two marshaler implementations, one in pure Python under
+[src](../src) and a Rust native extension under [protobuf-py-ext](../packages/protobuf-py-ext).
+When making changes to marshaling, you will need to update both implementations together.
+Tests automatically run against both implementations - you can select one or the other with
+a pytest parameter query for `python` or `native`.
+
+```
+uv run pytest -k native
+```
 
 ### Reporting Bugs
 

@@ -21,7 +21,7 @@ import pytest
 from protobuf.plugin import Ident, Module
 
 if TYPE_CHECKING:
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 def test_ident() -> None:

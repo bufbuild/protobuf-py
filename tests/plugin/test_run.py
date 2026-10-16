@@ -21,11 +21,11 @@ import pytest
 
 from protobuf.plugin._run import run
 from protobuf.wkt.google.protobuf.compiler.plugin_pb import CodeGeneratorResponse
-from tests.conftest import Plugin
+from tests._protoc import Plugin
 
 if TYPE_CHECKING:
     from protobuf.plugin._schema import Schema
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 def test_version() -> None:

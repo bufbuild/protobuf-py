@@ -37,3 +37,14 @@ build-backend = "maturin"
 [tool.maturin]
 features = ["pyo3/extension-module"]
 module-name = "protobuf_ext._protobuf_ext"
+
+[tool.uv]
+cache-keys = [
+  { file = "pyproject.toml" },
+  { file = "Cargo.toml" },
+  { file = "Cargo.lock" },
+  { file = "build.rs" },
+  { file = "src/**/*" },
+  { file = "protobuf_ext/**/*.py" },
+  { file = "protobuf_ext/**/*.pyi" },
+]

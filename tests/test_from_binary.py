@@ -40,7 +40,7 @@ from .gen.scalars_pb import Scalars
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from .conftest import Protoc
+    from ._protoc import Protoc
 
 
 MSG_BYTES = Scalars(int32_field=1).to_binary()

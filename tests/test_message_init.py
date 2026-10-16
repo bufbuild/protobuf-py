@@ -25,7 +25,7 @@ from protobuf import DescFieldValueEnum, Oneof
 from tests.gen.messages_pb import MixedFieldsWithRequired
 
 if typing.TYPE_CHECKING:
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 def test_message_init() -> None:

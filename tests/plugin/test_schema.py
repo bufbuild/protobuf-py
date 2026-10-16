@@ -16,11 +16,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from protobuf._bootstrap import _EDITION_PROTO2, _EDITION_PROTO3
-from tests.conftest import Plugin
+from tests._protoc import Plugin
 
 if TYPE_CHECKING:
     from protobuf.plugin._schema import Schema
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 _PROTO3_FILES = {
     "input.proto": """

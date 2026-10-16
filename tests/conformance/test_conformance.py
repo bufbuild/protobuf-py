@@ -44,8 +44,13 @@ def test_conformance() -> None:
     # Workaround pydevd monkeypatching of -m invocation not being compatible
     # with Python 3.14 yet by executing a script that uses runpy itself.
     # pydevd does monkeypatch -c form correctly.
+    # The child inherits PROTOBUF_PY_TEST_IMPLEMENTATION from the xdist worker
+    # but must hide the extension itself, before importing protobuf.
     script = dedent(
         """
+        from tests._implementation import check_implementation, hide_native_extension
+        hide_native_extension()
+        check_implementation()
         import runpy
         runpy.run_module(
             'tests.conformance.conformance',

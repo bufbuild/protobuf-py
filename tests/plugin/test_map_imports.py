@@ -24,7 +24,7 @@ from protobuf.plugin._map_imports import compile_map_imports, map_import_target
 
 if TYPE_CHECKING:
     from protobuf import DescFile
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 class TestMapImportTarget:

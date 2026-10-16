@@ -21,5 +21,9 @@ dev = [
 requires = ["uv_build>=0.13,<0.14"]
 build-backend = "uv_build"
 
+# Own config so the root addopts (xdist workers per marshaler implementation) do not apply.
+[tool.pytest]
+filterwarnings = ["error"]
+
 [tool.uv.build-backend]
 module-name = ["protoc_gen_rpc"]

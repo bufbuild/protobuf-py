@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 from protobuf.plugin import get_comments, get_package_comments, get_syntax_comments
 
 if TYPE_CHECKING:
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 def test_get_syntax_comments(protoc: Protoc) -> None:

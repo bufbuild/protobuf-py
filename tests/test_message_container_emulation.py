@@ -26,7 +26,7 @@ from protobuf import Oneof
 from tests.gen.messages_pb import MixedFieldsWithRequired
 
 if typing.TYPE_CHECKING:
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 desc_explicit_field = MixedFieldsWithRequired.desc()._fields_by_local_name[

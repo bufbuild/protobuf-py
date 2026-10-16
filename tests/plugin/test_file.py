@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from protobuf import DescFile
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 @pytest.mark.parametrize(

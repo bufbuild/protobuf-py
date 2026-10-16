@@ -24,6 +24,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  "protobuf-py-ext==0.7.0; (platform_machine == 'arm64' and platform_python_implementation == 'CPython' and sys_platform == 'darwin') or (platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (platform_machine == 'x86_64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (platform_machine == 'AMD64' and platform_python_implementation == 'CPython' and sys_platform == 'win32') or (platform_machine == 'ARM64' and platform_python_implementation == 'CPython' and sys_platform == 'win32')",
   "typing_extensions>=4.13.0",
 ]
 
@@ -60,6 +61,7 @@ dev-required = [
   "pytest==9.1.1",
   "pytest-benchmark==5.3.0",
   "pytest-cov==7.1.0",
+  "pytest-xdist==3.8.0",
   "ruff==0.17.0",
   "tombi==1.8.1",
   "ty==0.0.86",
@@ -118,6 +120,7 @@ sequence = [
   { cmd = "uv version --package protobuf-py-ext --bump=${_version}" },
   { cmd = "uv version --package protoc-gen-py --bump=${_version}" },
   { shell = "uv add --raw protobuf-py==$(uv version --short) --package protoc-gen-py" },
+  { shell = "uv add --raw \"protobuf-py-ext==$(uv version --short); platform_python_implementation == 'CPython' and ((platform_system == 'Linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64')) or (platform_system == 'Darwin' and platform_machine == 'arm64') or (platform_system == 'Windows' and (platform_machine == 'AMD64' or platform_machine == 'ARM64')))\"" },
   # Regenerate all code since the version number is embedded
   "bootstrap",
   "generate",
@@ -202,7 +205,7 @@ cmd = "uv run pytest"
 ## Format
 [tool.poe.tasks.format]
 help = "Format source code, sort imports, add license headers (does not format protos, see format-test-protos)"
-sequence = ["format-license-header", "format-python", "format-toml"]
+sequence = ["format-license-header", "format-python", "format-ext", "format-toml"]
 
 [tool.poe.tasks.format-python]
 help = "Format Python files with ruff"
@@ -230,6 +233,7 @@ sequence = [
   "lint-ruff-check",
   "lint-types",
   "lint-ruff-format",
+  "lint-ext",
   "lint-toml-format",
   "lint-toml-lint",
   "lint-license-header",
@@ -315,12 +319,7 @@ sequence = [
 cwd = "packages/bench"
 
 ## Native extension
-[tool.poe.tasks.ext-build]
-help = "Build native extension (requires Rust)"
-cmd = "uv run maturin build --release --out ../../dist ${MATURIN_ARGS}"
-cwd = "packages/protobuf-py-ext"
-
-[tool.poe.tasks.ext-format]
+[tool.poe.tasks.format-ext]
 help = "Format native extension code (requires Rust)"
 sequence = [
   { cmd = "cargo clippy --fix --allow-dirty" },
@@ -328,7 +327,7 @@ sequence = [
 ]
 cwd = "packages/protobuf-py-ext"
 
-[tool.poe.tasks.ext-lint]
+[tool.poe.tasks.lint-ext]
 help = "Lint native extension code (requires Rust)"
 sequence = [
   { cmd = "cargo clippy" },
@@ -378,6 +377,11 @@ addopts = [
   "--benchmark-disable",
   "--benchmark-group-by=func,param:_id",
   "--doctest-modules",
+  # One xdist worker per marshaler implementation, routed by the scheduler in
+  # tests/conftest.py.
+  "--dist=load",
+  "--tx=popen//env:PROTOBUF_PY_TEST_IMPLEMENTATION=native",
+  "--tx=popen//env:PROTOBUF_PY_TEST_IMPLEMENTATION=python",
 ]
 # Turn all warnings into errors
 filterwarnings = ["error"]
@@ -471,12 +475,6 @@ exclude = [
   "packages/upstream-protobuf",
 ]
 
-# Workaround uv caching the package without building it first.
-# https://github.com/astral-sh/uv/issues/11390
-[tool.uv]
-reinstall-package = ["protobuf-py-ext"]
-no-build-isolation-package = ["protobuf-py-ext"]
-
 [[tool.uv.index]]
 name = "buf"
 url = "https://buf.build/gen/python"
@@ -491,8 +489,8 @@ protoc-gen-py = { workspace = true }
 upstream-protobuf = { workspace = true }
 example = { workspace = true }
 example-plugin = { workspace = true }
-protobuf-py-ext = { workspace = true }
 protobuf-py-bench = { workspace = true }
+protobuf-py-ext = { workspace = true }
 
 googleapis-googleapis-bufbuild-py = { index = "buf" }
 

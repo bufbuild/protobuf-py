@@ -21,7 +21,7 @@ from protobuf._descriptors import DescFile
 from protobuf._registry import Registry
 
 if TYPE_CHECKING:
-    from .conftest import Protoc
+    from ._protoc import Protoc
 
 
 def test_empty_registry() -> None:

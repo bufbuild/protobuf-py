@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 env:
-  # When bumping, also bump MATURIN_ARGS in ci.yaml
+  # When bumping, also bump MATURIN_PEP517_ARGS in ci.yaml
   # maturin flags to build targets we publish non-abi3 wheels for
   UNSTABLE_API_FLAGS: -i 3.13 -i 3.14 -i 3.14t -i 3.15 -i 3.15t
   # maturin flags to build targets we publish abi3 wheels for
@@ -118,11 +118,6 @@ jobs:
           merge-multiple: true
 
       - run: uv sync --frozen
-
-      # We add the dependency before publishing to match the wheels we publish above while not requiring
-      # the native extension for all protobuf-py users / developers.
-      - name: add dependency on protobuf-py-ext
-        run: uv add "protobuf-py-ext==$(uv version --short); platform_python_implementation == 'CPython' and ((platform_system == 'Linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64')) or (platform_system == 'Darwin' and platform_machine == 'arm64') or (platform_system == 'Windows' and (platform_machine == 'AMD64' or platform_machine == 'ARM64')))"
 
       - name: build protobuf-py
         run: uv build
