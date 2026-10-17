@@ -33,6 +33,8 @@ def test_empty_registry() -> None:
     assert reg.service("foo") is None
     assert reg.extension_for("foo", 1) is None
     assert reg.extensions_for("foo") == []
+    # Lookups of unknown extendees leave the registry unchanged.
+    assert not reg._extendees
 
 
 @pytest.fixture

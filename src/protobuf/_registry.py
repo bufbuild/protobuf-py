@@ -13,7 +13,6 @@
 # limitations under the License.
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import TYPE_CHECKING, TypeVar, final
 
 from typing_extensions import assert_never
@@ -53,7 +52,7 @@ class Registry:
         """
         self._files = dict[str, DescFile]()
         self._types = dict[str, _Types]()
-        self._extendees: dict[str, dict[int, DescExtension]] = defaultdict(dict)
+        self._extendees: dict[str, dict[int, DescExtension]] = {}
         self.add(*args)
 
     def add(
@@ -103,7 +102,7 @@ class Registry:
                         self.add(desc)
                 case DescExtension():
                     self._types[desc_or_reg.type_name] = desc_or_reg
-                    self._extendees[desc_or_reg.extendee.type_name][
+                    self._extendees.setdefault(desc_or_reg.extendee.type_name, {})[
                         desc_or_reg.number
                     ] = desc_or_reg
                 case DescFile():
@@ -207,7 +206,7 @@ class Registry:
             The descriptor for the extension, or `None` if not found.
         """
         msg_type_name = _resolve_type_name(type_info)
-        return self._extendees[msg_type_name].get(number)
+        return self._extendees.get(msg_type_name, {}).get(number)
 
     def _get_type(self, type_name: str, typ: type[_T]) -> _T | None:
         msg = self._types.get(type_name)
@@ -216,8 +215,8 @@ class Registry:
     def _extend(self, other: Registry) -> None:
         self._files |= other._files
         self._types |= other._types
-        for key in other._extendees:
-            self._extendees[key] |= other._extendees[key]
+        for key, value in other._extendees.items():
+            self._extendees.setdefault(key, {}).update(value)
 
     def __iter__(
         self,
