@@ -215,9 +215,8 @@ class Registry:
     def _extend(self, other: Registry) -> None:
         self._files |= other._files
         self._types |= other._types
-        for key in other._extendees:
-            extendees = self._extendees.get(key, {})
-            self._extendees[key] = extendees | other._extendees[key]
+        for key, value in other._extendees.items():
+            self._extendees.setdefault(key, {}).update(value)
 
     def __iter__(
         self,
