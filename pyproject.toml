@@ -63,7 +63,7 @@ dev-required = [
   "pytest-cov==7.1.0",
   "pytest-xdist==3.8.0",
   "ruff==0.17.1",
-  "tombi==1.8.7",
+  "tombi==1.8.8",
   "ty==0.0.89",
 ]
 
