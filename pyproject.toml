@@ -41,7 +41,7 @@ dev = [
   { include-group = "dev-required" },
   { include-group = "dev-subprojects" },
 ]
-docs = ["mkdocstrings-python==2.0.9", "zensical==0.0.69"]
+docs = ["mkdocstrings-python==2.0.9", "zensical==0.0.71"]
 
 # All dependencies required for CI, including running baseline tests.
 dev-required = [
@@ -51,20 +51,20 @@ dev-required = [
   "protoc-gen-py",
   "upstream-protobuf",
 
-  "buf-bin==1.73.0",
-  "googleapis-googleapis-bufbuild-py==0.6.0.1.20260414192239+c17df5b2beca",
-  "hypothesis==6.169.0",
+  "buf-bin==1.74.0",
+  "googleapis-googleapis-bufbuild-py==0.6.0.1.20261015202054+8ac61b9e5023",
+  "hypothesis==6.170.1",
   "license-header==0.0.1",
-  "poethepoet==0.48.0",
+  "poethepoet==0.49.0",
   "protoc-runner==36.2",
   "pyright==1.1.414",
   "pytest==9.1.1",
   "pytest-benchmark==5.3.0",
   "pytest-cov==7.1.0",
   "pytest-xdist==3.8.0",
-  "ruff==0.17.0",
-  "tombi==1.8.1",
-  "ty==0.0.86",
+  "ruff==0.17.1",
+  "tombi==1.8.7",
+  "ty==0.0.89",
 ]
 
 # Optional dependencies, used for development of optional features. We run tests without
