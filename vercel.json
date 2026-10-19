@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "installCommand": "uv sync --group docs",
-  "buildCommand": "uv run --group docs zensical build --clean",
+  "installCommand": "uv sync --group docs --no-install-package protobuf-py-ext",
+  "buildCommand": "uv run --no-sync --group docs zensical build --clean",
   "outputDirectory": "site",
   "headers": [
     {
