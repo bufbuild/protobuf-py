@@ -47,9 +47,10 @@ jobs:
 
       # Ensure tests pass without optional dependencies. Issues would come from eager imports, so we go ahead
       # and run the single conformance test only to keep this step lightweight and give high coverage.
+      # This also tests the protobuf-py-pure package by itself.
       - run: |
           uv sync --no-dev
-          uv run --no-dev --group dev-required pytest -k test_conformance
+          uv run --no-dev --group dev-required pytest tests/conformance
 
   test-pypy:
     name: ${{ matrix.os }} / ${{ matrix.python-version }}

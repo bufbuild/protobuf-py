@@ -35,8 +35,10 @@ to set, `field in msg` to check presence, and `del msg[field]` to clear. This re
 protobuf-py is the idiomatic Python library for Protobuf. It should never cause pain points to Python developers.
 Notably, users should never require Rust or a long build step to use the library.
 But users on common platforms, especially Linux, MacOS, and Windows, should have a high performance Protobuf library
-without headaches. We accomplish the above by publishing the extension as a separate package, `protobuf-py-ext`, and
-only including it as a conditional dependency on platforms we publish wheels for.
+without headaches. We accomplish the above by publishing the pure Python runtime as `protobuf-py-pure` and the extension
+as a separate package, `protobuf-py-ext`. `protobuf-py` itself contains no code: it depends on `protobuf-py-pure` and
+conditionally on `protobuf-py-ext` on platforms we publish wheels for. Users that need pure Python everywhere depend on
+`protobuf-py-pure` directly.
 
 ## Modules
 

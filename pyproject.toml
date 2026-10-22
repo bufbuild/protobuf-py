@@ -1,8 +1,8 @@
 [project]
-name = "protobuf-py"
+name = "protobuf-py-pure"
 version = "0.7.0"
-description = "Idiomatic Protocol Buffers for Python."
-readme = "README.md"
+description = "Pure Python implementation of protobuf-py, idiomatic Protocol Buffers for Python."
+readme = "README.pure.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
@@ -24,7 +24,6 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "protobuf-py-ext==0.7.0; (platform_machine == 'arm64' and platform_python_implementation == 'CPython' and sys_platform == 'darwin') or (platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (platform_machine == 'x86_64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (platform_machine == 'AMD64' and platform_python_implementation == 'CPython' and sys_platform == 'win32') or (platform_machine == 'ARM64' and platform_python_implementation == 'CPython' and sys_platform == 'win32')",
   "typing_extensions>=4.13.0",
 ]
 
@@ -45,14 +44,9 @@ docs = ["mkdocstrings-python==2.0.9", "zensical==0.0.71"]
 
 # All dependencies required for CI, including running baseline tests.
 dev-required = [
-  # Prevent local packages from being uninstalled when syncing
-  "example",
-  "example-plugin",
-  "protoc-gen-py",
   "upstream-protobuf",
 
   "buf-bin==1.74.0",
-  "googleapis-googleapis-bufbuild-py==0.6.0.1.20261015202054+8ac61b9e5023",
   "hypothesis==6.170.1",
   "license-header==0.0.1",
   "poethepoet==0.49.0",
@@ -70,6 +64,14 @@ dev-required = [
 # Optional dependencies, used for development of optional features. We run tests without
 # these installed to ensure missing optional dependencies does not introduce breakage.
 dev-optional = [
+  # Prevent local packages from being uninstalled when syncing
+  "example",
+  "example-plugin",
+  "protobuf-py",
+  "protoc-gen-py",
+
+  "googleapis-googleapis-bufbuild-py==0.6.0.1.20261015202054+8ac61b9e5023",
+
   "pydantic==2.14.1",
 ]
 
@@ -117,10 +119,12 @@ sequence = [
 help = "Bump the project version"
 sequence = [
   { cmd = "uv version --bump=${_version}" },
+  { cmd = "uv version --package protobuf-py --bump=${_version}" },
   { cmd = "uv version --package protobuf-py-ext --bump=${_version}" },
   { cmd = "uv version --package protoc-gen-py --bump=${_version}" },
   { shell = "uv add --raw protobuf-py==$(uv version --short) --package protoc-gen-py" },
-  { shell = "uv add --raw \"protobuf-py-ext==$(uv version --short); platform_python_implementation == 'CPython' and ((platform_system == 'Linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64')) or (platform_system == 'Darwin' and platform_machine == 'arm64') or (platform_system == 'Windows' and (platform_machine == 'AMD64' or platform_machine == 'ARM64')))\"" },
+  { shell = "uv add --raw protobuf-py-pure==$(uv version --short) --package protobuf-py" },
+  { shell = "uv add --raw \"protobuf-py-ext==$(uv version --short); platform_python_implementation == 'CPython' and ((platform_system == 'Linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64')) or (platform_system == 'Darwin' and platform_machine == 'arm64') or (platform_system == 'Windows' and (platform_machine == 'AMD64' or platform_machine == 'ARM64')))\" --package protobuf-py" },
   # Regenerate all code since the version number is embedded
   "bootstrap",
   "generate",
@@ -485,6 +489,7 @@ module-name = ["protobuf"]
 
 [tool.uv.sources]
 protobuf-py = { workspace = true }
+protobuf-py-pure = { workspace = true }
 protoc-gen-py = { workspace = true }
 upstream-protobuf = { workspace = true }
 example = { workspace = true }
@@ -496,6 +501,7 @@ googleapis-googleapis-bufbuild-py = { index = "buf" }
 
 [tool.uv.workspace]
 members = [
+  "packages/protobuf-py",
   "packages/protobuf-py-ext",
   "packages/protoc-gen-py",
   "packages/bench",

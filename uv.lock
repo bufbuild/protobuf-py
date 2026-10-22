@@ -9,6 +9,7 @@ members = [
     "protobuf-py",
     "protobuf-py-bench",
     "protobuf-py-ext",
+    "protobuf-py-pure",
     "protoc-gen-py",
     "upstream-protobuf",
 ]
@@ -201,7 +202,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "protobuf-py", editable = "." }]
+requires-dist = [{ name = "protobuf-py", editable = "packages/protobuf-py" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -226,7 +227,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "protobuf-py", editable = "." }]
+requires-dist = [{ name = "protobuf-py", editable = "packages/protobuf-py" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -281,11 +282,11 @@ wheels = [
 
 [[package]]
 name = "griffelib"
-version = "2.3.2"
+version = "2.4.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2b/27/b55f1a5278918be765fb2fd8b20966bc72bbdd3f789f031937cceea7834a/griffelib-2.3.2.tar.gz", hash = "sha256:df00c7a0dee3d86268d76788997a1859272cb1fb7b865658e043d2c0c3d52e60", size = 234729, upload-time = "2026-10-06T09:54:37.222Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2e/5f/6d93df326cbf8f9f7276be77f83c81a9c061f479abdd81f9bbec197d4b29/griffelib-2.4.0.tar.gz", hash = "sha256:a277a462c56ff4479efe5cbcb4f882dc9a63cfa5ab6404a3e60957c6c8d2f7c9", size = 244488, upload-time = "2026-10-19T16:26:53.583Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/04/e5/0ae74c83c1cab2c14daadf28bd0143eb14bb81503834af987b66badc7b61/griffelib-2.3.2-py3-none-any.whl", hash = "sha256:8e710afededd5607f95bf3c8ccc175ee306e7084459faf27b9f9f44ef2a7a274", size = 169420, upload-time = "2026-10-06T09:54:32.038Z" },
+    { url = "https://files.pythonhosted.org/packages/7e/28/bb989a55ac56dabf30765d2e7ea0710c032d9b67d8a7599f91fdcb2e00b1/griffelib-2.4.0-py3-none-any.whl", hash = "sha256:0a7db47b0bdf5123a6ceca2f71aa996742a4f04d9048046778f4a9006772d27f", size = 172791, upload-time = "2026-10-19T16:26:49.511Z" },
 ]
 
 [[package]]
@@ -411,11 +412,11 @@ wheels = [
 
 [[package]]
 name = "markdown"
-version = "3.11.1"
+version = "3.11.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4e/d4/f3f4b6ed70b7c7608fa026ff3bbe59ace9b1ebca43d8ae4886c87c95e81d/markdown-3.11.1.tar.gz", hash = "sha256:496f4f80f9ebd3395a04c8ec9595c40bbe8ec19e9c67d21fe071a1643e876606", size = 492927, upload-time = "2026-10-13T19:29:13.343Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/32/0b4d0297064244f04af4331b65de16237cc3cce07474171ee14222a28981/markdown-3.11.2.tar.gz", hash = "sha256:87bf5d90f2d2882e2c02fcda182c2800456b985bff38913867c49706481514b0", size = 491445, upload-time = "2026-10-19T19:41:42.687Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/75/e6/1c7b7a48aa3f2c2a5d3c71a6c9c90a6c8c2903e5c73663b5f5e38f87257f/markdown-3.11.1-py3-none-any.whl", hash = "sha256:f1fa378ba5d682900c9ecb55ccceacca936016dda7c3b27097e8ae03ff78feb5", size = 116774, upload-time = "2026-10-13T19:29:12.066Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/66/bcab3b677b71ad286b4e607e3427499537c76e13ad2e22584ba7a7d9882c/markdown-3.11.2-py3-none-any.whl", hash = "sha256:f80390747a2a0ff2ba54da074ce4f862f72a6685f608cd2637b646a6d83993f5", size = 114266, upload-time = "2026-10-19T19:41:41.244Z" },
 ]
 
 [[package]]
@@ -630,7 +631,7 @@ wheels = [
 
 [[package]]
 name = "mkdocstrings"
-version = "1.0.7"
+version = "1.0.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jinja2" },
@@ -640,9 +641,9 @@ dependencies = [
     { name = "mkdocs-autorefs" },
     { name = "pymdown-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f5/e8/445b19834bf9559ebbbaa76897e965665b83d2861461eed8d8de4d122057/mkdocstrings-1.0.7.tar.gz", hash = "sha256:0951b147f352118a45a3db85f0f3b660833d34cb5120a2751315b8d08dafd159", size = 103739, upload-time = "2026-10-10T13:50:59.957Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/27/cc/e3ed8b16851f5d664dffcf8f55fc60d0d3f736a3edca21d1508105d1255a/mkdocstrings-1.0.8.tar.gz", hash = "sha256:b50fc326230906425c82ee9ec59b80e5db00892b2b593d4d0b841a0d4acf537b", size = 107444, upload-time = "2026-10-19T15:43:02.157Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/22/c3/9062531735ff1fd27f3a79c353c4cf4d822eeffd062fd90b2c553a96f4bb/mkdocstrings-1.0.7-py3-none-any.whl", hash = "sha256:9563828667eeb35256f87a6b61fe857676ac628ec1abbce9aea9839a502c9cb1", size = 41597, upload-time = "2026-10-10T13:50:58.43Z" },
+    { url = "https://files.pythonhosted.org/packages/19/5e/4df7a2290e97c60a3ba410084966e5ab84aa89d15c8c98c195acbaefa8f4/mkdocstrings-1.0.8-py3-none-any.whl", hash = "sha256:4b03ed2b863009f1153f0d04aacb22a85b92afc28a0636d85717c92eecca638c", size = 42209, upload-time = "2026-10-19T15:43:00.65Z" },
 ]
 
 [[package]]
@@ -734,142 +735,16 @@ wheels = [
 [[package]]
 name = "protobuf-py"
 version = "0.7.0"
-source = { editable = "." }
+source = { editable = "packages/protobuf-py" }
 dependencies = [
     { name = "protobuf-py-ext", marker = "(platform_machine == 'arm64' and platform_python_implementation == 'CPython' and sys_platform == 'darwin') or (platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (platform_machine == 'x86_64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (platform_machine == 'AMD64' and platform_python_implementation == 'CPython' and sys_platform == 'win32') or (platform_machine == 'ARM64' and platform_python_implementation == 'CPython' and sys_platform == 'win32')" },
-    { name = "typing-extensions" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "buf-bin" },
-    { name = "example" },
-    { name = "example-plugin" },
-    { name = "fix-protobuf-imports" },
-    { name = "googleapis-googleapis-bufbuild-py" },
-    { name = "hypothesis" },
-    { name = "license-header" },
-    { name = "maturin" },
-    { name = "poethepoet" },
-    { name = "protobuf" },
-    { name = "protobuf-py-bench" },
-    { name = "protoc-gen-py" },
-    { name = "protoc-runner" },
-    { name = "pydantic" },
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-benchmark" },
-    { name = "pytest-cov" },
-    { name = "pytest-xdist" },
-    { name = "pyyaml" },
-    { name = "ruff" },
-    { name = "tombi" },
-    { name = "ty" },
-    { name = "upstream-protobuf" },
-]
-dev-optional = [
-    { name = "pydantic" },
-]
-dev-required = [
-    { name = "buf-bin" },
-    { name = "example" },
-    { name = "example-plugin" },
-    { name = "googleapis-googleapis-bufbuild-py" },
-    { name = "hypothesis" },
-    { name = "license-header" },
-    { name = "poethepoet" },
-    { name = "protoc-gen-py" },
-    { name = "protoc-runner" },
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "pytest-benchmark" },
-    { name = "pytest-cov" },
-    { name = "pytest-xdist" },
-    { name = "ruff" },
-    { name = "tombi" },
-    { name = "ty" },
-    { name = "upstream-protobuf" },
-]
-dev-subprojects = [
-    { name = "fix-protobuf-imports" },
-    { name = "maturin" },
-    { name = "protobuf" },
-    { name = "protobuf-py-bench" },
-    { name = "pytest-asyncio" },
-    { name = "pyyaml" },
-]
-docs = [
-    { name = "mkdocstrings-python" },
-    { name = "zensical" },
+    { name = "protobuf-py-pure" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "protobuf-py-ext", marker = "(platform_machine == 'arm64' and platform_python_implementation == 'CPython' and sys_platform == 'darwin') or (platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (platform_machine == 'x86_64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (platform_machine == 'AMD64' and platform_python_implementation == 'CPython' and sys_platform == 'win32') or (platform_machine == 'ARM64' and platform_python_implementation == 'CPython' and sys_platform == 'win32')", editable = "packages/protobuf-py-ext" },
-    { name = "typing-extensions", specifier = ">=4.13.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "buf-bin", specifier = "==1.74.0" },
-    { name = "example", editable = "examples/protobuf" },
-    { name = "example-plugin", editable = "examples/plugin" },
-    { name = "fix-protobuf-imports", specifier = "==0.1.7" },
-    { name = "googleapis-googleapis-bufbuild-py", specifier = "==0.6.0.1.20261015202054+8ac61b9e5023", index = "https://buf.build/gen/python" },
-    { name = "hypothesis", specifier = "==6.170.1" },
-    { name = "license-header", specifier = "==0.0.1" },
-    { name = "maturin", specifier = "==1.15.0" },
-    { name = "poethepoet", specifier = "==0.49.0" },
-    { name = "protobuf", specifier = "==7.36.2" },
-    { name = "protobuf-py-bench", editable = "packages/bench" },
-    { name = "protoc-gen-py", editable = "packages/protoc-gen-py" },
-    { name = "protoc-runner", specifier = "==36.2" },
-    { name = "pydantic", specifier = "==2.14.1" },
-    { name = "pyright", specifier = "==1.1.414" },
-    { name = "pytest", specifier = "==9.1.1" },
-    { name = "pytest-asyncio", specifier = "==1.4.0" },
-    { name = "pytest-benchmark", specifier = "==5.3.0" },
-    { name = "pytest-cov", specifier = "==7.1.0" },
-    { name = "pytest-xdist", specifier = "==3.8.0" },
-    { name = "pyyaml", specifier = "==6.0.3" },
-    { name = "ruff", specifier = "==0.17.1" },
-    { name = "tombi", specifier = "==1.8.8" },
-    { name = "ty", specifier = "==0.0.89" },
-    { name = "upstream-protobuf", editable = "packages/upstream-protobuf" },
-]
-dev-optional = [{ name = "pydantic", specifier = "==2.14.1" }]
-dev-required = [
-    { name = "buf-bin", specifier = "==1.74.0" },
-    { name = "example", editable = "examples/protobuf" },
-    { name = "example-plugin", editable = "examples/plugin" },
-    { name = "googleapis-googleapis-bufbuild-py", specifier = "==0.6.0.1.20261015202054+8ac61b9e5023", index = "https://buf.build/gen/python" },
-    { name = "hypothesis", specifier = "==6.170.1" },
-    { name = "license-header", specifier = "==0.0.1" },
-    { name = "poethepoet", specifier = "==0.49.0" },
-    { name = "protoc-gen-py", editable = "packages/protoc-gen-py" },
-    { name = "protoc-runner", specifier = "==36.2" },
-    { name = "pyright", specifier = "==1.1.414" },
-    { name = "pytest", specifier = "==9.1.1" },
-    { name = "pytest-benchmark", specifier = "==5.3.0" },
-    { name = "pytest-cov", specifier = "==7.1.0" },
-    { name = "pytest-xdist", specifier = "==3.8.0" },
-    { name = "ruff", specifier = "==0.17.1" },
-    { name = "tombi", specifier = "==1.8.8" },
-    { name = "ty", specifier = "==0.0.89" },
-    { name = "upstream-protobuf", editable = "packages/upstream-protobuf" },
-]
-dev-subprojects = [
-    { name = "fix-protobuf-imports", specifier = "==0.1.7" },
-    { name = "maturin", specifier = "==1.15.0" },
-    { name = "protobuf", specifier = "==7.36.2" },
-    { name = "protobuf-py-bench", editable = "packages/bench" },
-    { name = "pytest-asyncio", specifier = "==1.4.0" },
-    { name = "pyyaml", specifier = "==6.0.3" },
-]
-docs = [
-    { name = "mkdocstrings-python", specifier = "==2.0.9" },
-    { name = "zensical", specifier = "==0.0.71" },
+    { name = "protobuf-py-pure", editable = "." },
 ]
 
 [[package]]
@@ -907,6 +782,149 @@ dev = [
 dev = [{ name = "maturin", specifier = "==1.15.0" }]
 
 [[package]]
+name = "protobuf-py-pure"
+version = "0.7.0"
+source = { editable = "." }
+dependencies = [
+    { name = "typing-extensions" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "buf-bin" },
+    { name = "example" },
+    { name = "example-plugin" },
+    { name = "fix-protobuf-imports" },
+    { name = "googleapis-googleapis-bufbuild-py" },
+    { name = "hypothesis" },
+    { name = "license-header" },
+    { name = "maturin" },
+    { name = "poethepoet" },
+    { name = "protobuf" },
+    { name = "protobuf-py" },
+    { name = "protobuf-py-bench" },
+    { name = "protoc-gen-py" },
+    { name = "protoc-runner" },
+    { name = "pydantic" },
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-benchmark" },
+    { name = "pytest-cov" },
+    { name = "pytest-xdist" },
+    { name = "pyyaml" },
+    { name = "ruff" },
+    { name = "tombi" },
+    { name = "ty" },
+    { name = "upstream-protobuf" },
+]
+dev-optional = [
+    { name = "example" },
+    { name = "example-plugin" },
+    { name = "googleapis-googleapis-bufbuild-py" },
+    { name = "protobuf-py" },
+    { name = "protoc-gen-py" },
+    { name = "pydantic" },
+]
+dev-required = [
+    { name = "buf-bin" },
+    { name = "hypothesis" },
+    { name = "license-header" },
+    { name = "poethepoet" },
+    { name = "protoc-runner" },
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "pytest-benchmark" },
+    { name = "pytest-cov" },
+    { name = "pytest-xdist" },
+    { name = "ruff" },
+    { name = "tombi" },
+    { name = "ty" },
+    { name = "upstream-protobuf" },
+]
+dev-subprojects = [
+    { name = "fix-protobuf-imports" },
+    { name = "maturin" },
+    { name = "protobuf" },
+    { name = "protobuf-py-bench" },
+    { name = "pytest-asyncio" },
+    { name = "pyyaml" },
+]
+docs = [
+    { name = "mkdocstrings-python" },
+    { name = "zensical" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "typing-extensions", specifier = ">=4.13.0" }]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "buf-bin", specifier = "==1.74.0" },
+    { name = "example", editable = "examples/protobuf" },
+    { name = "example-plugin", editable = "examples/plugin" },
+    { name = "fix-protobuf-imports", specifier = "==0.1.7" },
+    { name = "googleapis-googleapis-bufbuild-py", specifier = "==0.6.0.1.20261015202054+8ac61b9e5023", index = "https://buf.build/gen/python" },
+    { name = "hypothesis", specifier = "==6.170.1" },
+    { name = "license-header", specifier = "==0.0.1" },
+    { name = "maturin", specifier = "==1.15.0" },
+    { name = "poethepoet", specifier = "==0.49.0" },
+    { name = "protobuf", specifier = "==7.36.2" },
+    { name = "protobuf-py", editable = "packages/protobuf-py" },
+    { name = "protobuf-py-bench", editable = "packages/bench" },
+    { name = "protoc-gen-py", editable = "packages/protoc-gen-py" },
+    { name = "protoc-runner", specifier = "==36.2" },
+    { name = "pydantic", specifier = "==2.14.1" },
+    { name = "pyright", specifier = "==1.1.414" },
+    { name = "pytest", specifier = "==9.1.1" },
+    { name = "pytest-asyncio", specifier = "==1.4.0" },
+    { name = "pytest-benchmark", specifier = "==5.3.0" },
+    { name = "pytest-cov", specifier = "==7.1.0" },
+    { name = "pytest-xdist", specifier = "==3.8.0" },
+    { name = "pyyaml", specifier = "==6.0.3" },
+    { name = "ruff", specifier = "==0.17.1" },
+    { name = "tombi", specifier = "==1.8.8" },
+    { name = "ty", specifier = "==0.0.89" },
+    { name = "upstream-protobuf", editable = "packages/upstream-protobuf" },
+]
+dev-optional = [
+    { name = "example", editable = "examples/protobuf" },
+    { name = "example-plugin", editable = "examples/plugin" },
+    { name = "googleapis-googleapis-bufbuild-py", specifier = "==0.6.0.1.20261015202054+8ac61b9e5023", index = "https://buf.build/gen/python" },
+    { name = "protobuf-py", editable = "packages/protobuf-py" },
+    { name = "protoc-gen-py", editable = "packages/protoc-gen-py" },
+    { name = "pydantic", specifier = "==2.14.1" },
+]
+dev-required = [
+    { name = "buf-bin", specifier = "==1.74.0" },
+    { name = "hypothesis", specifier = "==6.170.1" },
+    { name = "license-header", specifier = "==0.0.1" },
+    { name = "poethepoet", specifier = "==0.49.0" },
+    { name = "protoc-runner", specifier = "==36.2" },
+    { name = "pyright", specifier = "==1.1.414" },
+    { name = "pytest", specifier = "==9.1.1" },
+    { name = "pytest-benchmark", specifier = "==5.3.0" },
+    { name = "pytest-cov", specifier = "==7.1.0" },
+    { name = "pytest-xdist", specifier = "==3.8.0" },
+    { name = "ruff", specifier = "==0.17.1" },
+    { name = "tombi", specifier = "==1.8.8" },
+    { name = "ty", specifier = "==0.0.89" },
+    { name = "upstream-protobuf", editable = "packages/upstream-protobuf" },
+]
+dev-subprojects = [
+    { name = "fix-protobuf-imports", specifier = "==0.1.7" },
+    { name = "maturin", specifier = "==1.15.0" },
+    { name = "protobuf", specifier = "==7.36.2" },
+    { name = "protobuf-py-bench", editable = "packages/bench" },
+    { name = "pytest-asyncio", specifier = "==1.4.0" },
+    { name = "pyyaml", specifier = "==6.0.3" },
+]
+docs = [
+    { name = "mkdocstrings-python", specifier = "==2.0.9" },
+    { name = "zensical", specifier = "==0.0.71" },
+]
+
+[[package]]
 name = "protoc-gen-py"
 version = "0.7.0"
 source = { editable = "packages/protoc-gen-py" }
@@ -920,7 +938,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "protobuf-py", editable = "." }]
+requires-dist = [{ name = "protobuf-py", editable = "packages/protobuf-py" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "upstream-protobuf", editable = "packages/upstream-protobuf" }]
@@ -1200,14 +1218,15 @@ wheels = [
 
 [[package]]
 name = "python-dateutil"
-version = "2.9.0.post0"
+version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "six" },
+    { name = "tzdata" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/66/c0/0c8b6ad9f17a802ee498c46e004a0eb49bc148f2fd230864601a86dcf6db/python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3", size = 342432, upload-time = "2024-03-01T18:36:20.211Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0e/df/f15f80383f152452d8985b36d95cb8751f901a3e0ff4cd27f7e118f168e2/python_dateutil-3.0.0.tar.gz", hash = "sha256:7ebcb3c29a92f3ceafe79a7a48a5c45677e9e004bbeec5742ac0bbb00560b7a2", size = 271066, upload-time = "2026-10-21T23:41:45.075Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427", size = 229892, upload-time = "2024-03-01T18:36:18.57Z" },
+    { url = "https://files.pythonhosted.org/packages/5a/17/cebee01d1c0c1441174cf0456ddc91b280d79acb65340c05e41d77866ee8/python_dateutil-3.0.0-py2.py3-none-any.whl", hash = "sha256:3c79630202e4152c6add678446984236efe4f57e84d8e892aab0637bab82e9fd", size = 94659, upload-time = "2026-10-21T23:41:43.431Z" },
 ]
 
 [[package]]
@@ -1440,6 +1459,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a3/26/b09b8010994eccc3c09092e6b34058f36a460eea2d4c3e8b910c695975a0/typing_inspection-0.4.4.tar.gz", hash = "sha256:547274fa6b0a561ccf549cc9524b999a578e737d015d8709d021f9d0d13bea47", size = 76928, upload-time = "2026-08-12T12:37:25.997Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/67/81/4add07e5172b7ac40d8ed5ff580409a7801a4fe26d529bdd915401dabfbe/typing_inspection-0.4.4-py3-none-any.whl", hash = "sha256:65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147", size = 14750, upload-time = "2026-08-12T12:37:24.648Z" },
+]
+
+[[package]]
+name = "tzdata"
+version = "2026.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d9/68/f1b440335057bfce71b6e50a9d09445aa2ecbd08359a337976627b8409e7/tzdata-2026.5.tar.gz", hash = "sha256:8cc73c0a0bfca7dbfa59235d60b2eff82231dee33f53d206db1acd9173cfc0a7", size = 200404, upload-time = "2026-10-03T09:23:14.143Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/94/21/1e5995a1c920cce14e4bffae20c665ec10e7ed03ab25e006cd741092b718/tzdata-2026.5-py2.py3-none-any.whl", hash = "sha256:b683bd1b6659ddcd810ff02ad09ba821d4bf1065072805063eb35c49617905ac", size = 347996, upload-time = "2026-10-03T09:23:12.535Z" },
 ]
 
 [[package]]
