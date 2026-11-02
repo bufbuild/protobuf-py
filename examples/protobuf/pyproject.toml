@@ -10,7 +10,7 @@ dependencies = [
 dev = [
   "buf-bin==1.75.0",
   "protoc-gen-py>=0.0.1",
-  "pytest==9.1.1",
+  "pytest==9.2.0",
 ]
 
 [build-system]
