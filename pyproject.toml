@@ -88,7 +88,6 @@ dev-subprojects = [
   "maturin==1.16.0",
   "protobuf==7.36.2",
   "protobuf-py-bench",
-  "pytest-asyncio==1.4.1.post1",
 ]
 
 [build-system]
