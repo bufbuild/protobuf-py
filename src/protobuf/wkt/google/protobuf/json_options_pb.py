@@ -22,6 +22,10 @@
 
 from __future__ import annotations
 
+from protobuf._codegen import check_version
+
+check_version("0.7.0")
+
 from typing import TYPE_CHECKING
 
 from protobuf._codegen import file_desc

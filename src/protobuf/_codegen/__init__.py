@@ -19,6 +19,7 @@ This module may change without following semver, and is not safe to consume dire
 
 from __future__ import annotations
 
-__all__ = ["file_desc"]
+__all__ = ["check_version", "file_desc"]
 
 from ._file import file_desc
+from ._version import check_version

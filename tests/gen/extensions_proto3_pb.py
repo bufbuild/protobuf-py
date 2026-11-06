@@ -23,6 +23,10 @@
 
 from __future__ import annotations
 
+from protobuf._codegen import check_version
+
+check_version("0.7.0")
+
 from typing import Final, Literal, TYPE_CHECKING, TypeAlias
 
 from protobuf import Extension, Message
