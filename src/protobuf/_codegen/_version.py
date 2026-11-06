@@ -44,5 +44,5 @@ def check_version(codegen_version: str) -> None:
         msg = f"codegen version {codegen_version} is older than the minimum required version {_min_codegen_version}. Update protoc-gen-py."
         raise RuntimeError(msg)
     if codegen_version_tuple > _version_tuple:
-        msg = f"codegen version {codegen_version} is newer than the installed protobuf-py version {__version__}. Update protobuf-py to the latest version."
+        msg = f"codegen version {codegen_version} is newer than the installed protobuf-py version {__version__}. Update protobuf-py."
         raise RuntimeError(msg)
