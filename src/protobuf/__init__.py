@@ -47,6 +47,7 @@ from ._oneof import Oneof
 from ._registry import Registry
 from ._supported_editions import maximum_supported_edition, minimum_supported_edition
 from ._to_json import message_to_json_value
+from ._version import __version__
 
 __all__ = [
     "DescComments",
@@ -73,6 +74,7 @@ __all__ = [
     "Oneof",
     "Registry",
     "ScalarType",
+    "__version__",
     "enum_is_unknown",
     "maximum_supported_edition",
     "merge_from",
