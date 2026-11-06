@@ -41,7 +41,7 @@ def check_version(codegen_version: str) -> None:
     """Checks the protoc-gen-py version used to generate code is compatible with the current runtime."""
     codegen_version_tuple = _convert_version(codegen_version)
     if codegen_version_tuple < _min_codegen_version:
-        msg = f"codegen version {codegen_version} is older than the minimum required version {_min_codegen_version}. Update codegen to the latest version."
+        msg = f"codegen version {codegen_version} is older than the minimum required version {_min_codegen_version}. Update protoc-gen-py."
         raise RuntimeError(msg)
     if codegen_version_tuple > _version_tuple:
         msg = f"codegen version {codegen_version} is newer than the installed protobuf-py version {__version__}. Update protobuf-py to the latest version."
