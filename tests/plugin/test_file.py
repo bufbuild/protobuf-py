@@ -443,6 +443,108 @@ def test_type_checking_nested_raises() -> None:
         pass
 
 
+def test_before_imports() -> None:
+    def write(f: File) -> None:
+        with f.before_imports():
+            f.print(Module("protobuf._codegen").ident("check_version"), '("1.0.0")')
+        f.print("x: ", Module("protobuf").ident("Message"))
+        # The block already imported check_version, so the main import
+        # section does not import it again.
+        f.print("y: ", Module("protobuf._codegen").ident("check_version"))
+        with f.type_checking():
+            f.print("z: ", Module("protobuf").ident("DescFile"))
+
+    _test_generated_file(
+        write,
+        """\
+        from __future__ import annotations
+
+        from protobuf._codegen import check_version
+
+        check_version("1.0.0")
+
+        from typing import TYPE_CHECKING
+
+        from protobuf import Message
+
+        if TYPE_CHECKING:
+            from protobuf import DescFile
+
+
+        x: Message
+        y: check_version
+        if TYPE_CHECKING:
+            z: DescFile
+        """,
+    )
+
+
+def test_before_imports_conflict() -> None:
+    def write(f: File) -> None:
+        with f.before_imports():
+            f.print(Module("a").ident("check"), "()")
+        # The block's import keeps the plain name. The conflicting import
+        # that follows it is aliased.
+        f.print("x = ", Module("b").ident("check"))
+
+    _test_generated_file(
+        write,
+        """\
+        from __future__ import annotations
+
+        from a import check
+
+        check()
+
+        from b import check as check_
+
+
+        x = check_
+        """,
+    )
+
+
+@pytest.mark.parametrize(
+    ("outer", "match"),
+    [
+        pytest.param("before_imports", "cannot be nested", id="nested"),
+        pytest.param("type_checking", "typechecking or doc", id="type_checking"),
+        pytest.param("doc", "typechecking or doc", id="doc"),
+    ],
+)
+def test_before_imports_context_raises(outer: str, match: str) -> None:
+    g = _File(
+        path="test_pb.py",
+        module=Module(".test_pb"),
+        file_to_generate=frozenset(),
+        plugin_name="test",
+        plugin_version="0.0.0",
+        parameter="",
+    )
+    with (
+        getattr(g, outer)(),
+        pytest.raises(RuntimeError, match=match),
+        g.before_imports(),
+    ):
+        pass
+
+
+def test_before_imports_type_only_raises() -> None:
+    g = _File(
+        path="test_pb.py",
+        module=Module(".test_pb"),
+        file_to_generate=frozenset(),
+        plugin_name="test",
+        plugin_version="0.0.0",
+        parameter="",
+    )
+    with (
+        g.before_imports(),
+        pytest.raises(RuntimeError, match="type-only identifiers cannot be used"),
+    ):
+        g.print(Module("protobuf").ident("DescFile", type_only=True))
+
+
 def test_write_without_preamble() -> None:
     _test_generated_file(
         lambda f: f.print("x = 1"),

@@ -18,6 +18,7 @@ from __future__ import annotations
 import importlib.metadata
 from copy import copy
 from dataclasses import dataclass
+from importlib.metadata import version
 from itertools import chain
 from typing import TYPE_CHECKING, Any
 
@@ -57,6 +58,7 @@ _ONE_OF = _PROTOBUF.ident("Oneof")
 _EXTENSION = _PROTOBUF.ident("Extension")
 _CODEGEN = _PROTOBUF.module("_codegen")
 _FILE_DESC = _CODEGEN.ident("file_desc")
+_CHECK_VERSION = _CODEGEN.ident("check_version")
 _BOOT_MOD = _PROTOBUF.module("_boot")
 _BOOT_MESSAGE = _BOOT_MOD.ident("Message")
 _BOOT = _BOOT_MOD.ident("boot")
@@ -86,6 +88,9 @@ _VALUE_MIXIN = _WKT_MIXIN.ident("ValueMixin")
 _BOOT_FILE_PATH = "google/protobuf/descriptor.proto"
 
 
+_codegen_version = version("protoc-gen-py")
+
+
 def main() -> None:
     """Entry point for the protoc-gen-py plugin."""
     run(
@@ -108,6 +113,8 @@ def _generate(schema: Schema[_Options]) -> None:
 
 def _generate_file(f: File, desc: DescFile) -> None:
     f.preamble(desc)
+    with f.before_imports():
+        f.print(_CHECK_VERSION, '("', _codegen_version, '")')
     _generate_deprecated_aliases(f, desc)
     for msg in desc.messages:
         _generate_message(f, msg)

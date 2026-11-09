@@ -154,6 +154,39 @@ class File(Protocol):
         """
         ...
 
+    def before_imports(self) -> AbstractContextManager[None]:
+        """Open a block emitted before all imports except `from __future__`.
+
+        Identifiers printed inside the block are imported immediately
+        before it, so the block runs before anything else in the module.
+        This can be used, for example, to check version compatibility between
+        the generated code and runtime before importing additional methods from
+        the runtime.
+
+        Type-only identifiers cannot be used inside the block, and it
+        cannot be nested or used inside `type_checking()` or `doc()`.
+
+        Raises:
+            RuntimeError: If already inside a before-imports,
+                type-checking, or doc context.
+
+        Examples:
+            ```python
+            with f.before_imports():
+                f.print(Module("protobuf._codegen").ident("check_version"), '("1.0.0")')
+
+            # Output:
+            # from __future__ import annotations
+            #
+            # from protobuf._codegen import check_version
+            #
+            # check_version("1.0.0")
+            #
+            # <remaining imports>
+            ```
+        """
+        ...
+
     def preamble(self, desc: DescFile) -> None:
         """Add a `DO NOT EDIT` preamble derived from `desc`.
 
@@ -250,9 +283,12 @@ class _File:
         self._in_doc = False
         self._has_preamble = False
         self._preamble_proto_name: str | None = None
+        self._before_imports = False
         self._elements: list[str | Ident] = []
+        self._pre_elements: list[str | Ident] = []
         self._runtime_imports: dict[Module, set[Ident]] = defaultdict(set)
         self._type_imports: dict[Module, set[Ident]] = defaultdict(set)
+        self._pre_imports: dict[Module, set[Ident]] = defaultdict(set)
 
     def print(self, *args: object) -> None:
         elements: list[str | Ident] = [self._to_el(arg) for arg in _flatten(args)]
@@ -285,6 +321,19 @@ class _File:
                 yield
         finally:
             self._type_checking = False
+
+    @contextmanager
+    def before_imports(self) -> Generator[None, Any, None]:
+        if self._before_imports or self._type_checking or self._in_doc:
+            msg = "before_imports cannot be nested or used in a typechecking or doc context"
+            raise RuntimeError(msg)
+        self._before_imports = True
+        self._elements, self._pre_elements = self._pre_elements, self._elements
+        try:
+            yield
+        finally:
+            self._elements, self._pre_elements = self._pre_elements, self._elements
+            self._before_imports = False
 
     def preamble(self, desc: DescFile) -> None:
         self._has_preamble = True
@@ -347,7 +396,12 @@ class _File:
             case _:
                 return repr(v)
         ident = self._relativize(self._map_import(ident))
-        if ident.type_only:
+        if self._before_imports:
+            if ident.type_only:
+                msg = "type-only identifiers cannot be used before imports"
+                raise RuntimeError(msg)
+            self._pre_imports[ident.module].add(ident)
+        elif ident.type_only:
             self._type_imports[ident.module].add(ident)
         else:
             self._runtime_imports[ident.module].add(ident)
@@ -419,9 +473,15 @@ def write(file: _File, path: str, *, no_fmt_off: bool = False) -> str:
     """
     # Collect all the runtime imports with sorted identifier names
     runtime_imports: dict[Module, list[Ident]] = {
-        module: sorted(idents)
+        module: sorted(unique)
         for module, idents in file._runtime_imports.items()
         if module.path != ""
+        and (unique := idents - file._pre_imports.get(module, set()))
+    }
+    pre_imports: dict[Module, list[Ident]] = {
+        module: sorted(idents)
+        for module, idents in file._pre_imports.items()
+        if module.path != "" and idents
     }
     # Type only imports that are not already in the runtime imports
     type_only_imports: dict[Module, list[Ident]] = {}
@@ -464,6 +524,14 @@ def write(file: _File, path: str, *, no_fmt_off: bool = False) -> str:
     if path.endswith(".py"):
         # Ruff doesn't complain even if this is in an empty file and always puts this at the top with a new line after
         hdr.extend(["from __future__ import annotations", ""])
+
+    if file._pre_elements:
+        _write_imports(hdr, aliases, pre_imports)
+        block = "".join(
+            el if isinstance(el, str) else aliases.resolve(el)
+            for el in file._pre_elements
+        )
+        hdr.extend([block.rstrip(), ""])
 
     _write_imports(hdr, aliases, runtime_imports)
 
