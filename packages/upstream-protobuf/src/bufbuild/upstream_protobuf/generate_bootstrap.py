@@ -35,8 +35,8 @@ def main() -> None:
     output_path = Path(sys.argv[1])
 
     from protobuf._descriptors import DescFieldValueEnum  # noqa: PLC0415
-    from protobuf.wkt._gen import descriptor_pb  # noqa: PLC0415
-    from protobuf.wkt._gen.descriptor_pb import (  # noqa: PLC0415
+    from protobuf.wkt.google.protobuf import descriptor_pb  # noqa: PLC0415
+    from protobuf.wkt.google.protobuf.descriptor_pb import (  # noqa: PLC0415
         Edition,
         FeatureSet,
         FeatureSetDefaults,

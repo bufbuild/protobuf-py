@@ -21,6 +21,10 @@
       "path": "./packages/license-header",
     },
     {
+      "name": "protobuf-py",
+      "path": "./packages/protobuf-py",
+    },
+    {
       "name": "protoc-gen-py",
       "path": "./packages/protoc-gen-py",
     },

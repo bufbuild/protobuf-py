@@ -29,11 +29,15 @@ from protobuf import (
     DescOneof,
     ScalarType,
 )
-from protobuf.wkt import Edition, FeatureSet, MethodOptions
+from protobuf.wkt.google.protobuf.descriptor_pb import (
+    Edition,
+    FeatureSet,
+    MethodOptions,
+)
 from tests.gen.enums_pb import Color, EnumMessage
 
 if TYPE_CHECKING:
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 class TestDescFile:

@@ -1,9 +1,9 @@
 [project]
-name = "protobuf-py"
-version = "0.5.0"
-description = "Idiomatic Protocol Buffers for Python."
-readme = "README.md"
-requires-python = ">=3.10"
+name = "protobuf-py-pure"
+version = "0.7.0"
+description = "Pure Python implementation of protobuf-py, idiomatic Protocol Buffers for Python."
+readme = "README.pure.md"
+requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 keywords = ["protobuf"]
@@ -13,11 +13,11 @@ classifiers = [
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Programming Language :: Python :: Free Threading",
   "Topic :: File Formats",
   "Topic :: Software Development :: Libraries :: Python Modules",
@@ -40,35 +40,39 @@ dev = [
   { include-group = "dev-required" },
   { include-group = "dev-subprojects" },
 ]
-docs = ["mkdocstrings-python==2.0.9", "zensical==0.0.65"]
+docs = ["mkdocstrings-python==2.0.10", "zensical==0.1.0"]
 
 # All dependencies required for CI, including running baseline tests.
 dev-required = [
-  # Prevent local packages from being uninstalled when syncing
-  "example",
-  "example-plugin",
-  "protoc-gen-py",
   "upstream-protobuf",
 
-  "buf-bin==1.73.0",
-  "googleapis-googleapis-bufbuild-py==0.5.0.2.20260414192239+c17df5b2beca",
-  "hypothesis==6.168.2",
+  "buf-bin==1.75.0",
+  "hypothesis==6.170.15",
   "license-header==0.0.1",
-  "poethepoet==0.48.0",
+  "poethepoet==0.49.0",
   "protoc-runner==36.2",
   "pyright==1.1.414",
-  "pytest==9.1.1",
-  "pytest-benchmark==5.3.0",
+  "pytest==9.2.0",
+  "pytest-benchmark==5.3.1",
   "pytest-cov==7.1.0",
-  "ruff==0.16.9",
-  "tombi==1.5.7",
-  "ty==0.0.84",
+  "pytest-xdist==3.8.0",
+  "ruff==0.17.4",
+  "tombi==1.11.1",
+  "ty==0.0.99",
 ]
 
 # Optional dependencies, used for development of optional features. We run tests without
 # these installed to ensure missing optional dependencies does not introduce breakage.
 dev-optional = [
-  "pydantic==2.13.5",
+  # Prevent local packages from being uninstalled when syncing
+  "example",
+  "example-plugin",
+  "protobuf-py",
+  "protoc-gen-py",
+
+  "googleapis-googleapis-bufbuild-py==0.7.0.2.20261015202054+8ac61b9e5023",
+
+  "pydantic==2.14.3",
 ]
 
 # Dev dependencies only used in subprojects. Optimal structure would include these
@@ -81,14 +85,13 @@ dev-optional = [
 dev-subprojects = [
   "PyYAML==6.0.3",
   "fix-protobuf-imports==0.1.7",
-  "maturin==1.15.0",
+  "maturin==1.16.0",
   "protobuf==7.36.2",
   "protobuf-py-bench",
-  "pytest-asyncio==1.4.0",
 ]
 
 [build-system]
-requires = ["uv_build>=0.12.1,<0.13"]
+requires = ["uv_build>=0.13,<0.14"]
 build-backend = "uv_build"
 
 ## License headers
@@ -115,9 +118,12 @@ sequence = [
 help = "Bump the project version"
 sequence = [
   { cmd = "uv version --bump=${_version}" },
+  { cmd = "uv version --package protobuf-py --bump=${_version}" },
   { cmd = "uv version --package protobuf-py-ext --bump=${_version}" },
   { cmd = "uv version --package protoc-gen-py --bump=${_version}" },
   { shell = "uv add --raw protobuf-py==$(uv version --short) --package protoc-gen-py" },
+  { shell = "uv add --raw protobuf-py-pure==$(uv version --short) --package protobuf-py" },
+  { shell = "uv add --raw \"protobuf-py-ext==$(uv version --short); platform_python_implementation == 'CPython' and ((platform_system == 'Linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64')) or (platform_system == 'Darwin' and platform_machine == 'arm64') or (platform_system == 'Windows' and (platform_machine == 'AMD64' or platform_machine == 'ARM64')))\" --package protobuf-py" },
   # Regenerate all code since the version number is embedded
   "bootstrap",
   "generate",
@@ -202,7 +208,7 @@ cmd = "uv run pytest"
 ## Format
 [tool.poe.tasks.format]
 help = "Format source code, sort imports, add license headers (does not format protos, see format-test-protos)"
-sequence = ["format-license-header", "format-python", "format-toml"]
+sequence = ["format-license-header", "format-python", "format-ext", "format-toml"]
 
 [tool.poe.tasks.format-python]
 help = "Format Python files with ruff"
@@ -230,6 +236,7 @@ sequence = [
   "lint-ruff-check",
   "lint-types",
   "lint-ruff-format",
+  "lint-ext",
   "lint-toml-format",
   "lint-toml-lint",
   "lint-license-header",
@@ -294,7 +301,7 @@ sequence = ["generate-wkt", "generate-bootstrap"]
 [tool.poe.tasks.generate-wkt]
 help = "Generate well-known types"
 sequence = [
-  { cmd = "generate_wkt src/protobuf/wkt/_gen" },
+  { cmd = "generate_wkt src/protobuf/wkt/google/protobuf" },
   "format-python",
 ]
 
@@ -315,12 +322,7 @@ sequence = [
 cwd = "packages/bench"
 
 ## Native extension
-[tool.poe.tasks.ext-build]
-help = "Build native extension (requires Rust)"
-cmd = "uv run maturin build --release --out ../../dist ${MATURIN_ARGS}"
-cwd = "packages/protobuf-py-ext"
-
-[tool.poe.tasks.ext-format]
+[tool.poe.tasks.format-ext]
 help = "Format native extension code (requires Rust)"
 sequence = [
   { cmd = "cargo clippy --fix --allow-dirty" },
@@ -328,7 +330,7 @@ sequence = [
 ]
 cwd = "packages/protobuf-py-ext"
 
-[tool.poe.tasks.ext-lint]
+[tool.poe.tasks.lint-ext]
 help = "Lint native extension code (requires Rust)"
 sequence = [
   { cmd = "cargo clippy" },
@@ -378,6 +380,11 @@ addopts = [
   "--benchmark-disable",
   "--benchmark-group-by=func,param:_id",
   "--doctest-modules",
+  # One xdist worker per marshaler implementation, routed by the scheduler in
+  # tests/conftest.py.
+  "--dist=load",
+  "--tx=popen//env:PROTOBUF_PY_TEST_IMPLEMENTATION=native",
+  "--tx=popen//env:PROTOBUF_PY_TEST_IMPLEMENTATION=python",
 ]
 # Turn all warnings into errors
 filterwarnings = ["error"]
@@ -394,7 +401,7 @@ skip-magic-trailing-comma = true
 docstring-code-format = true
 
 [tool.ruff.lint]
-typing-extensions = false
+typing-extensions = true
 select = ["ALL"]
 ignore = [
   # Rules recommended to ignore when using ruff formatting
@@ -471,12 +478,6 @@ exclude = [
   "packages/upstream-protobuf",
 ]
 
-# Workaround uv caching the package without building it first.
-# https://github.com/astral-sh/uv/issues/11390
-[tool.uv]
-reinstall-package = ["protobuf-py-ext"]
-no-build-isolation-package = ["protobuf-py-ext"]
-
 [[tool.uv.index]]
 name = "buf"
 url = "https://buf.build/gen/python"
@@ -487,17 +488,19 @@ module-name = ["protobuf"]
 
 [tool.uv.sources]
 protobuf-py = { workspace = true }
+protobuf-py-pure = { workspace = true }
 protoc-gen-py = { workspace = true }
 upstream-protobuf = { workspace = true }
 example = { workspace = true }
 example-plugin = { workspace = true }
-protobuf-py-ext = { workspace = true }
 protobuf-py-bench = { workspace = true }
+protobuf-py-ext = { workspace = true }
 
 googleapis-googleapis-bufbuild-py = { index = "buf" }
 
 [tool.uv.workspace]
 members = [
+  "packages/protobuf-py",
   "packages/protobuf-py-ext",
   "packages/protoc-gen-py",
   "packages/bench",

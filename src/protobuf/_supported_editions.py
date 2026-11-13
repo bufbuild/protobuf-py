@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Final
 
 from ._bootstrap import _MAXIMUM_EDITION, _MINIMUM_EDITION
-from .wkt._gen.descriptor_pb import Edition
+from .wkt.google.protobuf.descriptor_pb import Edition
 
 minimum_supported_edition: Final[Edition] = Edition(_MINIMUM_EDITION)
 """The minimum protobuf edition supported by this implementation."""

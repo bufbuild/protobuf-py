@@ -44,7 +44,7 @@ def main() -> None:
                 get_protoc_path(),
                 *[str(f) for f in include_dir.glob("google/protobuf/**/*.proto")],
                 f"--py_out={tmp_path}",
-                "--py_opt=no_fmt_off",
+                "--py_opt=no_fmt_off,init_files=false",
             ],
             check=False,
         )
@@ -53,6 +53,14 @@ def main() -> None:
 
         shutil.rmtree(output_dir, ignore_errors=True)
         shutil.move(str(tmp_path / "google" / "protobuf"), str(output_dir))
+        # Public packages need docstrings, so we manage init files here.
+        (output_dir.parent / "__init__.py").write_text(
+            '"""Protobuf Well-Known types"""'
+        )
+        (output_dir / "__init__.py").write_text('"""Protobuf Well-Known types"""')
+        (output_dir / "compiler" / "__init__.py").write_text(
+            '"""Protobuf Compiler Well-Known types"""'
+        )
 
     apply_license_headers(dirs=[output_dir])
 

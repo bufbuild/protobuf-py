@@ -16,6 +16,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Literal, TypeAlias, TypeVar, cast
 
+from typing_extensions import Self
+
 if TYPE_CHECKING:
     from protobuf import Oneof
     from protobuf.wkt import ListValue, NullValue, Struct, Value
@@ -49,9 +51,7 @@ class StructMixin:
         fields: dict[str, Value]
 
     @classmethod
-    def from_python(
-        cls: type[SelfStruct], data: Mapping[str, ValueTypeParam]
-    ) -> SelfStruct:
+    def from_python(cls, data: Mapping[str, ValueTypeParam]) -> Self:
         """Create a Struct from a Python dict.
 
         Examples:
@@ -111,7 +111,7 @@ class ValueMixin:
         )
 
     @classmethod
-    def from_python(cls: type[SelfValue], value: ValueTypeParam) -> SelfValue:
+    def from_python(cls, value: ValueTypeParam) -> Self:
         """Create a Value from a Python value.
 
         Args:
@@ -246,9 +246,7 @@ class ListValueMixin:
         values: list[Value]
 
     @classmethod
-    def from_python(
-        cls: type[SelfListValue], values: Sequence[ValueTypeParam]
-    ) -> SelfListValue:
+    def from_python(cls, values: Sequence[ValueTypeParam]) -> Self:
         """Create a ListValue from a list of Python values.
 
         Examples:

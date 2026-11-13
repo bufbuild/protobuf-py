@@ -26,7 +26,7 @@ from protobuf.plugin._file import _desc_ident
 from protobuf.plugin._ident import Module
 
 if TYPE_CHECKING:
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 @pytest.mark.parametrize(

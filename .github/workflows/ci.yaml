@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   test:
-    name: ${{ matrix.runner }} / ${{ matrix.python-version }} / ${{ matrix.native-ext && 'ext' || 'standard' }}
+    name: ${{ matrix.runner }} / ${{ matrix.python-version }}
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -23,7 +23,6 @@ jobs:
           - macos-15
           - windows-2025
         python-version:
-          - "3.10"
           - "3.11"
           - "3.12"
           - "3.13"
@@ -31,40 +30,27 @@ jobs:
           - "3.14t"
           - "3.15"
           - "3.15t"
-        native-ext: [true, false]
-        exclude:
-          # Currently many dependencies need wheel builds on 3.15 which is slow, so only run on push
-          - python-version: ${{ github.event_name == 'pull_request' && '3.15' }}
-          - python-version: ${{ github.event_name == 'pull_request' && '3.15t' }}
     env:
       # When bumping, also bump top-level env in release.yaml
-      MATURIN_ARGS: ${{ matrix.python-version == '3.11' && '--features pyo3/abi3-py311' || '' }}
+      MATURIN_PEP517_ARGS: ${{ (matrix.python-version == '3.11' || matrix.python-version == '3.12') && '--features pyo3/abi3-py311' || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install uv with Python ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
-          version: "0.12.19"
+          version: "0.13.7"
           python-version: ${{ matrix.python-version }}
       - name: Setup rust
-        if: matrix.native-ext
         run: rustup update
       - run: uv sync --locked
-      - name: lint protobuf-py-ext
-        if: matrix.native-ext
-        run: uv run poe ext-lint
-      - name: build protobuf-py-ext
-        if: matrix.native-ext
-        run: uv run poe ext-build
       - run: uv run poe test
-        env:
-          ASSERT_MARSHALER_IMPLEMENTATION: ${{ matrix.native-ext && 'native' || 'python' }}
 
       # Ensure tests pass without optional dependencies. Issues would come from eager imports, so we go ahead
       # and run the single conformance test only to keep this step lightweight and give high coverage.
+      # This also tests the protobuf-py-pure package by itself.
       - run: |
           uv sync --no-dev
-          uv run --no-dev --group dev-required pytest -k test_conformance
+          uv run --no-dev --group dev-required pytest tests/conformance
 
   test-pypy:
     name: ${{ matrix.os }} / ${{ matrix.python-version }}
@@ -80,23 +66,21 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install uv with Python ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
-          version: "0.12.19"
+          version: "0.13.7"
           python-version: ${{ matrix.python-version }}
       - run: uv sync --locked
       - run: uv run poe test
-        env:
-          ASSERT_MARSHALER_IMPLEMENTATION: python
 
   lint:
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
-          version: "0.12.19"
-          python-version: "3.10"
+          version: "0.13.7"
+          python-version: "3.11"
       - run: uv sync --locked
       - run: uv run poe lint
       - run: uv run poe format

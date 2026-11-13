@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from protobuf import DescMessage
-from protobuf.wkt._gen.descriptor_pb import FileDescriptorProto
+from protobuf.wkt.google.protobuf.descriptor_pb import FileDescriptorProto
 
 
 def test_boot() -> None:

@@ -24,7 +24,7 @@ from protobuf.plugin._map_imports import compile_map_imports, map_import_target
 
 if TYPE_CHECKING:
     from protobuf import DescFile
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 class TestMapImportTarget:
@@ -186,7 +186,7 @@ class TestFileMaps:
             """\
             from __future__ import annotations
 
-            from protobuf.wkt import Timestamp
+            from protobuf.wkt.google.protobuf.timestamp_pb import Timestamp
 
 
             x: Timestamp

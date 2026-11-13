@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import protobuf
 from protobuf._bootstrap import _feature_defaults
-from protobuf.wkt import Edition
+from protobuf.wkt.google.protobuf.descriptor_pb import Edition
 
 
 def test_minimum_supported_edition() -> None:

@@ -23,7 +23,7 @@ from protobuf import (
     DescFieldValueMessage,
     DescFieldValueScalar,
 )
-from protobuf.wkt import descriptor_pb
+from protobuf.wkt.google.protobuf import descriptor_pb
 
 
 def test_descriptor_type_narrow() -> None:

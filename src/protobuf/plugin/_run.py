@@ -23,7 +23,10 @@ from protobuf.plugin._file import write
 from protobuf.plugin._map_imports import compile_map_imports
 from protobuf.plugin._options import parse_options
 from protobuf.plugin._schema import _Schema
-from protobuf.wkt import CodeGeneratorRequest, CodeGeneratorResponse
+from protobuf.wkt.google.protobuf.compiler.plugin_pb import (
+    CodeGeneratorRequest,
+    CodeGeneratorResponse,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable

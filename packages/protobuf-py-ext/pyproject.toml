@@ -1,8 +1,10 @@
 [project]
 name = "protobuf-py-ext"
-version = "0.5.0"
+version = "0.7.0"
 description = "Native extension for protobuf-py"
 requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
@@ -28,7 +30,7 @@ Issues = "https://github.com/bufbuild/protobuf-py/issues"
 Source = "https://github.com/bufbuild/protobuf-py"
 
 [dependency-groups]
-dev = ["maturin==1.15.0"]
+dev = ["maturin==1.16.0"]
 
 [build-system]
 requires = ["maturin>=1.12,<2.0"]
@@ -37,3 +39,14 @@ build-backend = "maturin"
 [tool.maturin]
 features = ["pyo3/extension-module"]
 module-name = "protobuf_ext._protobuf_ext"
+
+[tool.uv]
+cache-keys = [
+  { file = "pyproject.toml" },
+  { file = "Cargo.toml" },
+  { file = "Cargo.lock" },
+  { file = "build.rs" },
+  { file = "src/**/*" },
+  { file = "protobuf_ext/**/*.py" },
+  { file = "protobuf_ext/**/*.pyi" },
+]

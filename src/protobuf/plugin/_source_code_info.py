@@ -28,7 +28,7 @@ from protobuf import (
     DescService,
     Message,
 )
-from protobuf.wkt import (
+from protobuf.wkt.google.protobuf.descriptor_pb import (
     DescriptorProto,
     EnumDescriptorProto,
     FileDescriptorProto,

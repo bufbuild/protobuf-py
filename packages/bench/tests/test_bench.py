@@ -33,8 +33,9 @@ from typing import (
 )
 
 import pytest
-from protobuf.wkt import FileDescriptorSet, timestamp_pb
-from protobuf.wkt import descriptor_pb as google_descriptor_pb
+from protobuf.wkt import FileDescriptorSet
+from protobuf.wkt.google.protobuf import descriptor_pb as google_descriptor_pb
+from protobuf.wkt.google.protobuf import timestamp_pb
 from pydantic import BaseModel, ConfigDict
 from pydantic import Field as ModelField
 from pydantic.alias_generators import to_camel

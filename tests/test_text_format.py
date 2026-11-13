@@ -20,7 +20,8 @@ import pytest
 
 from protobuf import Oneof, Registry
 from protobuf.txtpb import merge_from_text, message_from_text, message_to_text
-from protobuf.wkt import Any, any_pb
+from protobuf.wkt import Any
+from protobuf.wkt.google.protobuf import any_pb
 
 from .conformance.gen.conformance.messages import (
     test_messages_proto2_pb,

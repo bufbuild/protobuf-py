@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     from ._to_json import ToJsonOptions
     from ._typing import JsonValue
     from .wkt import Any, Duration, FieldMask, ListValue, Struct, Timestamp, Value
-    from .wkt._gen.any_pb import Any as GenAny
+    from .wkt.google.protobuf.any_pb import Any as GenAny
 
 
 _TS_MIN = datetime(1, 1, 1, tzinfo=timezone.utc)
@@ -143,10 +143,7 @@ class WktTimestamp:
 @dataclass(frozen=True, slots=True)
 class WktDuration:
     def to_json_value(self, msg: Message, _opts: ToJsonOptions) -> JsonValue:
-        from .wkt._mixin._const import (  # noqa: PLC0415
-            DURATION_SECONDS_MAX,
-            NANOS_PER_SECOND_MAX,
-        )
+        from .wkt._mixin._const import DURATION_SECONDS_MAX, NANOS_PER_SECOND_MAX  # noqa: PLC0415
 
         value = cast("Duration", msg)
         if not (-DURATION_SECONDS_MAX <= value.seconds <= DURATION_SECONDS_MAX):

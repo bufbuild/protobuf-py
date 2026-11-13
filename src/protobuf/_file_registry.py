@@ -71,7 +71,7 @@ if TYPE_CHECKING:
     from ._enum import Enum
     from ._extension import Extension
     from ._message import Message
-    from .wkt._gen.descriptor_pb import (
+    from .wkt.google.protobuf.descriptor_pb import (
         DescriptorProto,
         EnumDescriptorProto,
         EnumValueDescriptorProto,
@@ -260,7 +260,7 @@ def _enum_value_json_name(value_proto: EnumValueDescriptorProto) -> str | None:
     options = value_proto.options
     if not options:
         return None
-    from .wkt._gen.json_enumvalue_options_pb import ext_json  # noqa: PLC0415
+    from .wkt.google.protobuf.json_enumvalue_options_pb import ext_json  # noqa: PLC0415
 
     if ext_json not in options:
         return None

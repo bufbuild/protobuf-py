@@ -14,11 +14,9 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Self
 
 from ._const import MICROSECOND_DELTA, SECOND_AS_NANOS
-
-Self = TypeVar("Self", bound="DurationMixin")
 
 
 class DurationMixin:

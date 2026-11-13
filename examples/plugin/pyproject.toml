@@ -12,14 +12,18 @@ protoc-gen-rpc = "protoc_gen_rpc:main"
 
 [dependency-groups]
 dev = [
-  "buf-bin==1.73.0",
+  "buf-bin==1.75.0",
   "protoc-gen-py>=0.0.1",
-  "pytest==9.1.1",
+  "pytest==9.2.0",
 ]
 
 [build-system]
-requires = ["uv_build>=0.12.1,<0.13"]
+requires = ["uv_build>=0.13,<0.14"]
 build-backend = "uv_build"
+
+# Own config so the root addopts (xdist workers per marshaler implementation) do not apply.
+[tool.pytest]
+filterwarnings = ["error"]
 
 [tool.uv.build-backend]
 module-name = ["protoc_gen_rpc"]

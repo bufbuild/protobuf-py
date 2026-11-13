@@ -19,7 +19,7 @@ from typing import Literal
 
 from protobuf import Oneof, Registry
 from protobuf.txtpb import message_from_text, message_to_text
-from protobuf.wkt import (
+from protobuf.wkt.google.protobuf import (
     any_pb,
     duration_pb,
     empty_pb,

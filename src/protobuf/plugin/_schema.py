@@ -25,7 +25,7 @@ from ._ident import Module
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from protobuf.wkt import CodeGeneratorRequest
+    from protobuf.wkt.google.protobuf.compiler.plugin_pb import CodeGeneratorRequest
 
     from ._map_imports import MapImports
 

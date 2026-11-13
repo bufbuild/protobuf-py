@@ -1,0 +1,46 @@
+[project]
+name = "protobuf-py"
+version = "0.7.0"
+description = "Idiomatic Protocol Buffers for Python."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = ["protobuf"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
+  "Programming Language :: Python :: Free Threading",
+  "Topic :: File Formats",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
+# This package is the entrypoint for standard usage of protobuf-py, depending on the
+# pure Python core and native extension so the default experience is high performance,
+# idiomatic Protocol Buffers.
+dependencies = [
+  "protobuf-py-ext==0.7.0; (platform_machine == 'arm64' and platform_python_implementation == 'CPython' and sys_platform == 'darwin') or (platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (platform_machine == 'x86_64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (platform_machine == 'AMD64' and platform_python_implementation == 'CPython' and sys_platform == 'win32') or (platform_machine == 'ARM64' and platform_python_implementation == 'CPython' and sys_platform == 'win32')",
+  "protobuf-py-pure==0.7.0",
+]
+
+[project.urls]
+Documentation = "https://protobufpy.com/"
+Homepage = "https://github.com/bufbuild/protobuf-py"
+Issues = "https://github.com/bufbuild/protobuf-py/issues"
+Source = "https://github.com/bufbuild/protobuf-py"
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+# No Python modules, this is a metapackage.
+module-name = []

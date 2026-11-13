@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from ._enum import Enum
     from ._extension import Extension
     from ._message import Message
-    from .wkt._gen.descriptor_pb import (
+    from .wkt.google.protobuf.descriptor_pb import (
         DescriptorProto,
         EnumDescriptorProto,
         EnumValueDescriptorProto,

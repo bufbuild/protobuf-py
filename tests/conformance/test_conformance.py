@@ -27,9 +27,7 @@ def maybe_patch_args_with_debug(args: list[str]) -> list[str]:
     # This invokes internal methods from bundles provided by the IDE
     # and may not always work.
     try:
-        from pydevd import (  # ty: ignore[unresolved-import] - provided by IDE  # pyright: ignore[reportMissingImports] # noqa: PLC0415
-            _pydev_bundle,
-        )
+        from pydevd import _pydev_bundle  # ty: ignore[import-not-found] - provided by IDE  # pyright: ignore[reportMissingImports] # noqa: PLC0415
 
         return _pydev_bundle.pydev_monkey.patch_args(args)
     except Exception:  # noqa: BLE001
@@ -46,8 +44,13 @@ def test_conformance() -> None:
     # Workaround pydevd monkeypatching of -m invocation not being compatible
     # with Python 3.14 yet by executing a script that uses runpy itself.
     # pydevd does monkeypatch -c form correctly.
+    # The child inherits PROTOBUF_PY_TEST_IMPLEMENTATION from the xdist worker
+    # but must hide the extension itself, before importing protobuf.
     script = dedent(
         """
+        from tests._implementation import check_implementation, hide_native_extension
+        hide_native_extension()
+        check_implementation()
         import runpy
         runpy.run_module(
             'tests.conformance.conformance',

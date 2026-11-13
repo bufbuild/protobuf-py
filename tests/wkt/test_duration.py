@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 
 import pytest
 
@@ -46,14 +46,14 @@ def test_duration_to_from_nanos() -> None:
 @pytest.mark.parametrize(
     ("duration", "expected"),
     [
-        (Duration(), datetime.timedelta()),
+        (Duration(), dt.timedelta()),
         (
             Duration(seconds=818035920, nanos=123456789),
-            datetime.timedelta(seconds=818035920, microseconds=123457),
+            dt.timedelta(seconds=818035920, microseconds=123457),
         ),
     ],
 )
-def test_duration_to_delta(duration: Duration, expected: datetime.timedelta) -> None:
+def test_duration_to_delta(duration: Duration, expected: dt.timedelta) -> None:
     assert duration.to_timedelta() == expected
 
 
@@ -72,7 +72,7 @@ def test_duration_to_delta(duration: Duration, expected: datetime.timedelta) -> 
     ],
 )
 def test_duration_from_delta_micro(us: int, expected: Duration) -> None:
-    actual = Duration.from_timedelta(datetime.timedelta(microseconds=us))
+    actual = Duration.from_timedelta(dt.timedelta(microseconds=us))
     assert actual.seconds == expected.seconds
     assert actual.nanos == expected.nanos
 

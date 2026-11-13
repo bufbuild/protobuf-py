@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from protobuf.wkt import FileOptions
+from protobuf.wkt.google.protobuf.descriptor_pb import FileOptions
 from tests.gen.extensions_proto3_pb import (
     Proto3ExtMessage,
     ext_message_ext,

@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from copy import copy, deepcopy
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Self, overload
 
 from typing_extensions import Buffer, TypeVar
 
@@ -49,8 +49,6 @@ if TYPE_CHECKING:
 
     from ._registry import Registry
     from ._typing import JsonValue
-
-Self = TypeVar("Self", bound="Message")
 
 # TypeVar for making Message generic over its field names
 FieldNamesT = TypeVar("FieldNamesT", bound=str, default=Any)
@@ -114,7 +112,7 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
         _present: set[int]
         _unknown_fields: dict[int, list[bytes]] | None
 
-    def __new__(cls: type[Self], *_args: Any, **_kwargs: Any) -> Self:
+    def __new__(cls, *_args: Any, **_kwargs: Any) -> Self:
         msg = object.__new__(cls)
         object_setattr(msg, "_present", set())
         object_setattr(msg, "_unknown_fields", None)
@@ -580,7 +578,7 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
 
     @classmethod
     def from_json(
-        cls: type[Self],
+        cls,
         json: str | bytes | bytearray,
         *,
         ignore_unknown_fields: bool = False,
@@ -619,7 +617,7 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
 
     @classmethod
     def from_binary(
-        cls: type[Self],
+        cls,
         data: Buffer,
         *,
         ignore_unknown_fields: bool = False,
@@ -762,7 +760,7 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
 
     @classmethod
     def _from_json_value(
-        cls: type[Self],
+        cls,
         data: JsonValue,
         *,
         ignore_unknown_fields: bool = False,
@@ -829,7 +827,7 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
 
     @classmethod
     def __get_pydantic_core_schema__(
-        cls: type[Self], _source_type: Any, handler: GetCoreSchemaHandler
+        cls, _source_type: Any, handler: GetCoreSchemaHandler
     ) -> CoreSchema:
         from ._jsonschema import build_pydantic_core_schema  # noqa: PLC0415
 

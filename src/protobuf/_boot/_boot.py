@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from protobuf._descriptors import DescFile
     from protobuf._enum import Enum
     from protobuf._extension import Extension
-    from protobuf.wkt._gen.descriptor_pb import FileDescriptorProto
+    from protobuf.wkt.google.protobuf.descriptor_pb import FileDescriptorProto
 
 
 FieldNamesT = TypeVar("FieldNamesT", bound=str)

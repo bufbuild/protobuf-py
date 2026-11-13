@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from time import time_ns
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Self
 
 from ._const import (
     EPOCH_DATETIME,
@@ -24,8 +24,6 @@ from ._const import (
     TIMESTAMP_NANOS_MAX,
     TIMESTAMP_NANOS_MIN,
 )
-
-Self = TypeVar("Self", bound="TimestampMixin")
 
 
 class TimestampMixin:

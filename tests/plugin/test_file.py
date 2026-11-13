@@ -21,13 +21,14 @@ import pytest
 from protobuf import ScalarType
 from protobuf.plugin import File, Ident, Module
 from protobuf.plugin._file import _File, write as gen_write
-from protobuf.wkt import any_pb, timestamp_pb
+from protobuf.wkt.google.protobuf import any_pb, timestamp_pb
+from protobuf.wkt.google.protobuf.compiler import plugin_pb
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from protobuf import DescFile
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 @pytest.mark.parametrize(
@@ -442,6 +443,108 @@ def test_type_checking_nested_raises() -> None:
         pass
 
 
+def test_before_imports() -> None:
+    def write(f: File) -> None:
+        with f.before_imports():
+            f.print(Module("protobuf._codegen").ident("check_version"), '("1.0.0")')
+        f.print("x: ", Module("protobuf").ident("Message"))
+        # The block already imported check_version, so the main import
+        # section does not import it again.
+        f.print("y: ", Module("protobuf._codegen").ident("check_version"))
+        with f.type_checking():
+            f.print("z: ", Module("protobuf").ident("DescFile"))
+
+    _test_generated_file(
+        write,
+        """\
+        from __future__ import annotations
+
+        from protobuf._codegen import check_version
+
+        check_version("1.0.0")
+
+        from typing import TYPE_CHECKING
+
+        from protobuf import Message
+
+        if TYPE_CHECKING:
+            from protobuf import DescFile
+
+
+        x: Message
+        y: check_version
+        if TYPE_CHECKING:
+            z: DescFile
+        """,
+    )
+
+
+def test_before_imports_conflict() -> None:
+    def write(f: File) -> None:
+        with f.before_imports():
+            f.print(Module("a").ident("check"), "()")
+        # The block's import keeps the plain name. The conflicting import
+        # that follows it is aliased.
+        f.print("x = ", Module("b").ident("check"))
+
+    _test_generated_file(
+        write,
+        """\
+        from __future__ import annotations
+
+        from a import check
+
+        check()
+
+        from b import check as check_
+
+
+        x = check_
+        """,
+    )
+
+
+@pytest.mark.parametrize(
+    ("outer", "match"),
+    [
+        pytest.param("before_imports", "cannot be nested", id="nested"),
+        pytest.param("type_checking", "typechecking or doc", id="type_checking"),
+        pytest.param("doc", "typechecking or doc", id="doc"),
+    ],
+)
+def test_before_imports_context_raises(outer: str, match: str) -> None:
+    g = _File(
+        path="test_pb.py",
+        module=Module(".test_pb"),
+        file_to_generate=frozenset(),
+        plugin_name="test",
+        plugin_version="0.0.0",
+        parameter="",
+    )
+    with (
+        getattr(g, outer)(),
+        pytest.raises(RuntimeError, match=match),
+        g.before_imports(),
+    ):
+        pass
+
+
+def test_before_imports_type_only_raises() -> None:
+    g = _File(
+        path="test_pb.py",
+        module=Module(".test_pb"),
+        file_to_generate=frozenset(),
+        plugin_name="test",
+        plugin_version="0.0.0",
+        parameter="",
+    )
+    with (
+        g.before_imports(),
+        pytest.raises(RuntimeError, match="type-only identifiers cannot be used"),
+    ):
+        g.print(Module("protobuf").ident("DescFile", type_only=True))
+
+
 def test_write_without_preamble() -> None:
     _test_generated_file(
         lambda f: f.print("x = 1"),
@@ -663,7 +766,7 @@ class TestDescriptorImports:
 
             from protobuf import Enum, Message
             from protobuf._codegen import file_desc
-            from protobuf.wkt import any_pb, timestamp_pb
+            from protobuf.wkt.google.protobuf import any_pb, timestamp_pb
 
             from . import b_pb
             from .pkg import b_pb as b_pb_
@@ -700,6 +803,7 @@ class TestDescriptorImports:
         protobuf = Module("protobuf")
         timestamp_msg = timestamp_pb.desc().messages[0]
         any_msg = any_pb.desc().messages[0]
+        version_msg = plugin_pb.desc().messages[0]
 
         def write(f: File) -> None:
             with f.scope(
@@ -707,6 +811,7 @@ class TestDescriptorImports:
             ):
                 f.print("ts: ", timestamp_msg)
                 f.print("any: ", any_msg)
+                f.print("version: ", version_msg)
 
         _test_generated_file(
             write,
@@ -714,12 +819,15 @@ class TestDescriptorImports:
             from __future__ import annotations
 
             from protobuf import Message
-            from protobuf.wkt import Any, Timestamp
+            from protobuf.wkt.google.protobuf.any_pb import Any
+            from protobuf.wkt.google.protobuf.compiler.plugin_pb import Version
+            from protobuf.wkt.google.protobuf.timestamp_pb import Timestamp
 
 
             class Bar(Message):
                 ts: Timestamp
                 any: Any
+                version: Version
             """,
             file=_File(
                 path="test_pb.py",
@@ -788,7 +896,8 @@ class TestDescriptorImports:
             from protobuf import Message
 
             if TYPE_CHECKING:
-                from protobuf.wkt import Any, Timestamp
+                from protobuf.wkt.google.protobuf.any_pb import Any
+                from protobuf.wkt.google.protobuf.timestamp_pb import Timestamp
 
 
             class Bar(Message):
@@ -819,6 +928,9 @@ class TestDescriptorImports:
             # Generated by test-plugin v1.2.3 with parameter "target=pypy".
             # ruff: noqa: PGH004
             # ruff: noqa
+            # pyright: reportDeprecated=false
+            # ty: ignore[unused-ignore-comment]
+            # ty: ignore[deprecated, unused-ignore-comment]
             # fmt: off
 
             from __future__ import annotations

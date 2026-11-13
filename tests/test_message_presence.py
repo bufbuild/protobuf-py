@@ -25,7 +25,7 @@ import protobuf
 from tests.gen.messages_pb import MixedFieldsWithRequired
 
 if typing.TYPE_CHECKING:
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 def test_basic_presence() -> None:

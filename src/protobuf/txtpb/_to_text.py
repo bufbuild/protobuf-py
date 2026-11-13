@@ -37,7 +37,7 @@ from protobuf._wire import BinaryReader, WireType
 from protobuf._wire._binary_reader import DEPTH_LIMIT
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
     from protobuf._descriptors import DescExtension
     from protobuf._message import Message
@@ -77,7 +77,7 @@ class _TextWriter:
         self._chunks.append(f"{_INDENT * self._depth}{name}: {value}\n")
 
     @contextmanager
-    def open_message(self, name: str) -> Iterator[None]:
+    def open_message(self, name: str) -> Generator[None]:
         """Enters a message field and indents the body.
 
         Exiting will close the message, inline if no fields were written.

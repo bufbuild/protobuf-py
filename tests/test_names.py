@@ -20,7 +20,7 @@ import pytest
 from protobuf._names import proto_camel_case, proto_snake_case
 
 if TYPE_CHECKING:
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 
 @pytest.mark.parametrize(

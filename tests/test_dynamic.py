@@ -29,7 +29,7 @@ from protobuf.wkt._mixin import (
 )
 
 if TYPE_CHECKING:
-    from tests.conftest import Protoc
+    from tests._protoc import Protoc
 
 MESSAGE_PROTO = """\
 edition = "2023";
