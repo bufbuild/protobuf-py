@@ -140,6 +140,16 @@ def test_enum_closed() -> None:
         ClosedColor(123)
 
 
+def test_unknown_value_holds_no_attributes() -> None:
+    unknown = Color(99)
+    assert vars(unknown) == {}
+    assert unknown.name is None
+    assert unknown.value == 99
+
+    # Members still hold their own value.
+    assert vars(Color.RED)["_value_"] == 1
+
+
 def test_enum_is_unknown() -> None:
     # Known enum values should not be unknown
     assert not enum_is_unknown(Color.UNSPECIFIED)
