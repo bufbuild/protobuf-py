@@ -546,7 +546,7 @@ def test_from_json_repeated_scalar_error(
         Lists.from_json(json.dumps(json_obj))
 
 
-@pytest.mark.parametrize("value", [True, "NONEXISTENT", {}, []])
+@pytest.mark.parametrize("value", [True, "NONEXISTENT", {}, [], 2**31, -(2**31) - 1])
 def test_from_json_singular_enum_error(value: Any) -> None:
     with pytest.raises(ValueError, match="cannot decode"):
         EnumMessage.from_json(json.dumps({"colorField": value}))
@@ -619,6 +619,9 @@ def test_from_json_repeated_message_error(
             ValueError,
             "invalid integer value",
         ),
+        ({"int32ToInt32": {"2147483648": 0}}, OverflowError, "out of range for int32"),
+        ({"uint32ToUint32": {"-1": 0}}, OverflowError, "out of range for uint32"),
+        ({"int32ToEnum": {"1": 2147483648}}, ValueError, "cannot decode"),
     ],
 )
 def test_from_json_map_error(

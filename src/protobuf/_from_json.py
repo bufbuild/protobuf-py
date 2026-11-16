@@ -397,6 +397,9 @@ def _read_enum(
     if not isinstance(json, bool) and isinstance(
         json, int
     ):  # isinstance(bool_value, int) is True
+        if not INT32_MIN <= json < INT32_MAX:
+            msg = f"cannot decode {desc.type_name} from JSON: {json}"
+            raise ValueError(msg)
         if value := desc._values_by_number.get(json):
             return desc.type(value.number)
         if ignore_unknown_fields:
