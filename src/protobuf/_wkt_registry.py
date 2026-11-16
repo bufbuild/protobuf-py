@@ -26,7 +26,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, TypeAlias, cast
 
-from ._budget import BYTES_OVERHEAD, INT_SIZE, LIST_SLOT_SIZE, STR_OVERHEAD
+from ._budget import BYTES_OVERHEAD, INT_SIZE, LIST_SLOT_SIZE
 from ._descriptors import (
     DescEnum,
     DescField,
@@ -257,7 +257,7 @@ class WktAny:
             del json["@type"]
             _read_message(message, json, opts)
         any_ = Any.pack(message)
-        opts.budget.charge(STR_OVERHEAD + len(any_.type_url))
+        opts.budget.charge_str(any_.type_url)
         opts.budget.charge(BYTES_OVERHEAD + len(any_.value))
         value.type_url = any_.type_url
         value.value = any_.value
@@ -299,8 +299,10 @@ class WktFieldMask:
             if "_" in path:
                 err = f"cannot decode {value._desc.type_name} from JSON: path names must be lowerCamelCase"
                 raise ValueError(err)
-            opts.budget.charge(STR_OVERHEAD + len(path) + LIST_SLOT_SIZE)
-            value.paths.append(proto_snake_case(path))
+            path = proto_snake_case(path)  # noqa: PLW2901
+            opts.budget.charge_str(path)
+            opts.budget.charge(LIST_SLOT_SIZE)
+            value.paths.append(path)
         return True
 
     def mixin(self) -> type | None:

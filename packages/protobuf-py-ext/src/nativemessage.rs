@@ -13,7 +13,7 @@ use pyo3::{
 use crate::{
     attribute_access::generic_setattr,
     bitset::BitSet,
-    budget::Budget,
+    budget::{Budget, with_budget},
     buffer::Buffer,
     constants::Constants,
     json_parse::{FromJsonOpts, merge_from_json, read_message_from_tree},
@@ -113,12 +113,13 @@ impl NativeMessage {
         let constants = Constants::get(py)?;
         let marshaler_any = cls.getattr(&constants.ext_marshaler)?;
         let marshaler = marshaler_any.cast::<MessageMarshaler>()?.get();
-        let mut budget = Budget::new(allocation_limit);
-        budget.charge(marshaler.alloc_size)?;
-        let message = marshaler.new_empty_message(py, cls)?;
-        let slf = message.cast::<NativeMessage>()?;
-        marshaler.merge_from_binary(py, slf, data, ignore_unknown_fields, &mut budget)?;
-        Ok(message)
+        with_budget!(allocation_limit, |budget| {
+            budget.charge(marshaler.alloc_size)?;
+            let message = marshaler.new_empty_message(py, cls)?;
+            let slf = message.cast::<NativeMessage>()?;
+            marshaler.merge_from_binary(py, slf, data, ignore_unknown_fields, budget)?;
+            Ok(message)
+        })
     }
 
     #[pyo3(signature = (*, write_unknown_fields = true))]
@@ -162,19 +163,20 @@ impl NativeMessage {
         let constants = Constants::get(py)?;
         let marshaler_any = cls.getattr(&constants.ext_marshaler)?;
         let marshaler = marshaler_any.cast::<MessageMarshaler>()?.get().clone();
-        let mut budget = Budget::new(allocation_limit);
-        budget.charge(marshaler.alloc_size)?;
-        let message = marshaler.new_empty_message(py, cls)?;
-        parse_json_into(
-            py,
-            &marshaler,
-            &message,
-            json,
-            ignore_unknown_fields,
-            registry,
-            &mut budget,
-        )?;
-        Ok(message)
+        with_budget!(allocation_limit, |budget| {
+            budget.charge(marshaler.alloc_size)?;
+            let message = marshaler.new_empty_message(py, cls)?;
+            parse_json_into(
+                py,
+                &marshaler,
+                &message,
+                json,
+                ignore_unknown_fields,
+                registry,
+                budget,
+            )?;
+            Ok(message)
+        })
     }
 
     #[pyo3(signature = (json, *, ignore_unknown_fields = false, registry = None, allocation_limit = None))]
@@ -187,17 +189,18 @@ impl NativeMessage {
         allocation_limit: Option<usize>,
     ) -> PyResult<()> {
         let marshaler = NativeMessage::get_marshaler(slf)?;
-        let mut budget = Budget::new(allocation_limit);
-        budget.charge(marshaler.alloc_size)?;
-        parse_json_into(
-            py,
-            &marshaler,
-            slf,
-            json,
-            ignore_unknown_fields,
-            registry,
-            &mut budget,
-        )
+        with_budget!(allocation_limit, |budget| {
+            budget.charge(marshaler.alloc_size)?;
+            parse_json_into(
+                py,
+                &marshaler,
+                slf,
+                json,
+                ignore_unknown_fields,
+                registry,
+                budget,
+            )
+        })
     }
 
     #[pyo3(signature = (*, registry = None, always_emit_implicit = false, print_enums_as_ints = false, use_proto_field_name = false))]
@@ -234,15 +237,16 @@ impl NativeMessage {
         let constants = Constants::get(py)?;
         let marshaler_any = cls.getattr(&constants.ext_marshaler)?;
         let marshaler = marshaler_any.cast::<MessageMarshaler>()?.get().clone();
-        let mut budget = Budget::new(allocation_limit);
-        budget.charge(marshaler.alloc_size)?;
-        let message = marshaler.new_empty_message(py, cls)?;
-        let opts = FromJsonOpts {
-            ignore_unknown_fields,
-            registry,
-        };
-        read_message_from_tree(py, &marshaler, &message, data, &opts, &mut budget)?;
-        Ok(message)
+        with_budget!(allocation_limit, |budget| {
+            budget.charge(marshaler.alloc_size)?;
+            let message = marshaler.new_empty_message(py, cls)?;
+            let opts = FromJsonOpts {
+                ignore_unknown_fields,
+                registry,
+            };
+            read_message_from_tree(py, &marshaler, &message, data, &opts, budget)?;
+            Ok(message)
+        })
     }
 
     fn __setattr__(
@@ -296,9 +300,10 @@ impl NativeMessage {
     ) -> PyResult<()> {
         let data = data.into_inner();
         let marshaler = NativeMessage::get_marshaler(slf)?;
-        let mut budget = Budget::new(allocation_limit);
-        budget.charge(marshaler.alloc_size)?;
-        marshaler.merge_from_binary(py, slf, data, ignore_unknown_fields, &mut budget)
+        with_budget!(allocation_limit, |budget| {
+            budget.charge(marshaler.alloc_size)?;
+            marshaler.merge_from_binary(py, slf, data, ignore_unknown_fields, budget)
+        })
     }
 
     fn __deepcopy__<'py>(
@@ -541,7 +546,7 @@ fn parse_json_into<'py>(
     json: &Bound<'py, PyAny>,
     ignore_unknown_fields: bool,
     registry: Option<Py<PyAny>>,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<()> {
     let opts = FromJsonOpts {
         ignore_unknown_fields,

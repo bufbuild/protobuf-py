@@ -22,13 +22,15 @@ from typing_extensions import Buffer, assert_never
 from ._budget import (
     BYTES_OVERHEAD,
     DICT_ENTRY_SIZE,
+    EMPTY_DICT_SIZE,
+    EMPTY_LIST_SIZE,
     FLOAT_SIZE,
     GC_HEAD_SIZE,
     INT_SIZE,
     LIST_SLOT_SIZE,
     ONEOF_SIZE,
-    STR_OVERHEAD,
     Budget,
+    NoopBudget,
 )
 from ._descriptors import (
     DescEnum,
@@ -63,7 +65,7 @@ class FromBinaryOptions:
     """
 
     ignore_unknown_fields: bool = False
-    budget: Budget = field(default_factory=Budget)
+    budget: Budget = field(default_factory=NoopBudget)
 
 
 # Dispatch table for reading scalar values. CPython currently does not generate
@@ -120,8 +122,12 @@ _SCALAR_CHARGES = (
 def read_scalar(scalar_type: ScalarType, reader: BinaryReader, budget: Budget) -> Any:
     if scalar_type == ScalarType.STRING:
         length = reader.varint()
-        budget.charge(STR_OVERHEAD + length)
-        return str(reader.read(length), "utf-8")
+        # The size of a str is only known once decoded, so the least it can
+        # be is charged before and the rest after.
+        budget.charge_str_encoded(length)
+        value = str(reader.read(length), "utf-8")
+        budget.charge_str_decoded(value, length)
+        return value
     if scalar_type == ScalarType.BYTES:
         length = reader.varint()
         budget.charge(BYTES_OVERHEAD + length)
@@ -144,6 +150,30 @@ def _encode_varint(value: int) -> bytes:
         value >>= 7
     result.append(value)
     return bytes(result)
+
+
+def _append_unknown_field(
+    message: Message,
+    field_number: int,
+    key_raw: bytes,
+    value_raw: bytes | memoryview,
+    budget: Budget,
+) -> None:
+    """Records a raw field in the message's unknown fields, charging for it."""
+    unknown_fields = message._unknown_fields
+    if unknown_fields is None:
+        budget.charge(EMPTY_DICT_SIZE)
+        unknown_fields = message._get_or_init_unknown_fields()
+    fields = unknown_fields.get(field_number)
+    if fields is None:
+        # The list and the dict entry holding it, plus the key unless it is
+        # one of the small ints that are shared singletons.
+        if field_number > 256:
+            budget.charge(INT_SIZE)
+        budget.charge(EMPTY_LIST_SIZE + DICT_ENTRY_SIZE)
+        fields = unknown_fields[field_number] = []
+    budget.charge(BYTES_OVERHEAD + len(key_raw) + len(value_raw) + LIST_SLOT_SIZE)
+    fields.append(key_raw + bytes(value_raw))
 
 
 def read_message(
@@ -176,12 +206,8 @@ def read_message(
             field_raw = reader.skip(tag.wire_type, depth + 1, field_number=tag.number)
             if not opts.ignore_unknown_fields:
                 key_raw = _encode_varint((tag.number << 3) | tag.wire_type)
-                budget = opts.budget
-                budget.charge(
-                    BYTES_OVERHEAD + len(key_raw) + len(field_raw) + LIST_SLOT_SIZE
-                )
-                message._get_or_init_unknown_fields().setdefault(tag.number, []).append(
-                    key_raw + bytes(field_raw)
+                _append_unknown_field(
+                    message, tag.number, key_raw, field_raw, opts.budget
                 )
             continue
 
@@ -266,12 +292,8 @@ def read_list(
         field_bytes = reader.skip(wire_type, depth + 1, field_number=field_number)
         if not opts.ignore_unknown_fields and message:
             key_raw = _encode_varint((field_number << 3) | wire_type)
-            budget = opts.budget
-            budget.charge(
-                BYTES_OVERHEAD + len(key_raw) + len(field_bytes) + LIST_SLOT_SIZE
-            )
-            message._get_or_init_unknown_fields().setdefault(field_number, []).append(
-                key_raw + bytes(field_bytes)
+            _append_unknown_field(
+                message, field_number, key_raw, field_bytes, opts.budget
             )
         return
 
@@ -351,11 +373,7 @@ def _write_unknown_enum_field(
     writer = BinaryWriter()
     writer.tag(field_number, WireType.VARINT)
     writer.int32(value)
-    field_bytes = writer.finish()
-    budget.charge(BYTES_OVERHEAD + len(field_bytes) + LIST_SLOT_SIZE)
-    message._get_or_init_unknown_fields().setdefault(field_number, []).append(
-        field_bytes
-    )
+    _append_unknown_field(message, field_number, writer.finish(), b"", budget)
 
 
 def read_map_entry(
@@ -448,11 +466,7 @@ def _read_unknown_map_entry(
     )
     if not opts.ignore_unknown_fields and message:
         key_raw = _encode_varint((field_number << 3) | WireType.LENGTH_DELIMITED)
-        budget = opts.budget
-        budget.charge(BYTES_OVERHEAD + len(key_raw) + len(entry_bytes) + LIST_SLOT_SIZE)
-        message._get_or_init_unknown_fields().setdefault(field_number, []).append(
-            key_raw + bytes(entry_bytes)
-        )
+        _append_unknown_field(message, field_number, key_raw, entry_bytes, opts.budget)
 
 
 def merge_from_binary(

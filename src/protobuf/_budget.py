@@ -14,8 +14,8 @@
 
 from __future__ import annotations
 
-import sys
-from typing import TYPE_CHECKING, cast
+import re
+from typing import TYPE_CHECKING, Protocol, cast
 
 from ._descriptors import DescMessage, ScalarType
 
@@ -38,7 +38,7 @@ FLOAT_SIZE = 24
 INT_SIZE = 36
 """A 64-bit int object. Smaller ints are slightly smaller."""
 STR_OVERHEAD = 41
-"""Header of a compact ASCII str; the length is charged on top."""
+"""Header of an ASCII str; the length is added on top."""
 BYTES_OVERHEAD = 33
 """Header of a bytes object."""
 EMPTY_LIST_SIZE = 56
@@ -51,6 +51,26 @@ DICT_ENTRY_SIZE = 40
 """One inserted dict entry: hash + key + value words plus growth slack."""
 ONEOF_SIZE = 32
 """A Oneof wrapper object: object header plus two references."""
+
+# A str stores every character at the width of its widest one, with a header
+# (including the trailing NUL) that depends on that width.
+_STR_LATIN1_OVERHEAD = 57
+_STR_UCS2_OVERHEAD = 58
+_STR_UCS4_OVERHEAD = 60
+_UCS2_OR_WIDER = re.compile("[\u0100-\U0010ffff]")
+_UCS4 = re.compile("[\U00010000-\U0010ffff]")
+
+
+def str_size(value: str) -> int:
+    """The size of a str."""
+    length = len(value)
+    if value.isascii():
+        return STR_OVERHEAD + length
+    if _UCS4.search(value):
+        return _STR_UCS4_OVERHEAD + 4 * length
+    if _UCS2_OR_WIDER.search(value):
+        return _STR_UCS2_OVERHEAD + 2 * length
+    return _STR_LATIN1_OVERHEAD + length
 
 
 def _instance_size(message_type: type) -> int:
@@ -82,17 +102,47 @@ def _message_alloc_size(desc: DescMessage) -> int:
     return size
 
 
-class Budget:
-    """Tracks approximate allocations while parsing a message.
+class Budget(Protocol):
+    """Accounts for the allocations made while parsing a message."""
 
-    Raises an error once the configured limit is exceeded.
-    """
+    def charge(self, amount: int) -> None:
+        """Charges the given number of bytes."""
+        ...
+
+    def charge_str(self, value: str) -> None:
+        """Charges for a str."""
+        ...
+
+    def charge_str_encoded(self, length: int) -> None:
+        """Charges the least a str decoded from UTF-8 of the given length can be.
+
+        A str is stored at the width of its widest character, which is only
+        known once decoded. The least is where every character takes two bytes
+        of UTF-8 and one in the str.
+        """
+        ...
+
+    def charge_str_decoded(self, value: str, length: int) -> None:
+        """Charges the rest of a str after charge_str_encoded for its UTF-8 length."""
+        ...
+
+    def charge_scalar(self, scalar_type: ScalarType, value: object) -> None:
+        """Charges for one parsed scalar value of the given type."""
+        ...
+
+    def charge_message(self, desc: DescMessage) -> None:
+        """Charges the base size of a new instance of the message type."""
+        ...
+
+
+class TrackingBudget:
+    """Tracks approximate allocations, raising an error once a limit is exceeded."""
 
     __slots__ = ("current", "max")
 
-    def __init__(self, limit: int | None = None) -> None:
+    def __init__(self, limit: int) -> None:
         self.current = 0
-        self.max = sys.maxsize if limit is None else limit
+        self.max = limit
 
     def charge(self, amount: int) -> None:
         self.current += amount
@@ -100,10 +150,18 @@ class Budget:
             msg = f"allocation budget exceeded: needed {self.current} bytes, limit is {self.max}"
             raise ValueError(msg)
 
+    def charge_str(self, value: str) -> None:
+        self.charge(str_size(value))
+
+    def charge_str_encoded(self, length: int) -> None:
+        self.charge(STR_OVERHEAD + length // 2)
+
+    def charge_str_decoded(self, value: str, length: int) -> None:
+        self.charge(str_size(value) - (STR_OVERHEAD + length // 2))
+
     def charge_scalar(self, scalar_type: ScalarType, value: object) -> None:
-        """Charges for one parsed scalar value of the given type."""
         if scalar_type == ScalarType.STRING:
-            self.charge(STR_OVERHEAD + len(cast("Sized", value)))
+            self.charge(str_size(cast("str", value)))
         elif scalar_type == ScalarType.BYTES:
             self.charge(BYTES_OVERHEAD + len(cast("Sized", value)))
         elif scalar_type == ScalarType.BOOL:
@@ -115,9 +173,37 @@ class Budget:
             self.charge(INT_SIZE)
 
     def charge_message(self, desc: DescMessage) -> None:
-        """Charges the base size of a new instance of the message type."""
         size = desc._alloc_size
         if size is None:
             size = _message_alloc_size(desc)
             object.__setattr__(desc, "_alloc_size", size)
         self.charge(size)
+
+
+class NoopBudget:
+    """Does no accounting, for parsing without an allocation limit."""
+
+    __slots__ = ()
+
+    def charge(self, amount: int) -> None:
+        pass
+
+    def charge_str(self, value: str) -> None:
+        pass
+
+    def charge_str_encoded(self, length: int) -> None:
+        pass
+
+    def charge_str_decoded(self, value: str, length: int) -> None:
+        pass
+
+    def charge_scalar(self, scalar_type: ScalarType, value: object) -> None:
+        pass
+
+    def charge_message(self, desc: DescMessage) -> None:
+        pass
+
+
+def new_budget(limit: int | None) -> Budget:
+    """Returns the budget for an optional allocation limit."""
+    return NoopBudget() if limit is None else TrackingBudget(limit)

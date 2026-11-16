@@ -261,7 +261,7 @@ impl FieldParser {
         buffer: &mut Bytes,
         opts: FromBinaryOpts,
         depth: usize,
-        budget: &mut Budget,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         match &self.type_ {
             ParserFieldType::Singular {
@@ -328,7 +328,7 @@ impl FieldParser {
         depth: usize,
         oneof_attr: Option<&AttributeAccess>,
         requires_presence: bool,
-        budget: &mut Budget,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         let value = self.read_single_value(
             py,
@@ -392,7 +392,7 @@ impl FieldParser {
         depth: usize,
         unpacked_wire_type: WireType,
         packable: bool,
-        budget: &mut Budget,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         let python_list = self.attr.get(py, message)?;
         let list = python_list.cast::<PyList>()?;
@@ -469,7 +469,7 @@ impl FieldParser {
         value_parser: &FieldParser,
         key_default_value: &Py<PyAny>,
         value_default_value: &Py<PyAny>,
-        budget: &mut Budget,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         let len = decode_varint(buffer).map_err(map_varint_err)? as usize;
         check_buffer_remaining(buffer, len)?;
@@ -576,7 +576,7 @@ impl FieldParser {
         tag: u32,
         entry_bytes: &[u8],
         opts: FromBinaryOpts,
-        budget: &mut Budget,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         if !opts.ignore_unknown_fields {
             let mut field_bytes = BytesMut::new();
@@ -598,7 +598,7 @@ impl FieldParser {
         buffer: &mut Bytes,
         opts: FromBinaryOpts,
         depth: usize,
-        budget: &mut Budget,
+        budget: &mut impl Budget,
     ) -> PyResult<SingleValue<'py>> {
         let value = match &self.value {
             FieldParserValue::Scalar(scalar_type) => read_scalar(py, *scalar_type, buffer, budget)?,
@@ -746,7 +746,7 @@ impl MessageParser {
         buffer: &mut Bytes,
         opts: FromBinaryOpts,
         depth: usize,
-        budget: &mut Budget,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         check_parse_recursion_depth(depth)?;
         while buffer.has_remaining() {
@@ -784,7 +784,7 @@ fn read_scalar<'py>(
     py: Python<'py>,
     s: ScalarType,
     buffer: &mut Bytes,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<Bound<'py, PyAny>> {
     match s {
         ScalarType::Double | ScalarType::Float => budget.charge(budget::FLOAT_SIZE)?,
@@ -837,7 +837,7 @@ fn read_scalar<'py>(
         ScalarType::String => {
             let len = decode_varint(buffer).map_err(map_varint_err)? as usize;
             check_buffer_remaining(buffer, len)?;
-            budget.charge(budget::STR_OVERHEAD + len)?;
+            budget.charge_str(&buffer[..len])?;
             let bytes = buffer.split_to(len);
             PyString::from_bytes(py, &bytes)?.into_any()
         }
@@ -968,20 +968,27 @@ fn write_unknown_field(
     message: &Bound<'_, NativeMessage>,
     field_number: u32,
     field_bytes: &[u8],
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<()> {
-    // The bytes copy plus the list slot holding it. The dict/list created for
-    // the first unknown field of a number are not charged for simplicity.
-    budget.charge(budget::BYTES_OVERHEAD + field_bytes.len() + budget::LIST_SLOT_SIZE)?;
+    if message.get().unknown_fields(py).is_none() {
+        budget.charge(budget::EMPTY_DICT_SIZE)?;
+    }
     let unknown_fields_unbound = message.get().get_or_init_unknown_fields(py);
     let unknown_fields = unknown_fields_unbound.bind(py);
     let field_list = if let Ok(list) = unknown_fields.get_item(field_number) {
         list.cast::<PyList>()?.clone()
     } else {
+        // The list and the dict entry holding it, plus the key unless it is
+        // one of the small ints that are shared singletons.
+        if field_number > 256 {
+            budget.charge(budget::INT_SIZE)?;
+        }
+        budget.charge(budget::EMPTY_LIST_SIZE + budget::DICT_ENTRY_SIZE)?;
         let new_list = PyList::empty(py);
         unknown_fields.set_item(field_number, &new_list)?;
         new_list
     };
+    budget.charge(budget::BYTES_OVERHEAD + field_bytes.len() + budget::LIST_SLOT_SIZE)?;
     field_list.append(PyBytes::new(py, field_bytes))?;
     Ok(())
 }

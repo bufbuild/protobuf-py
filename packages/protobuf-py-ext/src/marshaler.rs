@@ -239,7 +239,7 @@ impl MessageMarshaler {
         message: &Bound<'_, NativeMessage>,
         mut data: Bytes,
         ignore_unknown_fields: bool,
-        budget: &mut Budget,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         self.inner.parser.merge_from_binary(
             py,

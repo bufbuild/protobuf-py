@@ -54,7 +54,7 @@ pub(crate) fn merge_from_json<'py>(
     message: &Bound<'py, NativeMessage>,
     data: &[u8],
     opts: &FromJsonOpts,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<()> {
     let mut src = JiterSource::new(py, data);
     read_message(marshaler, message, &mut src, opts, 0, budget)?;
@@ -68,7 +68,7 @@ pub(crate) fn read_message_from_tree<'py>(
     message: &Bound<'py, NativeMessage>,
     tree: Bound<'py, PyAny>,
     opts: &FromJsonOpts,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<()> {
     let mut src = PyTreeSource::new(py, tree);
     read_message(marshaler, message, &mut src, opts, 0, budget)
@@ -83,7 +83,7 @@ pub(crate) fn read_message<'py, R: JsonSource<'py>>(
     src: &mut R,
     opts: &FromJsonOpts,
     depth: usize,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<()> {
     if depth > DEPTH_LIMIT {
         return Err(pyo3::exceptions::PyRecursionError::new_err(format!(
@@ -102,7 +102,7 @@ fn read_generic_object<'py, R: JsonSource<'py>>(
     src: &mut R,
     opts: &FromJsonOpts,
     depth: usize,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<()> {
     let py = src.py();
     if src.peek()? != JsonKind::Object {
@@ -183,7 +183,7 @@ fn read_field<'py, R: JsonSource<'py>>(
     src: &mut R,
     opts: &FromJsonOpts,
     depth: usize,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<()> {
     match &parser.type_ {
         ParserFieldType::Singular {
@@ -231,7 +231,7 @@ fn read_singular<'py, R: JsonSource<'py>>(
     depth: usize,
     oneof_attr: Option<&crate::attribute_access::AttributeAccess>,
     requires_presence: bool,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<()> {
     let py = src.py();
     match &parser.value {
@@ -335,7 +335,7 @@ fn read_list<'py, R: JsonSource<'py>>(
     src: &mut R,
     opts: &FromJsonOpts,
     depth: usize,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<()> {
     let py = src.py();
     let name = parser.name.bind(py);
@@ -379,7 +379,7 @@ fn read_map<'py, R: JsonSource<'py>>(
     depth: usize,
     key_type: ScalarType,
     value_parser: &FieldParser,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<()> {
     let py = src.py();
     let name = parser.name.bind(py);
@@ -423,7 +423,7 @@ fn read_container_item<'py, R: JsonSource<'py>>(
     opts: &FromJsonOpts,
     depth: usize,
     is_map: bool,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<Option<Bound<'py, PyAny>>> {
     let py = src.py();
     let is_null = src.peek()? == JsonKind::Null;
@@ -466,7 +466,7 @@ fn read_map_key<'py>(
     ctx: &FieldContext<'_, 'py>,
     key_type: ScalarType,
     raw_key: &str,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<Bound<'py, PyAny>> {
     match key_type {
         ScalarType::Bool => match raw_key {
@@ -478,7 +478,7 @@ fn read_map_key<'py>(
             )),
         },
         ScalarType::String => {
-            budget.charge(budget::STR_OVERHEAD + raw_key.chars().count())?;
+            budget.charge_str(raw_key.as_bytes())?;
             Ok(PyString::new(py, raw_key).into_any())
         }
         _ => {
@@ -493,7 +493,7 @@ pub(crate) fn read_scalar<'py, R: JsonSource<'py>>(
     ctx: &FieldContext<'_, 'py>,
     src: &mut R,
     scalar: ScalarType,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<Bound<'py, PyAny>> {
     let py = src.py();
     match scalar {
@@ -520,12 +520,7 @@ pub(crate) fn read_scalar<'py, R: JsonSource<'py>>(
             budget.charge(budget::FLOAT_SIZE)?;
             Ok(PyFloat::new(py, value).into_any())
         }
-        ScalarType::String => {
-            let value = read_string(ctx, src, budget)?;
-            // Character count approximates the payload size.
-            budget.charge(budget::STR_OVERHEAD + value.len()?)?;
-            Ok(value.into_any())
-        }
+        ScalarType::String => Ok(read_string(ctx, src, budget)?.into_any()),
         ScalarType::Bytes => read_bytes(ctx, src, budget),
         _ => {
             budget.charge(budget::INT_SIZE)?;
@@ -537,7 +532,7 @@ pub(crate) fn read_scalar<'py, R: JsonSource<'py>>(
 fn read_string<'py, R: JsonSource<'py>>(
     ctx: &FieldContext<'_, 'py>,
     src: &mut R,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<Bound<'py, PyString>> {
     if src.peek()? != JsonKind::String {
         let value = read_json_value(src, budget)?;
@@ -546,13 +541,13 @@ fn read_string<'py, R: JsonSource<'py>>(
             Exc::Type,
         ));
     }
-    src.next_py_str()
+    src.next_py_str(budget)
 }
 
 fn read_bytes<'py, R: JsonSource<'py>>(
     ctx: &FieldContext<'_, 'py>,
     src: &mut R,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<Bound<'py, PyAny>> {
     let py = src.py();
     if src.peek()? != JsonKind::String {
@@ -598,7 +593,7 @@ fn base64_url_safe() -> base64::engine::GeneralPurpose {
 fn parse_float<'py, R: JsonSource<'py>>(
     ctx: &FieldContext<'_, 'py>,
     src: &mut R,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<f64> {
     match src.peek()? {
         JsonKind::Number => {
@@ -642,7 +637,7 @@ fn read_int<'py, R: JsonSource<'py>>(
     ctx: &FieldContext<'_, 'py>,
     src: &mut R,
     int_type: ScalarType,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<Bound<'py, PyAny>> {
     let py = src.py();
     let value = match src.peek()? {
@@ -745,7 +740,7 @@ fn read_enum<'py, R: JsonSource<'py>>(
     enum_desc: &DescEnum,
     src: &mut R,
     opts: &FromJsonOpts,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<Option<Bound<'py, PyAny>>> {
     let py = src.py();
     match src.peek()? {
@@ -817,7 +812,7 @@ fn handle_unknown_key<'py, R: JsonSource<'py>>(
     src: &mut R,
     opts: &FromJsonOpts,
     depth: usize,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<()> {
     let py = src.py();
     if raw_key.starts_with('[')
@@ -858,7 +853,7 @@ fn read_extension<'py, R: JsonSource<'py>>(
     src: &mut R,
     opts: &FromJsonOpts,
     depth: usize,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<()> {
     let py = src.py();
     let ext_type = extension.getattr(&marshaler.constants.type_)?;
@@ -944,7 +939,7 @@ fn read_extension<'py, R: JsonSource<'py>>(
 /// Materializes the next JSON value as a Python object.
 pub(crate) fn read_json_value<'py, R: JsonSource<'py>>(
     src: &mut R,
-    budget: &mut Budget,
+    budget: &mut impl Budget,
 ) -> PyResult<Bound<'py, PyAny>> {
     let py = src.py();
     match src.peek()? {
@@ -957,11 +952,7 @@ pub(crate) fn read_json_value<'py, R: JsonSource<'py>>(
             budget.charge(budget::INT_SIZE)?;
             src.next_number()
         }
-        JsonKind::String => {
-            let value = src.next_py_str()?;
-            budget.charge(budget::STR_OVERHEAD + value.len()?)?;
-            Ok(value.into_any())
-        }
+        JsonKind::String => Ok(src.next_py_str(budget)?.into_any()),
         JsonKind::Array => {
             budget.charge(budget::EMPTY_LIST_SIZE)?;
             let list = PyList::empty(py);
@@ -978,8 +969,8 @@ pub(crate) fn read_json_value<'py, R: JsonSource<'py>>(
             let dict = PyDict::new(py);
             src.for_each_object_key(|key, src| {
                 let value = read_json_value(src, budget)?;
-                budget
-                    .charge(budget::DICT_ENTRY_SIZE + budget::STR_OVERHEAD + key.chars().count())?;
+                budget.charge_str(key.as_bytes())?;
+                budget.charge(budget::DICT_ENTRY_SIZE)?;
                 dict.set_item(PyString::new(py, key), value)?;
                 Ok(())
             })?;

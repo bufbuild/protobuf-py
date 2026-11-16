@@ -50,15 +50,15 @@ repeated fields of message type with a large number of fields.
 You can mitigate this using the `allocation_limit` option in `from_binary`. When set, an estimate of the
 memory usage of a message is maintained while it is parsed, and if it goes over the limit, the parse fails
 immediately before processing the entire payload. The limit is based on the schema and content, not the environment,
-i.e., it charges a value for a string field based on the number of characters with a fixed overhead for a Python
-string. The overhead can change between Python versions, so the allocation budget should not be considered
-a precise value. Such changes are generally relatively small and fixed so an allocation limit determined for
-one environment should generally work fine when i.e., updating Python.
+i.e., each value is charged what it occupies on a current 64-bit CPython. A string is charged its characters at
+the width Python stores them, which depends on the widest character in the string, plus the fixed overhead of a
+Python string. These sizes can change between Python versions and builds, so the allocation budget should not be
+considered a precise value. Such changes are generally relatively small and fixed so an allocation limit determined
+for one environment should generally work fine when i.e., updating Python.
 
 The allocation budget is an upper bound, so it is possible that a message that would be under the limit is
-rejected. For example, when parsing binary the string is charged with the number of utf8 bytes in the payload.
-For ASCII strings, this will be the precise number, but for i.e. certain CJK characters, it overcharges by
-~30%.
+rejected. For example, every integer is charged the size of a 64-bit value, though smaller values take up to
+8 bytes less and very small ones are shared by Python and take nothing.
 
 It is recommended to set an allocation limit for applications parsing untrusted payloads based on your target
 memory usage. You may need to experiment with values to see the effective memory utilization due to potential

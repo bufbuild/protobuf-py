@@ -29,8 +29,8 @@ from ._budget import (
     INT_SIZE,
     LIST_SLOT_SIZE,
     ONEOF_SIZE,
-    STR_OVERHEAD,
     Budget,
+    NoopBudget,
 )
 from ._descriptors import (
     DescEnum,
@@ -81,7 +81,7 @@ class FromJsonOptions:
     registry: Registry | None
     depth: int = 0
     """Current message nesting depth. Mutated during a parse."""
-    budget: Budget = field(default_factory=Budget)
+    budget: Budget = field(default_factory=NoopBudget)
     """Allocation budget shared across the whole parse. Unlimited by default."""
 
 
@@ -402,7 +402,7 @@ def _read_map_key(
             raise _field_error(field, f"unexpected bool map key value {json}")
         case ScalarType.STRING:
             key = _read_string(field, json)
-            budget.charge(STR_OVERHEAD + len(key))
+            budget.charge_str(key)
             return key
         case (
             ScalarType.DOUBLE | ScalarType.FLOAT | ScalarType.BYTES
@@ -672,7 +672,8 @@ def _struct_from_json(
         budget.charge_message(value_desc)
         val = cast("Value", value_desc.type())
         _value_from_json(val, v, opts, value_wkt)
-        budget.charge(DICT_ENTRY_SIZE + STR_OVERHEAD + len(k))
+        budget.charge_str(k)
+        budget.charge(DICT_ENTRY_SIZE)
         msg.fields[k] = val
 
 
@@ -723,7 +724,7 @@ def _value_from_json_inner(
             budget.charge(FLOAT_SIZE)
             msg.kind = Oneof("number_value", float(json))
         case str():
-            budget.charge(STR_OVERHEAD + len(json))
+            budget.charge_str(json)
             msg.kind = Oneof("string_value", json)
         case list():
             budget.charge_message(wkt.list_value.message)
