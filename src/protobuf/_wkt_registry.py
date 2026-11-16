@@ -26,7 +26,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, TypeAlias, cast
 
-from ._budget import BYTES_OVERHEAD, INT_SIZE, LIST_SLOT_SIZE
 from ._descriptors import (
     DescEnum,
     DescField,
@@ -129,7 +128,8 @@ class WktTimestamp:
                 " 0001-01-01T00:00:00Z to 9999-12-31T23:59:59Z inclusive"
             )
             raise ValueError(err)
-        opts.budget.charge(2 * INT_SIZE)
+        opts.budget.charge_int()
+        opts.budget.charge_int()
         value.seconds = Timestamp.from_datetime(dt).seconds
         value.nanos = nanos
         return True
@@ -189,7 +189,8 @@ class WktDuration:
             nanos = int(duration_match[2] + "0" * (9 - len(duration_match[2])))
             if seconds < 0 or duration_match[1] == "-0":
                 nanos = -nanos
-        opts.budget.charge(2 * INT_SIZE)
+        opts.budget.charge_int()
+        opts.budget.charge_int()
         value.seconds = seconds
         value.nanos = nanos
         return True
@@ -258,7 +259,7 @@ class WktAny:
             _read_message(message, json, opts)
         any_ = Any.pack(message)
         opts.budget.charge_str(any_.type_url)
-        opts.budget.charge(BYTES_OVERHEAD + len(any_.value))
+        opts.budget.charge_bytes(len(any_.value))
         value.type_url = any_.type_url
         value.value = any_.value
         return True
@@ -301,7 +302,7 @@ class WktFieldMask:
                 raise ValueError(err)
             path = proto_snake_case(path)  # noqa: PLW2901
             opts.budget.charge_str(path)
-            opts.budget.charge(LIST_SLOT_SIZE)
+            opts.budget.charge_list_item()
             value.paths.append(path)
         return True
 

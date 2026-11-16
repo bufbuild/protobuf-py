@@ -114,7 +114,7 @@ impl NativeMessage {
         let marshaler_any = cls.getattr(&constants.ext_marshaler)?;
         let marshaler = marshaler_any.cast::<MessageMarshaler>()?.get();
         with_budget!(allocation_limit, |budget| {
-            budget.charge(marshaler.alloc_size)?;
+            budget.charge_message(marshaler)?;
             let message = marshaler.new_empty_message(py, cls)?;
             let slf = message.cast::<NativeMessage>()?;
             marshaler.merge_from_binary(py, slf, data, ignore_unknown_fields, budget)?;
@@ -164,7 +164,7 @@ impl NativeMessage {
         let marshaler_any = cls.getattr(&constants.ext_marshaler)?;
         let marshaler = marshaler_any.cast::<MessageMarshaler>()?.get().clone();
         with_budget!(allocation_limit, |budget| {
-            budget.charge(marshaler.alloc_size)?;
+            budget.charge_message(&marshaler)?;
             let message = marshaler.new_empty_message(py, cls)?;
             parse_json_into(
                 py,
@@ -190,7 +190,7 @@ impl NativeMessage {
     ) -> PyResult<()> {
         let marshaler = NativeMessage::get_marshaler(slf)?;
         with_budget!(allocation_limit, |budget| {
-            budget.charge(marshaler.alloc_size)?;
+            budget.charge_message(&marshaler)?;
             parse_json_into(
                 py,
                 &marshaler,
@@ -238,7 +238,7 @@ impl NativeMessage {
         let marshaler_any = cls.getattr(&constants.ext_marshaler)?;
         let marshaler = marshaler_any.cast::<MessageMarshaler>()?.get().clone();
         with_budget!(allocation_limit, |budget| {
-            budget.charge(marshaler.alloc_size)?;
+            budget.charge_message(&marshaler)?;
             let message = marshaler.new_empty_message(py, cls)?;
             let opts = FromJsonOpts {
                 ignore_unknown_fields,
@@ -301,7 +301,7 @@ impl NativeMessage {
         let data = data.into_inner();
         let marshaler = NativeMessage::get_marshaler(slf)?;
         with_budget!(allocation_limit, |budget| {
-            budget.charge(marshaler.alloc_size)?;
+            budget.charge_message(&marshaler)?;
             marshaler.merge_from_binary(py, slf, data, ignore_unknown_fields, budget)
         })
     }

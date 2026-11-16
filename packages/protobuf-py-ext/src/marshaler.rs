@@ -210,10 +210,8 @@ impl MessageMarshaler {
         let basic_size = python_type
             .getattr(&constants.dunder_basicsize)?
             .extract::<usize>()?;
-        let base_alloc_size = basic_size
-            + budget::GC_HEAD_SIZE
-            + defaults.lists.len() * budget::EMPTY_LIST_SIZE
-            + defaults.dicts.len() * budget::EMPTY_DICT_SIZE;
+        let base_alloc_size =
+            budget::message_size(basic_size, defaults.lists.len(), defaults.dicts.len());
         Ok(Self {
             inner: Arc::new(MessageMarshalerInner {
                 parser,

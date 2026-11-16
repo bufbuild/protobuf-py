@@ -16,7 +16,7 @@ use pyo3::{
 
 use crate::{
     attribute_access::AttributeAccess,
-    budget::{self, Budget, NoopBudget},
+    budget::{Budget, NoopBudget},
     constants::Constants,
     descriptor::{DescField, DescFieldValue, DescMessage, DescSingleValue, ScalarType},
     json_parse::{FieldContext, FromJsonOpts, read_json_value, read_message, read_scalar},
@@ -65,7 +65,8 @@ impl WktTimestamp {
         let (secs, nanos) = with_wkt_str(marshaler, src, budget, |text, _| {
             parse_timestamp(&marshaler.type_name, text)
         })?;
-        budget.charge(2 * budget::INT_SIZE)?;
+        budget.charge_int()?;
+        budget.charge_int()?;
         self.seconds
             .set(message.as_any(), PyInt::new(py, secs).as_any())?;
         self.nanos
@@ -108,7 +109,8 @@ impl WktDuration {
         let (secs, nanos) = with_wkt_str(marshaler, src, budget, |text, _| {
             parse_duration(&marshaler.type_name, text)
         })?;
-        budget.charge(2 * budget::INT_SIZE)?;
+        budget.charge_int()?;
+        budget.charge_int()?;
         self.seconds
             .set(message.as_any(), PyInt::new(py, secs).as_any())?;
         self.nanos
@@ -238,7 +240,7 @@ impl WktAny {
             .getattr(&marshaler.constants.ext_marshaler)?
             .cast_into::<MessageMarshaler>()?;
         let inner_marshaler = inner_marshaler.get();
-        budget.charge(inner_marshaler.alloc_size)?;
+        budget.charge_message(inner_marshaler)?;
         let inner_msg = inner_marshaler.new_empty_message(py, &inner_type)?;
 
         let is_wkt = inner_marshaler.wkt.is_some();
@@ -259,7 +261,7 @@ impl WktAny {
         let packed_url = format!("type.googleapis.com/{}", inner_marshaler.type_name);
         let packed_value = inner_marshaler.to_binary(py, &inner_msg, true)?;
         budget.charge_str(packed_url.as_bytes())?;
-        budget.charge(budget::BYTES_OVERHEAD + packed_value.as_bytes().len())?;
+        budget.charge_bytes(packed_value.as_bytes().len())?;
         self.type_url
             .set(message.as_any(), &PyString::new(py, &packed_url).into_any())?;
         self.value.set(message.as_any(), packed_value.as_any())?;
@@ -331,7 +333,7 @@ impl WktFieldMask {
                 }
                 let path = buffa_wkt::camel_to_snake(part);
                 budget.charge_str(path.as_bytes())?;
-                budget.charge(budget::LIST_SLOT_SIZE)?;
+                budget.charge_list_item()?;
                 paths.append(path)?;
             }
             Ok(())
@@ -393,12 +395,12 @@ impl WktStruct {
             .cast_into::<PyDict>()?;
         // Duplicate keys use last-in-wins semantics (per the ProtoJSON spec).
         src.for_each_object_key(|key, src| {
-            budget.charge(value_marshaler.alloc_size)?;
+            budget.charge_message(value_marshaler)?;
             let value_msg =
                 value_marshaler.new_empty_message(py, self.value.get_python_type(py))?;
             read_message(value_marshaler, &value_msg, src, opts, depth + 1, budget)?;
             budget.charge_str(key.as_bytes())?;
-            budget.charge(budget::DICT_ENTRY_SIZE)?;
+            budget.charge_dict_entry()?;
             dict.set_item(key, value_msg)?;
             Ok(())
         })?;
@@ -458,11 +460,11 @@ impl WktListValue {
             .get(py, message.as_any())?
             .cast_into::<PyList>()?;
         src.for_each_array_item(|src| {
-            budget.charge(element_marshaler.alloc_size)?;
+            budget.charge_message(element_marshaler)?;
             let value_msg =
                 element_marshaler.new_empty_message(py, self.element.get_python_type(py))?;
             read_message(element_marshaler, &value_msg, src, opts, depth + 1, budget)?;
-            budget.charge(budget::LIST_SLOT_SIZE)?;
+            budget.charge_list_item()?;
             list.append(value_msg)?;
             Ok(())
         })?;
@@ -535,7 +537,7 @@ impl WktValue {
         budget: &mut impl Budget,
     ) -> PyResult<()> {
         let py = src.py();
-        budget.charge(budget::ONEOF_SIZE)?;
+        budget.charge_oneof()?;
         let oneof = match src.peek()? {
             JsonKind::Null => {
                 src.next_null()?;
@@ -547,7 +549,7 @@ impl WktValue {
             ),
             JsonKind::Number => {
                 let number = src.next_float()?;
-                budget.charge(budget::FLOAT_SIZE)?;
+                budget.charge_float()?;
                 Oneof::new(
                     self.number_name.bind(py),
                     &PyFloat::new(py, number).into_any(),
@@ -560,7 +562,7 @@ impl WktValue {
             JsonKind::Array => {
                 let desc = &self.list_message;
                 let inner = desc.get_marshaler(py)?;
-                budget.charge(inner.alloc_size)?;
+                budget.charge_message(inner)?;
                 let list_msg = inner.new_empty_message(py, desc.get_python_type(py))?;
                 read_message(inner, &list_msg, src, opts, depth + 1, budget)?;
                 Oneof::new(self.list_name.bind(py), &list_msg.into_any())
@@ -568,7 +570,7 @@ impl WktValue {
             JsonKind::Object => {
                 let desc = &self.struct_message;
                 let inner = desc.get_marshaler(py)?;
-                budget.charge(inner.alloc_size)?;
+                budget.charge_message(inner)?;
                 let struct_msg = inner.new_empty_message(py, desc.get_python_type(py))?;
                 read_message(inner, &struct_msg, src, opts, depth + 1, budget)?;
                 Oneof::new(self.struct_name.bind(py), &struct_msg.into_any())

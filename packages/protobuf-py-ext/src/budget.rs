@@ -1,28 +1,30 @@
 use pyo3::{Bound, PyResult, exceptions::PyValueError, types::PyString};
 
+use crate::marshaler::MessageMarshaler;
+
 // Approximate sizes of CPython heap allocations, measured with
 // `sys.getsizeof` on 64-bit CPython 3.14. The budget guards against
 // unbounded allocation from malicious payloads rather than providing exact
 // accounting, so small inaccuracies across versions and builds are fine.
 
 /// GC header allocated in front of every GC-tracked object.
-pub(crate) const GC_HEAD_SIZE: usize = 16;
+const GC_HEAD_SIZE: usize = 16;
 /// A float object.
-pub(crate) const FLOAT_SIZE: usize = 24;
+const FLOAT_SIZE: usize = 24;
 /// A 64-bit int object. Smaller ints are slightly smaller.
-pub(crate) const INT_SIZE: usize = 36;
+const INT_SIZE: usize = 36;
 /// Header of a bytes object.
-pub(crate) const BYTES_OVERHEAD: usize = 33;
+const BYTES_OVERHEAD: usize = 33;
 /// An empty list.
-pub(crate) const EMPTY_LIST_SIZE: usize = 56;
+const EMPTY_LIST_SIZE: usize = 56;
 /// An empty dict.
-pub(crate) const EMPTY_DICT_SIZE: usize = 64;
+const EMPTY_DICT_SIZE: usize = 64;
 /// One appended list element: an 8-byte pointer slot.
-pub(crate) const LIST_SLOT_SIZE: usize = 8;
+const LIST_SLOT_SIZE: usize = 8;
 /// One inserted dict entry: hash + key + value words plus growth slack.
-pub(crate) const DICT_ENTRY_SIZE: usize = 40;
+const DICT_ENTRY_SIZE: usize = 40;
 /// A `Oneof` wrapper object: `PyObject` header plus two object pointers.
-pub(crate) const ONEOF_SIZE: usize = 32;
+const ONEOF_SIZE: usize = 32;
 
 // Python strings have two structs, one for ASCII and one for others.
 // They also always contain a trailing NUL, so the total overhead is
@@ -96,6 +98,12 @@ fn py_str_size(value: &Bound<'_, PyString>) -> PyResult<usize> {
     Ok(str_size_for(len, max_char))
 }
 
+/// The size of a new message whose type has the given `__basicsize__` and
+/// numbers of repeated and map fields, which start as empty containers.
+pub(crate) fn message_size(basic_size: usize, lists: usize, dicts: usize) -> usize {
+    basic_size + GC_HEAD_SIZE + lists * EMPTY_LIST_SIZE + dicts * EMPTY_DICT_SIZE
+}
+
 /// Accounts for the Python objects allocated while parsing a message.
 pub(crate) trait Budget {
     /// Charges `amount` bytes.
@@ -106,6 +114,57 @@ pub(crate) trait Budget {
 
     /// Charges for an existing Python string.
     fn charge_py_str(&mut self, value: &Bound<'_, PyString>) -> PyResult<()>;
+
+    /// Charges for a new message of the marshaler's type.
+    fn charge_message(&mut self, marshaler: &MessageMarshaler) -> PyResult<()> {
+        self.charge(marshaler.alloc_size)
+    }
+
+    /// Charges for an int. Small ints are shared and larger ones vary a
+    /// little in size, but a flat charge is close enough.
+    fn charge_int(&mut self) -> PyResult<()> {
+        self.charge(INT_SIZE)
+    }
+
+    /// Charges for a float.
+    fn charge_float(&mut self) -> PyResult<()> {
+        self.charge(FLOAT_SIZE)
+    }
+
+    /// Charges for a bytes of the given length.
+    fn charge_bytes(&mut self, len: usize) -> PyResult<()> {
+        self.charge(BYTES_OVERHEAD + len)
+    }
+
+    /// Charges for a materialized unknown enum member.
+    fn charge_enum(&mut self) -> PyResult<()> {
+        self.charge(INT_SIZE + GC_HEAD_SIZE)
+    }
+
+    /// Charges for a `Oneof` wrapper.
+    fn charge_oneof(&mut self) -> PyResult<()> {
+        self.charge(ONEOF_SIZE)
+    }
+
+    /// Charges for a new list.
+    fn charge_list(&mut self) -> PyResult<()> {
+        self.charge(EMPTY_LIST_SIZE)
+    }
+
+    /// Charges for appending an item to a list.
+    fn charge_list_item(&mut self) -> PyResult<()> {
+        self.charge(LIST_SLOT_SIZE)
+    }
+
+    /// Charges for a new dict.
+    fn charge_dict(&mut self) -> PyResult<()> {
+        self.charge(EMPTY_DICT_SIZE)
+    }
+
+    /// Charges for inserting an entry into a dict.
+    fn charge_dict_entry(&mut self) -> PyResult<()> {
+        self.charge(DICT_ENTRY_SIZE)
+    }
 }
 
 /// Tracks the approximate bytes allocated, raising an error once a limit is

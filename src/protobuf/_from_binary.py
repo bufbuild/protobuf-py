@@ -19,19 +19,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from typing_extensions import Buffer, assert_never
 
-from ._budget import (
-    BYTES_OVERHEAD,
-    DICT_ENTRY_SIZE,
-    EMPTY_DICT_SIZE,
-    EMPTY_LIST_SIZE,
-    FLOAT_SIZE,
-    GC_HEAD_SIZE,
-    INT_SIZE,
-    LIST_SLOT_SIZE,
-    ONEOF_SIZE,
-    Budget,
-    NoopBudget,
-)
+from ._budget import Budget, NoopBudget
 from ._descriptors import (
     DescEnum,
     DescFieldValueEnum,
@@ -94,30 +82,6 @@ _SCALAR_READERS = (
     BinaryReader.sint64,  # 18: SINT64
 )
 
-# Allocation charged for each fixed-size scalar before it is read, indexed like
-# _SCALAR_READERS. Bools are shared singletons and allocate nothing.
-_SCALAR_CHARGES = (
-    None,  # 0: unused
-    FLOAT_SIZE,  # 1: DOUBLE
-    FLOAT_SIZE,  # 2: FLOAT
-    INT_SIZE,  # 3: INT64
-    INT_SIZE,  # 4: UINT64
-    INT_SIZE,  # 5: INT32
-    INT_SIZE,  # 6: FIXED64
-    INT_SIZE,  # 7: FIXED32
-    0,  # 8: BOOL
-    None,  # 9: STRING
-    None,  # 10: GROUP
-    None,  # 11: MESSAGE
-    None,  # 12: BYTES
-    INT_SIZE,  # 13: UINT32
-    None,  # 14: ENUM
-    INT_SIZE,  # 15: SFIXED32
-    INT_SIZE,  # 16: SFIXED64
-    INT_SIZE,  # 17: SINT32
-    INT_SIZE,  # 18: SINT64
-)
-
 
 def read_scalar(scalar_type: ScalarType, reader: BinaryReader, budget: Budget) -> Any:
     if scalar_type == ScalarType.STRING:
@@ -130,12 +94,11 @@ def read_scalar(scalar_type: ScalarType, reader: BinaryReader, budget: Budget) -
         return value
     if scalar_type == ScalarType.BYTES:
         length = reader.varint()
-        budget.charge(BYTES_OVERHEAD + length)
+        budget.charge_bytes(length)
         return bytes(reader.read(length))
-    charge = _SCALAR_CHARGES[scalar_type.value]
     reader_method = _SCALAR_READERS[scalar_type.value]
-    assert charge is not None and reader_method is not None  # noqa: S101, PT018
-    budget.charge(charge)
+    assert reader_method is not None  # noqa: S101
+    budget.charge_fixed_scalar(scalar_type)
     return reader_method(reader)
 
 
@@ -162,17 +125,19 @@ def _append_unknown_field(
     """Records a raw field in the message's unknown fields, charging for it."""
     unknown_fields = message._unknown_fields
     if unknown_fields is None:
-        budget.charge(EMPTY_DICT_SIZE)
+        budget.charge_dict()
         unknown_fields = message._get_or_init_unknown_fields()
     fields = unknown_fields.get(field_number)
     if fields is None:
         # The list and the dict entry holding it, plus the key unless it is
         # one of the small ints that are shared singletons.
         if field_number > 256:
-            budget.charge(INT_SIZE)
-        budget.charge(EMPTY_LIST_SIZE + DICT_ENTRY_SIZE)
+            budget.charge_int()
+        budget.charge_list()
+        budget.charge_dict_entry()
         fields = unknown_fields[field_number] = []
-    budget.charge(BYTES_OVERHEAD + len(key_raw) + len(value_raw) + LIST_SLOT_SIZE)
+    budget.charge_bytes(len(key_raw) + len(value_raw))
+    budget.charge_list_item()
     fields.append(key_raw + bytes(value_raw))
 
 
@@ -216,7 +181,7 @@ def read_message(
             case DescFieldValueScalar():
                 value = read_scalar(field_value.scalar, reader, budget)
                 if field_value.oneof is not None:
-                    budget.charge(ONEOF_SIZE)
+                    budget.charge_oneof()
                 message._set_member(desc_field, value)
             case DescFieldValueMessage(
                 message=desc_nested_message, delimited_encoding=delimited_encoding
@@ -225,7 +190,7 @@ def read_message(
                 if existing is None:
                     budget.charge_message(desc_nested_message)
                     if field_value.oneof is not None:
-                        budget.charge(ONEOF_SIZE)
+                        budget.charge_oneof()
                     existing = desc_nested_message.type()
                     message._set_member(desc_field, existing)
                 if delimited_encoding:
@@ -240,7 +205,7 @@ def read_message(
                 value = read_enum(field_value.enum, reader, budget)
                 if isinstance(value, Enum):
                     if field_value.oneof is not None:
-                        budget.charge(ONEOF_SIZE)
+                        budget.charge_oneof()
                     message._set_member(desc_field, value)
                 elif not opts.ignore_unknown_fields:
                     _write_unknown_enum_field(message, desc_field.number, value, budget)
@@ -261,7 +226,7 @@ def read_message(
                 )
                 if entry:
                     key, value = entry
-                    budget.charge(DICT_ENTRY_SIZE)
+                    budget.charge_dict_entry()
                     message._get_member(desc_field)[key] = value
             case _:
                 assert_never(desc_field)
@@ -323,7 +288,7 @@ def read_list(
                 return
         case _:
             assert_never(element_type)
-    budget.charge(LIST_SLOT_SIZE)
+    budget.charge_list_item()
     list_.append(value)
 
 
@@ -342,12 +307,12 @@ def _read_packed_list(
         match element_type:
             case ScalarType():
                 value = read_scalar(element_type, reader, budget)
-                budget.charge(LIST_SLOT_SIZE)
+                budget.charge_list_item()
                 list_.append(value)
             case DescEnum():
                 value = read_enum(element_type, reader, budget)
                 if isinstance(value, Enum):
-                    budget.charge(LIST_SLOT_SIZE)
+                    budget.charge_list_item()
                     list_.append(value)
                 elif not opts.ignore_unknown_fields:
                     # Even for packed fields we write unknown enum values as unpacked.
@@ -361,7 +326,7 @@ def read_enum(desc_enum: DescEnum, reader: BinaryReader, budget: Budget) -> Enum
     if not desc_enum._values_by_number.get(value):
         if not desc_enum.open:
             return value
-        budget.charge(INT_SIZE + GC_HEAD_SIZE)
+        budget.charge_enum()
     return desc_enum.type(value)
 
 

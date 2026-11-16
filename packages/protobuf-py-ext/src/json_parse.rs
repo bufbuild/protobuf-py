@@ -17,7 +17,7 @@ use pyo3::{
 };
 
 use crate::{
-    budget::{self, Budget},
+    budget::Budget,
     descriptor::{DescEnum, DescFieldValue, ScalarType},
     json_source::{JiterSource, JsonKind, JsonSource, PyTreeSource},
     marshaler::MessageMarshaler,
@@ -251,7 +251,7 @@ fn read_singular<'py, R: JsonSource<'py>>(
             let ctx = FieldContext::Field { marshaler, name };
             let value = read_scalar(&ctx, src, *scalar, budget)?;
             if oneof_attr.is_some() {
-                budget.charge(budget::ONEOF_SIZE)?;
+                budget.charge_oneof()?;
             }
             parser.assign_singular(py, message, &value, oneof_attr, requires_presence)
         }
@@ -269,7 +269,7 @@ fn read_singular<'py, R: JsonSource<'py>>(
             }
             if let Some(value) = read_enum(enum_, src, opts, budget)? {
                 if oneof_attr.is_some() {
-                    budget.charge(budget::ONEOF_SIZE)?;
+                    budget.charge_oneof()?;
                 }
                 parser.assign_singular(py, message, &value, oneof_attr, requires_presence)?;
             }
@@ -289,13 +289,13 @@ fn read_singular<'py, R: JsonSource<'py>>(
             let target = match existing {
                 Some(value) if !value.is_none() => value.cast_into::<NativeMessage>()?,
                 _ => {
-                    budget.charge(inner.alloc_size)?;
+                    budget.charge_message(inner)?;
                     inner.new_empty_message(py, msg_desc.get_python_type(py))?
                 }
             };
             read_message(inner, &target, src, opts, depth + 1, budget)?;
             if oneof_attr.is_some() {
-                budget.charge(budget::ONEOF_SIZE)?;
+                budget.charge_oneof()?;
             }
             parser.assign_singular(py, message, target.as_any(), oneof_attr, requires_presence)
         }
@@ -361,7 +361,7 @@ fn read_list<'py, R: JsonSource<'py>>(
         if let Some(value) =
             read_container_item(&ctx, &parser.value, src, opts, depth, false, budget)?
         {
-            budget.charge(budget::LIST_SLOT_SIZE)?;
+            budget.charge_list_item()?;
             list.append(value)?;
         }
         Ok(())
@@ -406,7 +406,7 @@ fn read_map<'py, R: JsonSource<'py>>(
         if let Some(value) =
             read_container_item(&ctx, &value_parser.value, src, opts, depth, true, budget)?
         {
-            budget.charge(budget::DICT_ENTRY_SIZE)?;
+            budget.charge_dict_entry()?;
             dict.set_item(map_key, value)?;
         }
         Ok(())
@@ -440,7 +440,7 @@ fn read_container_item<'py, R: JsonSource<'py>>(
                 src.next_null()?;
                 return Err(container_null_error(ctx, is_map));
             }
-            budget.charge(inner.alloc_size)?;
+            budget.charge_message(inner)?;
             let target = inner.new_empty_message(py, msg_desc.get_python_type(py))?;
             read_message(inner, &target, src, opts, depth + 1, budget)?;
             Ok(Some(target.into_any()))
@@ -482,7 +482,7 @@ fn read_map_key<'py>(
             Ok(PyString::new(py, raw_key).into_any())
         }
         _ => {
-            budget.charge(budget::INT_SIZE)?;
+            budget.charge_int()?;
             parse_int_string(py, ctx, raw_key, key_type)
         }
     }
@@ -512,18 +512,18 @@ pub(crate) fn read_scalar<'py, R: JsonSource<'py>>(
             if value.is_finite() && !(FLOAT32_MIN..=FLOAT32_MAX).contains(&value) {
                 return Err(ctx.error(&format!("float value out of range: {value}"), Exc::Overflow));
             }
-            budget.charge(budget::FLOAT_SIZE)?;
+            budget.charge_float()?;
             Ok(PyFloat::new(py, value).into_any())
         }
         ScalarType::Double => {
             let value = parse_float(ctx, src, budget)?;
-            budget.charge(budget::FLOAT_SIZE)?;
+            budget.charge_float()?;
             Ok(PyFloat::new(py, value).into_any())
         }
         ScalarType::String => Ok(read_string(ctx, src, budget)?.into_any()),
         ScalarType::Bytes => read_bytes(ctx, src, budget),
         _ => {
-            budget.charge(budget::INT_SIZE)?;
+            budget.charge_int()?;
             read_int(ctx, src, scalar, budget)
         }
     }
@@ -569,7 +569,7 @@ fn read_bytes<'py, R: JsonSource<'py>>(
         .map_err(|_| ctx.error("invalid base64 data", Exc::Value))?;
         Ok(decoded)
     })?;
-    budget.charge(budget::BYTES_OVERHEAD + decoded.len())?;
+    budget.charge_bytes(decoded.len())?;
     Ok(PyBytes::new(py, &decoded).into_any())
 }
 
@@ -759,7 +759,7 @@ fn read_enum<'py, R: JsonSource<'py>>(
                 if opts.ignore_unknown_fields {
                     return Ok(None);
                 }
-                budget.charge(budget::INT_SIZE + budget::GC_HEAD_SIZE)?;
+                budget.charge_enum()?;
                 return Ok(Some(enum_desc.py_type.bind(py).call1((number,))?));
             };
             if let Some(value) = enum_desc.values.get(&int_value) {
@@ -768,7 +768,7 @@ fn read_enum<'py, R: JsonSource<'py>>(
                 Ok(None)
             } else {
                 // Open enum: succeeds; closed enum: raises via Python enum call.
-                budget.charge(budget::INT_SIZE + budget::GC_HEAD_SIZE)?;
+                budget.charge_enum()?;
                 Ok(Some(enum_desc.py_type.bind(py).call1((int_value,))?))
             }
         }
@@ -893,7 +893,7 @@ fn read_extension<'py, R: JsonSource<'py>>(
                 src.next_null()?;
                 target.del_item(&ext_type)?;
             } else {
-                budget.charge(inner.alloc_size)?;
+                budget.charge_message(inner)?;
                 let value = inner.new_empty_message(py, msg_desc.get_python_type(py))?;
                 read_message(inner, &value, src, opts, depth + 1, budget)?;
                 target.set_item(&ext_type, value)?;
@@ -915,13 +915,13 @@ fn read_extension<'py, R: JsonSource<'py>>(
                 ));
             }
             let element_value = FieldParserValue::from_desc_single(element);
-            budget.charge(budget::EMPTY_LIST_SIZE)?;
+            budget.charge_list()?;
             let list = PyList::empty(py);
             src.for_each_array_item(|src| {
                 if let Some(value) =
                     read_container_item(&ctx, &element_value, src, opts, depth, false, budget)?
                 {
-                    budget.charge(budget::LIST_SLOT_SIZE)?;
+                    budget.charge_list_item()?;
                     list.append(value)?;
                 }
                 Ok(())
@@ -949,28 +949,28 @@ pub(crate) fn read_json_value<'py, R: JsonSource<'py>>(
         }
         JsonKind::Bool => Ok(PyBool::new(py, src.next_bool()?).to_owned().into_any()),
         JsonKind::Number => {
-            budget.charge(budget::INT_SIZE)?;
+            budget.charge_int()?;
             src.next_number()
         }
         JsonKind::String => Ok(src.next_py_str(budget)?.into_any()),
         JsonKind::Array => {
-            budget.charge(budget::EMPTY_LIST_SIZE)?;
+            budget.charge_list()?;
             let list = PyList::empty(py);
             src.for_each_array_item(|src| {
                 let value = read_json_value(src, budget)?;
-                budget.charge(budget::LIST_SLOT_SIZE)?;
+                budget.charge_list_item()?;
                 list.append(value)?;
                 Ok(())
             })?;
             Ok(list.into_any())
         }
         JsonKind::Object => {
-            budget.charge(budget::EMPTY_DICT_SIZE)?;
+            budget.charge_dict()?;
             let dict = PyDict::new(py);
             src.for_each_object_key(|key, src| {
                 let value = read_json_value(src, budget)?;
                 budget.charge_str(key.as_bytes())?;
-                budget.charge(budget::DICT_ENTRY_SIZE)?;
+                budget.charge_dict_entry()?;
                 dict.set_item(PyString::new(py, key), value)?;
                 Ok(())
             })?;

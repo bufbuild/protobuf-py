@@ -23,7 +23,7 @@ use pyo3::{
 
 use crate::{
     attribute_access::AttributeAccess,
-    budget::{self, Budget},
+    budget::Budget,
     constants::Constants,
     descriptor::{
         DescEnum, DescField, DescFieldValue, DescMessage, DescSingleValue, FieldPresence,
@@ -343,7 +343,7 @@ impl FieldParser {
         match value {
             SingleValue::Parsed(value) => {
                 if oneof_attr.is_some() {
-                    budget.charge(budget::ONEOF_SIZE)?;
+                    budget.charge_oneof()?;
                 }
                 self.assign_singular(py, message, &value, oneof_attr, requires_presence)?;
             }
@@ -413,7 +413,7 @@ impl FieldParser {
                 )?;
                 match value {
                     SingleValue::Parsed(value) => {
-                        budget.charge(budget::LIST_SLOT_SIZE)?;
+                        budget.charge_list_item()?;
                         list.append(value)?;
                     }
                     SingleValue::UnknownEnumValue(number) => {
@@ -441,7 +441,7 @@ impl FieldParser {
             )?;
             match value {
                 SingleValue::Parsed(value) => {
-                    budget.charge(budget::LIST_SLOT_SIZE)?;
+                    budget.charge_list_item()?;
                     list.append(value)?;
                 }
                 SingleValue::UnknownEnumValue(number) => {
@@ -535,7 +535,7 @@ impl FieldParser {
             value
         } else if let FieldParserValue::Message { message, .. } = &value_parser.value {
             // For message values, the default is a new instance of the message, not None.
-            budget.charge(message.get_marshaler(py)?.alloc_size)?;
+            budget.charge_message(message.get_marshaler(py)?)?;
             SingleValue::Parsed(message.get_python_type(py).call0()?)
         } else {
             SingleValue::Parsed(value_default_value.bind(py).clone())
@@ -551,7 +551,7 @@ impl FieldParser {
                 budget,
             );
         };
-        budget.charge(budget::DICT_ENTRY_SIZE)?;
+        budget.charge_dict_entry()?;
         self.assign_map_entry(py, message, key, value)?;
         Ok(())
     }
@@ -629,7 +629,7 @@ impl FieldParser {
                 {
                     existing.cast_into::<NativeMessage>()?
                 } else {
-                    budget.charge(marshaler.alloc_size)?;
+                    budget.charge_message(marshaler)?;
                     marshaler.new_empty_message(py, parser.inner.python_type.bind(py))?
                 };
                 parser.merge_from_binary(
@@ -648,7 +648,7 @@ impl FieldParser {
                 if let Some(value) = value {
                     value.bind(py).clone()
                 } else if enum_.open {
-                    budget.charge(budget::INT_SIZE + budget::GC_HEAD_SIZE)?;
+                    budget.charge_enum()?;
                     enum_.py_type.bind(py).call1((number,))?
                 } else {
                     return Ok(SingleValue::UnknownEnumValue(number));
@@ -787,7 +787,7 @@ fn read_scalar<'py>(
     budget: &mut impl Budget,
 ) -> PyResult<Bound<'py, PyAny>> {
     match s {
-        ScalarType::Double | ScalarType::Float => budget.charge(budget::FLOAT_SIZE)?,
+        ScalarType::Double | ScalarType::Float => budget.charge_float()?,
         // Small ints are interned and larger ones vary a little in size, but
         // a flat charge is close enough.
         ScalarType::Int64
@@ -799,7 +799,7 @@ fn read_scalar<'py>(
         | ScalarType::Sfixed32
         | ScalarType::Sfixed64
         | ScalarType::Sint32
-        | ScalarType::Sint64 => budget.charge(budget::INT_SIZE)?,
+        | ScalarType::Sint64 => budget.charge_int()?,
         // Bools are shared singletons; strings and bytes are charged below
         // once the length is known.
         ScalarType::Bool | ScalarType::String | ScalarType::Bytes => {}
@@ -844,7 +844,7 @@ fn read_scalar<'py>(
         ScalarType::Bytes => {
             let len = decode_varint(buffer).map_err(map_varint_err)? as usize;
             check_buffer_remaining(buffer, len)?;
-            budget.charge(budget::BYTES_OVERHEAD + len)?;
+            budget.charge_bytes(len)?;
             let bytes = buffer.split_to(len);
             PyBytes::new(py, &bytes).into_any()
         }
@@ -971,7 +971,7 @@ fn write_unknown_field(
     budget: &mut impl Budget,
 ) -> PyResult<()> {
     if message.get().unknown_fields(py).is_none() {
-        budget.charge(budget::EMPTY_DICT_SIZE)?;
+        budget.charge_dict()?;
     }
     let unknown_fields_unbound = message.get().get_or_init_unknown_fields(py);
     let unknown_fields = unknown_fields_unbound.bind(py);
@@ -981,14 +981,16 @@ fn write_unknown_field(
         // The list and the dict entry holding it, plus the key unless it is
         // one of the small ints that are shared singletons.
         if field_number > 256 {
-            budget.charge(budget::INT_SIZE)?;
+            budget.charge_int()?;
         }
-        budget.charge(budget::EMPTY_LIST_SIZE + budget::DICT_ENTRY_SIZE)?;
+        budget.charge_list()?;
+        budget.charge_dict_entry()?;
         let new_list = PyList::empty(py);
         unknown_fields.set_item(field_number, &new_list)?;
         new_list
     };
-    budget.charge(budget::BYTES_OVERHEAD + field_bytes.len() + budget::LIST_SLOT_SIZE)?;
+    budget.charge_bytes(field_bytes.len())?;
+    budget.charge_list_item()?;
     field_list.append(PyBytes::new(py, field_bytes))?;
     Ok(())
 }

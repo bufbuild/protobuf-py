@@ -102,11 +102,47 @@ def _message_alloc_size(desc: DescMessage) -> int:
     return size
 
 
+# Allocation for each scalar type whose values have a fixed size, indexed by
+# the type's number. Bools are shared singletons and allocate nothing.
+_FIXED_SCALAR_SIZES = (
+    None,  # 0: unused
+    FLOAT_SIZE,  # 1: DOUBLE
+    FLOAT_SIZE,  # 2: FLOAT
+    INT_SIZE,  # 3: INT64
+    INT_SIZE,  # 4: UINT64
+    INT_SIZE,  # 5: INT32
+    INT_SIZE,  # 6: FIXED64
+    INT_SIZE,  # 7: FIXED32
+    0,  # 8: BOOL
+    None,  # 9: STRING
+    None,  # 10: GROUP
+    None,  # 11: MESSAGE
+    None,  # 12: BYTES
+    INT_SIZE,  # 13: UINT32
+    None,  # 14: ENUM
+    INT_SIZE,  # 15: SFIXED32
+    INT_SIZE,  # 16: SFIXED64
+    INT_SIZE,  # 17: SINT32
+    INT_SIZE,  # 18: SINT64
+)
+
+
 class Budget(Protocol):
     """Accounts for the allocations made while parsing a message."""
 
-    def charge(self, amount: int) -> None:
-        """Charges the given number of bytes."""
+    def charge_message(self, desc: DescMessage) -> None:
+        """Charges for a new instance of the message type."""
+        ...
+
+    def charge_scalar(self, scalar_type: ScalarType, value: object) -> None:
+        """Charges for a parsed scalar value of the given type."""
+        ...
+
+    def charge_fixed_scalar(self, scalar_type: ScalarType) -> None:
+        """Charges for a scalar of a type whose values have a fixed size.
+
+        These are all scalar types except strings and bytes.
+        """
         ...
 
     def charge_str(self, value: str) -> None:
@@ -126,12 +162,44 @@ class Budget(Protocol):
         """Charges the rest of a str after charge_str_encoded for its UTF-8 length."""
         ...
 
-    def charge_scalar(self, scalar_type: ScalarType, value: object) -> None:
-        """Charges for one parsed scalar value of the given type."""
+    def charge_bytes(self, length: int) -> None:
+        """Charges for a bytes of the given length."""
         ...
 
-    def charge_message(self, desc: DescMessage) -> None:
-        """Charges the base size of a new instance of the message type."""
+    def charge_int(self) -> None:
+        """Charges for an int.
+
+        Small ints are shared and larger ones vary a little in size, but a
+        flat charge is close enough.
+        """
+        ...
+
+    def charge_float(self) -> None:
+        """Charges for a float."""
+        ...
+
+    def charge_enum(self) -> None:
+        """Charges for a member of an enum type created for a number it does not define."""
+        ...
+
+    def charge_oneof(self) -> None:
+        """Charges for a Oneof wrapper."""
+        ...
+
+    def charge_list(self) -> None:
+        """Charges for a new list."""
+        ...
+
+    def charge_list_item(self) -> None:
+        """Charges for appending an item to a list."""
+        ...
+
+    def charge_dict(self) -> None:
+        """Charges for a new dict."""
+        ...
+
+    def charge_dict_entry(self) -> None:
+        """Charges for inserting an entry into a dict."""
         ...
 
 
@@ -145,19 +213,18 @@ class TrackingBudget:
         self.max = limit
 
     def charge(self, amount: int) -> None:
+        """Charges the given number of bytes."""
         self.current += amount
         if self.current > self.max:
             msg = f"allocation budget exceeded: needed {self.current} bytes, limit is {self.max}"
             raise ValueError(msg)
 
-    def charge_str(self, value: str) -> None:
-        self.charge(str_size(value))
-
-    def charge_str_encoded(self, length: int) -> None:
-        self.charge(STR_OVERHEAD + length // 2)
-
-    def charge_str_decoded(self, value: str, length: int) -> None:
-        self.charge(str_size(value) - (STR_OVERHEAD + length // 2))
+    def charge_message(self, desc: DescMessage) -> None:
+        size = desc._alloc_size
+        if size is None:
+            size = _message_alloc_size(desc)
+            object.__setattr__(desc, "_alloc_size", size)
+        self.charge(size)
 
     def charge_scalar(self, scalar_type: ScalarType, value: object) -> None:
         if scalar_type == ScalarType.STRING:
@@ -172,12 +239,46 @@ class TrackingBudget:
         else:
             self.charge(INT_SIZE)
 
-    def charge_message(self, desc: DescMessage) -> None:
-        size = desc._alloc_size
-        if size is None:
-            size = _message_alloc_size(desc)
-            object.__setattr__(desc, "_alloc_size", size)
+    def charge_fixed_scalar(self, scalar_type: ScalarType) -> None:
+        size = _FIXED_SCALAR_SIZES[scalar_type.value]
+        assert size is not None  # noqa: S101
         self.charge(size)
+
+    def charge_str(self, value: str) -> None:
+        self.charge(str_size(value))
+
+    def charge_str_encoded(self, length: int) -> None:
+        self.charge(STR_OVERHEAD + length // 2)
+
+    def charge_str_decoded(self, value: str, length: int) -> None:
+        self.charge(str_size(value) - (STR_OVERHEAD + length // 2))
+
+    def charge_bytes(self, length: int) -> None:
+        self.charge(BYTES_OVERHEAD + length)
+
+    def charge_int(self) -> None:
+        self.charge(INT_SIZE)
+
+    def charge_float(self) -> None:
+        self.charge(FLOAT_SIZE)
+
+    def charge_enum(self) -> None:
+        self.charge(INT_SIZE + GC_HEAD_SIZE)
+
+    def charge_oneof(self) -> None:
+        self.charge(ONEOF_SIZE)
+
+    def charge_list(self) -> None:
+        self.charge(EMPTY_LIST_SIZE)
+
+    def charge_list_item(self) -> None:
+        self.charge(LIST_SLOT_SIZE)
+
+    def charge_dict(self) -> None:
+        self.charge(EMPTY_DICT_SIZE)
+
+    def charge_dict_entry(self) -> None:
+        self.charge(DICT_ENTRY_SIZE)
 
 
 class NoopBudget:
@@ -185,7 +286,13 @@ class NoopBudget:
 
     __slots__ = ()
 
-    def charge(self, amount: int) -> None:
+    def charge_message(self, desc: DescMessage) -> None:
+        pass
+
+    def charge_scalar(self, scalar_type: ScalarType, value: object) -> None:
+        pass
+
+    def charge_fixed_scalar(self, scalar_type: ScalarType) -> None:
         pass
 
     def charge_str(self, value: str) -> None:
@@ -197,10 +304,31 @@ class NoopBudget:
     def charge_str_decoded(self, value: str, length: int) -> None:
         pass
 
-    def charge_scalar(self, scalar_type: ScalarType, value: object) -> None:
+    def charge_bytes(self, length: int) -> None:
         pass
 
-    def charge_message(self, desc: DescMessage) -> None:
+    def charge_int(self) -> None:
+        pass
+
+    def charge_float(self) -> None:
+        pass
+
+    def charge_enum(self) -> None:
+        pass
+
+    def charge_oneof(self) -> None:
+        pass
+
+    def charge_list(self) -> None:
+        pass
+
+    def charge_list_item(self) -> None:
+        pass
+
+    def charge_dict(self) -> None:
+        pass
+
+    def charge_dict_entry(self) -> None:
         pass
 
 
