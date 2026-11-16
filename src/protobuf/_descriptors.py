@@ -310,6 +310,10 @@ class DescMessage:
         repr=False, compare=False, hash=False, init=False
     )
     """Whether this message has any fields that require separate presence tracking."""
+    _alloc_size: int | None = dataclassfield(
+        default=None, repr=False, compare=False, hash=False, init=False
+    )
+    """Approximate heap size of a new instance, for the parsing allocation budget."""
 
     def _finish_init(self) -> None:
         """Finish initialization of private attributes.

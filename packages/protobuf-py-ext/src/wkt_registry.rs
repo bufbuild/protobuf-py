@@ -9,13 +9,14 @@ use pyo3::{
     Bound, IntoPyObjectExt as _, Py, PyAny, PyResult, Python,
     exceptions::{PyTypeError, PyValueError},
     types::{
-        PyAnyMethods as _, PyBool, PyDict, PyDictMethods as _, PyFloat, PyInt, PyList,
-        PyListMethods as _, PyString, PyStringMethods as _, PyType,
+        PyAnyMethods as _, PyBool, PyBytesMethods as _, PyDict, PyDictMethods as _, PyFloat, PyInt,
+        PyList, PyListMethods as _, PyString, PyStringMethods as _, PyType,
     },
 };
 
 use crate::{
     attribute_access::AttributeAccess,
+    budget::{Budget, NoopBudget},
     constants::Constants,
     descriptor::{DescField, DescFieldValue, DescMessage, DescSingleValue, ScalarType},
     json_parse::{FieldContext, FromJsonOpts, read_json_value, read_message, read_scalar},
@@ -58,11 +59,14 @@ impl WktTimestamp {
         src: &mut R,
         _opts: &FromJsonOpts,
         _depth: usize,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         let py = src.py();
-        let (secs, nanos) = with_wkt_str(marshaler, src, |text| {
+        let (secs, nanos) = with_wkt_str(marshaler, src, budget, |text, _| {
             parse_timestamp(&marshaler.type_name, text)
         })?;
+        budget.charge_int()?;
+        budget.charge_int()?;
         self.seconds
             .set(message.as_any(), PyInt::new(py, secs).as_any())?;
         self.nanos
@@ -99,11 +103,14 @@ impl WktDuration {
         src: &mut R,
         _opts: &FromJsonOpts,
         _depth: usize,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         let py = src.py();
-        let (secs, nanos) = with_wkt_str(marshaler, src, |text| {
+        let (secs, nanos) = with_wkt_str(marshaler, src, budget, |text, _| {
             parse_duration(&marshaler.type_name, text)
         })?;
+        budget.charge_int()?;
+        budget.charge_int()?;
         self.seconds
             .set(message.as_any(), PyInt::new(py, secs).as_any())?;
         self.nanos
@@ -157,7 +164,9 @@ impl WktAny {
 
         let value = self.value.get(py, message.as_any())?.extract::<Bytes>()?;
         let inner_msg = inner_marshaler.new_empty_message(py, &inner_type)?;
-        inner_marshaler.merge_from_binary(py, &inner_msg, value, false)?;
+        // While we go through parsing to serialize a any to JSON, we don't need to track budget since this is
+        // not a real parse operation.
+        inner_marshaler.merge_from_binary(py, &inner_msg, value, false, &mut NoopBudget)?;
 
         sink.begin_object()?;
         if inner_marshaler.wkt.is_none() {
@@ -183,12 +192,13 @@ impl WktAny {
         src: &mut R,
         opts: &FromJsonOpts,
         _depth: usize,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         let py = src.py();
         let message_type_name = &marshaler.type_name;
         // For a string input, this will eagerly parse out a whole dictionary since
         // we need to first find `@type` before parsing.
-        let tree = read_json_value(src)?;
+        let tree = read_json_value(src, budget)?;
         let Ok(dict) = tree.cast::<PyDict>() else {
             return Err(PyTypeError::new_err(format!(
                 "cannot decode {message_type_name} from JSON: {}",
@@ -230,6 +240,7 @@ impl WktAny {
             .getattr(&marshaler.constants.ext_marshaler)?
             .cast_into::<MessageMarshaler>()?;
         let inner_marshaler = inner_marshaler.get();
+        budget.charge_message(inner_marshaler)?;
         let inner_msg = inner_marshaler.new_empty_message(py, &inner_type)?;
 
         let is_wkt = inner_marshaler.wkt.is_some();
@@ -238,17 +249,19 @@ impl WktAny {
                 .get_item("value")?
                 .unwrap_or_else(|| py.None().into_bound(py));
             let mut sub = PyTreeSource::new(py, value);
-            read_message(inner_marshaler, &inner_msg, &mut sub, opts, 1)?;
+            read_message(inner_marshaler, &inner_msg, &mut sub, opts, 1, budget)?;
         } else {
             let copy = dict.copy()?;
             copy.del_item("@type")?;
             let mut sub = PyTreeSource::new(py, copy.into_any());
-            read_message(inner_marshaler, &inner_msg, &mut sub, opts, 1)?;
+            read_message(inner_marshaler, &inner_msg, &mut sub, opts, 1, budget)?;
         }
 
         // Any.pack
         let packed_url = format!("type.googleapis.com/{}", inner_marshaler.type_name);
         let packed_value = inner_marshaler.to_binary(py, &inner_msg, true)?;
+        budget.charge_str(packed_url.as_bytes())?;
+        budget.charge_bytes(packed_value.as_bytes().len())?;
         self.type_url
             .set(message.as_any(), &PyString::new(py, &packed_url).into_any())?;
         self.value.set(message.as_any(), packed_value.as_any())?;
@@ -300,13 +313,14 @@ impl WktFieldMask {
         src: &mut R,
         _opts: &FromJsonOpts,
         _depth: usize,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         let py = src.py();
         let paths = self
             .paths
             .get(py, message.as_any())?
             .cast_into::<PyList>()?;
-        with_wkt_str(marshaler, src, |text| {
+        with_wkt_str(marshaler, src, budget, |text, budget| {
             if text.is_empty() {
                 return Ok(());
             }
@@ -317,7 +331,10 @@ impl WktFieldMask {
                         marshaler.type_name
                     )));
                 }
-                paths.append(buffa_wkt::camel_to_snake(part))?;
+                let path = buffa_wkt::camel_to_snake(part);
+                budget.charge_str(path.as_bytes())?;
+                budget.charge_list_item()?;
+                paths.append(path)?;
             }
             Ok(())
         })
@@ -360,10 +377,11 @@ impl WktStruct {
         src: &mut R,
         opts: &FromJsonOpts,
         depth: usize,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         let py = src.py();
         if src.peek()? != JsonKind::Object {
-            let json = read_json_value(src)?;
+            let json = read_json_value(src, budget)?;
             return Err(PyTypeError::new_err(format!(
                 "cannot decode {} from JSON: {}",
                 marshaler.type_name,
@@ -377,9 +395,12 @@ impl WktStruct {
             .cast_into::<PyDict>()?;
         // Duplicate keys use last-in-wins semantics (per the ProtoJSON spec).
         src.for_each_object_key(|key, src| {
+            budget.charge_message(value_marshaler)?;
             let value_msg =
                 value_marshaler.new_empty_message(py, self.value.get_python_type(py))?;
-            read_message(value_marshaler, &value_msg, src, opts, depth + 1)?;
+            read_message(value_marshaler, &value_msg, src, opts, depth + 1, budget)?;
+            budget.charge_str(key.as_bytes())?;
+            budget.charge_dict_entry()?;
             dict.set_item(key, value_msg)?;
             Ok(())
         })?;
@@ -422,10 +443,11 @@ impl WktListValue {
         src: &mut R,
         opts: &FromJsonOpts,
         depth: usize,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         let py = src.py();
         if src.peek()? != JsonKind::Array {
-            let json = read_json_value(src)?;
+            let json = read_json_value(src, budget)?;
             return Err(PyTypeError::new_err(format!(
                 "cannot decode {} from JSON: {}",
                 marshaler.type_name,
@@ -438,9 +460,11 @@ impl WktListValue {
             .get(py, message.as_any())?
             .cast_into::<PyList>()?;
         src.for_each_array_item(|src| {
+            budget.charge_message(element_marshaler)?;
             let value_msg =
                 element_marshaler.new_empty_message(py, self.element.get_python_type(py))?;
-            read_message(element_marshaler, &value_msg, src, opts, depth + 1)?;
+            read_message(element_marshaler, &value_msg, src, opts, depth + 1, budget)?;
+            budget.charge_list_item()?;
             list.append(value_msg)?;
             Ok(())
         })?;
@@ -510,8 +534,10 @@ impl WktValue {
         src: &mut R,
         opts: &FromJsonOpts,
         depth: usize,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         let py = src.py();
+        budget.charge_oneof()?;
         let oneof = match src.peek()? {
             JsonKind::Null => {
                 src.next_null()?;
@@ -523,27 +549,30 @@ impl WktValue {
             ),
             JsonKind::Number => {
                 let number = src.next_float()?;
+                budget.charge_float()?;
                 Oneof::new(
                     self.number_name.bind(py),
                     &PyFloat::new(py, number).into_any(),
                 )
             }
             JsonKind::String => {
-                let string = src.next_py_str()?;
+                let string = src.next_py_str(budget)?;
                 Oneof::new(self.string_name.bind(py), &string)
             }
             JsonKind::Array => {
                 let desc = &self.list_message;
                 let inner = desc.get_marshaler(py)?;
+                budget.charge_message(inner)?;
                 let list_msg = inner.new_empty_message(py, desc.get_python_type(py))?;
-                read_message(inner, &list_msg, src, opts, depth + 1)?;
+                read_message(inner, &list_msg, src, opts, depth + 1, budget)?;
                 Oneof::new(self.list_name.bind(py), &list_msg.into_any())
             }
             JsonKind::Object => {
                 let desc = &self.struct_message;
                 let inner = desc.get_marshaler(py)?;
+                budget.charge_message(inner)?;
                 let struct_msg = inner.new_empty_message(py, desc.get_python_type(py))?;
-                read_message(inner, &struct_msg, src, opts, depth + 1)?;
+                read_message(inner, &struct_msg, src, opts, depth + 1, budget)?;
                 Oneof::new(self.struct_name.bind(py), &struct_msg.into_any())
             }
         };
@@ -581,6 +610,7 @@ impl WktWrapper {
         src: &mut R,
         _opts: &FromJsonOpts,
         _depth: usize,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         let py = src.py();
         if src.peek()? == JsonKind::Null {
@@ -591,7 +621,7 @@ impl WktWrapper {
         }
         let name = self.name.bind(py);
         let ctx = FieldContext::Field { marshaler, name };
-        let value = read_scalar(&ctx, src, self.scalar)?;
+        let value = read_scalar(&ctx, src, self.scalar, budget)?;
         self.field.set(message.as_any(), &value)
     }
 }
@@ -639,16 +669,17 @@ impl WktKind {
         src: &mut R,
         opts: &FromJsonOpts,
         depth: usize,
+        budget: &mut impl Budget,
     ) -> PyResult<()> {
         match self {
-            WktKind::Timestamp(w) => w.read_json(marshaler, message, src, opts, depth),
-            WktKind::Duration(w) => w.read_json(marshaler, message, src, opts, depth),
-            WktKind::Any(w) => w.read_json(marshaler, message, src, opts, depth),
-            WktKind::FieldMask(w) => w.read_json(marshaler, message, src, opts, depth),
-            WktKind::Struct(w) => w.read_json(marshaler, message, src, opts, depth),
-            WktKind::ListValue(w) => w.read_json(marshaler, message, src, opts, depth),
-            WktKind::Value(w) => w.read_json(marshaler, message, src, opts, depth),
-            WktKind::Wrapper(w) => w.read_json(marshaler, message, src, opts, depth),
+            WktKind::Timestamp(w) => w.read_json(marshaler, message, src, opts, depth, budget),
+            WktKind::Duration(w) => w.read_json(marshaler, message, src, opts, depth, budget),
+            WktKind::Any(w) => w.read_json(marshaler, message, src, opts, depth, budget),
+            WktKind::FieldMask(w) => w.read_json(marshaler, message, src, opts, depth, budget),
+            WktKind::Struct(w) => w.read_json(marshaler, message, src, opts, depth, budget),
+            WktKind::ListValue(w) => w.read_json(marshaler, message, src, opts, depth, budget),
+            WktKind::Value(w) => w.read_json(marshaler, message, src, opts, depth, budget),
+            WktKind::Wrapper(w) => w.read_json(marshaler, message, src, opts, depth, budget),
         }
     }
 
@@ -884,20 +915,21 @@ fn match_wrapper(fields: &[DescField], by_name: &HashMap<String, usize>) -> Opti
     }
 }
 
-fn with_wkt_str<'py, S: JsonSource<'py>, R>(
+fn with_wkt_str<'py, S: JsonSource<'py>, B: Budget, R>(
     marshaler: &MessageMarshaler,
     src: &mut S,
-    f: impl FnOnce(&str) -> PyResult<R>,
+    budget: &mut B,
+    f: impl FnOnce(&str, &mut B) -> PyResult<R>,
 ) -> PyResult<R> {
     if src.peek()? != JsonKind::String {
-        let value = read_json_value(src)?;
+        let value = read_json_value(src, budget)?;
         return Err(PyTypeError::new_err(format!(
             "cannot decode {} from JSON: {}",
             marshaler.type_name,
             value.str()?
         )));
     }
-    src.with_next_str(f)
+    src.with_next_str(|text| f(text, budget))
 }
 
 fn type_url_to_name(url: &str) -> PyResult<&str> {

@@ -9,6 +9,8 @@ use pyo3::{
     },
 };
 
+use crate::budget::Budget;
+
 /// The kind of the next JSON value, as reported by `peek`.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum JsonKind {
@@ -34,8 +36,9 @@ pub(crate) trait JsonSource<'py> {
     fn next_number(&mut self) -> PyResult<Bound<'py, PyAny>>;
     // Reads a JSON number.
     fn next_float(&mut self) -> PyResult<f64>;
-    /// Reads a JSON string as a Python string object.
-    fn next_py_str(&mut self) -> PyResult<Bound<'py, PyString>>;
+    /// Reads a JSON string as a Python string object, charging the budget
+    /// for it.
+    fn next_py_str(&mut self, budget: &mut impl Budget) -> PyResult<Bound<'py, PyString>>;
 
     /// Reads a JSON string as a Rust str, calling the function with it.
     fn with_next_str<R>(&mut self, f: impl FnOnce(&str) -> PyResult<R>) -> PyResult<R>;
@@ -163,9 +166,12 @@ impl<'py> JsonSource<'py> for JiterSource<'py> {
             .map_err(|err| jiter_decode_error(py, data, &err))
     }
 
-    fn next_py_str(&mut self) -> PyResult<Bound<'py, PyString>> {
+    fn next_py_str(&mut self, budget: &mut impl Budget) -> PyResult<Bound<'py, PyString>> {
         let py = self.py;
-        self.with_next_str(|s| Ok(PyString::new(py, s)))
+        self.with_next_str(|s| {
+            budget.charge_str(s.as_bytes())?;
+            Ok(PyString::new(py, s))
+        })
     }
 
     fn with_next_str<R>(&mut self, f: impl FnOnce(&str) -> PyResult<R>) -> PyResult<R> {
@@ -311,13 +317,16 @@ impl<'py> JsonSource<'py> for PyTreeSource<'py> {
         self.take_current()?.extract::<f64>()
     }
 
-    fn next_py_str(&mut self) -> PyResult<Bound<'py, PyString>> {
-        let value = self.take_current()?;
-        Ok(value.cast_into::<PyString>()?)
+    fn next_py_str(&mut self, budget: &mut impl Budget) -> PyResult<Bound<'py, PyString>> {
+        let value = self.take_current()?.cast_into::<PyString>()?;
+        // The str is shared with the tree rather than allocated, but is
+        // charged so a message costs the same however its JSON is provided.
+        budget.charge_py_str(&value)?;
+        Ok(value)
     }
 
     fn with_next_str<R>(&mut self, f: impl FnOnce(&str) -> PyResult<R>) -> PyResult<R> {
-        let value = self.next_py_str()?;
+        let value = self.take_current()?.cast_into::<PyString>()?;
         let s = value.to_str()?;
         f(s)
     }
