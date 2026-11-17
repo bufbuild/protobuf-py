@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 
@@ -34,6 +34,9 @@ from .gen.maps_pb import Maps
 from .gen.messages_pb import ExplicitFields, ImplicitFields, MixedFields, Recursive
 from .gen.oneofs_pb import Oneofs
 from .gen.scalars_pb import Scalars
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 @pytest.mark.parametrize(
@@ -546,7 +549,7 @@ def test_from_json_repeated_scalar_error(
         Lists.from_json(json.dumps(json_obj))
 
 
-@pytest.mark.parametrize("value", [True, "NONEXISTENT", {}, [], 2**31, -(2**31) - 1])
+@pytest.mark.parametrize("value", [True, "NONEXISTENT", {}, []])
 def test_from_json_singular_enum_error(value: Any) -> None:
     with pytest.raises(ValueError, match="cannot decode"):
         EnumMessage.from_json(json.dumps({"colorField": value}))
@@ -619,9 +622,6 @@ def test_from_json_repeated_message_error(
             ValueError,
             "invalid integer value",
         ),
-        ({"int32ToInt32": {"2147483648": 0}}, OverflowError, "out of range for int32"),
-        ({"uint32ToUint32": {"-1": 0}}, OverflowError, "out of range for uint32"),
-        ({"int32ToEnum": {"1": 2147483648}}, ValueError, "cannot decode"),
     ],
 )
 def test_from_json_map_error(
@@ -629,6 +629,112 @@ def test_from_json_map_error(
 ) -> None:
     with pytest.raises(exc_type, match=match):
         Maps.from_json(json.dumps(json_obj))
+
+
+# Inclusive bounds of each integer range, keyed by the name used in
+# "out of range for <name>" errors.
+_INT_RANGES = {
+    "int32": (-(2**31), 2**31 - 1),
+    "uint32": (0, 2**32 - 1),
+    "int64": (-(2**63), 2**63 - 1),
+    "uint64": (0, 2**64 - 1),
+}
+# Each integer type and the range it is checked against.
+_INT_TYPES = {
+    "int32": "int32",
+    "sint32": "int32",
+    "sfixed32": "int32",
+    "uint32": "uint32",
+    "fixed32": "uint32",
+    "int64": "int64",
+    "sint64": "int64",
+    "sfixed64": "int64",
+    "uint64": "uint64",
+    "fixed64": "uint64",
+}
+
+
+def _range_edges(range_name: str) -> list[tuple[int, bool]]:
+    lo, hi = _INT_RANGES[range_name]
+    return [(lo, True), (hi, True), (lo - 1, False), (hi + 1, False)]
+
+
+_INT_TYPE_EDGES = [
+    (int_type, value, in_range)
+    for int_type, range_name in _INT_TYPES.items()
+    for value, in_range in _range_edges(range_name)
+]
+
+
+@pytest.mark.parametrize("quoted", [False, True])
+@pytest.mark.parametrize(("int_type", "value", "in_range"), _INT_TYPE_EDGES)
+def test_from_json_scalar_int_range(
+    int_type: str, value: int, in_range: bool, quoted: bool
+) -> None:
+    text = json.dumps({f"{int_type}Field": str(value) if quoted else value})
+    if not in_range:
+        with pytest.raises(
+            OverflowError, match=f"out of range for {_INT_TYPES[int_type]}"
+        ):
+            Scalars.from_json(text)
+        return
+    msg = Scalars.from_json(text)
+    assert getattr(msg, f"{int_type}_field") == value
+    assert Scalars.from_binary(msg.to_binary()) == msg
+
+
+@pytest.mark.parametrize(("int_type", "key", "in_range"), _INT_TYPE_EDGES)
+def test_from_json_map_key_int_range(int_type: str, key: int, in_range: bool) -> None:
+    field = f"{int_type}To{int_type.capitalize()}"
+    text = json.dumps({field: {str(key): 0}})
+    if not in_range:
+        with pytest.raises(
+            OverflowError, match=f"out of range for {_INT_TYPES[int_type]}"
+        ):
+            Maps.from_json(text)
+        return
+    msg = Maps.from_json(text)
+    assert getattr(msg, f"{int_type}_to_{int_type}") == {key: 0}
+    assert Maps.from_binary(msg.to_binary()) == msg
+
+
+_ENUM_SLOTS = pytest.mark.parametrize(
+    ("msg_type", "make_json"),
+    [
+        pytest.param(MixedFields, lambda n: {"implicitEnumField": n}, id="implicit"),
+        pytest.param(MixedFields, lambda n: {"explicitEnumField": n}, id="explicit"),
+        pytest.param(Lists, lambda n: {"enumList": [n]}, id="list"),
+        pytest.param(Maps, lambda n: {"stringToEnum": {"a": n}}, id="string_map"),
+        pytest.param(Maps, lambda n: {"int32ToEnum": {"1": n}}, id="int32_map"),
+    ],
+)
+_INT32_MIN, _INT32_MAX = _INT_RANGES["int32"]
+
+
+@_ENUM_SLOTS
+@pytest.mark.parametrize("value", [_INT32_MIN, _INT32_MAX])
+def test_from_json_enum_int_in_range(
+    msg_type: type[Message[Any]], make_json: Callable[[int], dict[str, Any]], value: int
+) -> None:
+    msg = msg_type.from_json(json.dumps(make_json(value)))
+    assert json.loads(msg.to_json()) == make_json(value)
+    assert msg_type.from_binary(msg.to_binary()) == msg
+
+
+@_ENUM_SLOTS
+@pytest.mark.parametrize("value", [_INT32_MIN - 1, _INT32_MAX + 1])
+@pytest.mark.parametrize("ignore_unknown_fields", [False, True])
+def test_from_json_enum_int_out_of_range(
+    msg_type: type[Message[Any]],
+    make_json: Callable[[int], dict[str, Any]],
+    value: int,
+    ignore_unknown_fields: bool,
+) -> None:
+    """Out-of-range enum numbers are errors even when ignoring unknown fields."""
+    with pytest.raises(ValueError, match="cannot decode"):
+        msg_type.from_json(
+            json.dumps(make_json(value)), ignore_unknown_fields=ignore_unknown_fields
+        )
 
 
 def test_from_json_oneof_set_multiple_times() -> None:
