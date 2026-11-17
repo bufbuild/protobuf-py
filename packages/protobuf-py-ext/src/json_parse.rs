@@ -437,7 +437,8 @@ fn read_map_key<'py>(
             )),
         },
         ScalarType::String => Ok(PyString::new(py, raw_key).into_any()),
-        _ => parse_int_string(py, ctx, raw_key, key_type),
+        _ => parse_int_string(py, ctx, raw_key, key_type)
+            .and_then(|value| range_check_int(ctx, value, key_type)),
     }
 }
 
@@ -690,11 +691,7 @@ fn read_enum<'py, R: JsonSource<'py>>(
                 return Err(decode_enum_error(py, enum_desc, &number));
             }
             let Ok(int_value) = number.extract::<i32>() else {
-                // Out of i32 range: unknown value.
-                if opts.ignore_unknown_fields {
-                    return Ok(None);
-                }
-                return Ok(Some(enum_desc.py_type.bind(py).call1((number,))?));
+                return Err(decode_enum_error(py, enum_desc, &number));
             };
             if let Some(value) = enum_desc.values.get(&int_value) {
                 Ok(Some(value.bind(py).clone()))
