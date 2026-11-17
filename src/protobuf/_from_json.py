@@ -402,7 +402,7 @@ def _read_enum(
             raise ValueError(msg)
         if value := desc._values_by_number.get(json):
             return desc.type(value.number)
-        if ignore_unknown_fields:
+        if ignore_unknown_fields and not desc.open:
             return None
         # Succeeds for open enum, raises an error for closed
         return desc.type(json)

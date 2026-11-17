@@ -737,6 +737,51 @@ def test_from_json_enum_int_out_of_range(
         )
 
 
+@pytest.mark.parametrize(
+    ("json_obj", "expected"),
+    [
+        pytest.param(
+            {"colorField": 99}, EnumMessage(color_field=Color(99)), id="singular"
+        ),
+        pytest.param(
+            {"colorList": [1, 99]},
+            EnumMessage(color_list=[Color.RED, Color(99)]),
+            id="list",
+        ),
+        pytest.param(
+            {"stringToColor": {"a": 99}},
+            EnumMessage(string_to_color={"a": Color(99)}),
+            id="map",
+        ),
+    ],
+)
+@pytest.mark.parametrize("ignore_unknown_fields", [False, True])
+def test_from_json_open_enum_unknown_number(
+    json_obj: dict[str, Any], expected: EnumMessage, ignore_unknown_fields: bool
+) -> None:
+    """Unknown numbers in open enums are kept regardless of ignore_unknown_fields."""
+    msg = EnumMessage.from_json(
+        json.dumps(json_obj), ignore_unknown_fields=ignore_unknown_fields
+    )
+    assert msg == expected
+
+
+@pytest.mark.parametrize(
+    "json_obj",
+    [
+        pytest.param({"closedColorField": 99}, id="singular"),
+        pytest.param({"closedColorList": [99]}, id="list"),
+        pytest.param({"stringToClosedColor": {"a": 99}}, id="map"),
+    ],
+)
+def test_from_json_closed_enum_unknown_number(json_obj: dict[str, Any]) -> None:
+    """Unknown numbers in closed enums are an error, or dropped when ignoring."""
+    with pytest.raises(ValueError, match="is not a valid ClosedColor"):
+        EnumMessage.from_json(json.dumps(json_obj))
+    msg = EnumMessage.from_json(json.dumps(json_obj), ignore_unknown_fields=True)
+    assert msg == EnumMessage()
+
+
 def test_from_json_oneof_set_multiple_times() -> None:
     msg = MixedFields.from_json(json.dumps({"oneofField": "a", "oneofBaz": 1}))
     assert msg.oneof_group == Oneof(field="oneof_baz", value=1)
@@ -875,18 +920,6 @@ def test_closed_enum_to_json() -> None:
     msg = EnumMessage(closed_color_field=cast("Any", 99))
     with pytest.raises(ValueError, match="invalid enum value 99 for enum ClosedColor"):
         msg.to_json()
-
-
-def test_closed_enum_from_json() -> None:
-    with pytest.raises(ValueError, match="`99` is not a valid ClosedColor"):
-        EnumMessage.from_json(json.dumps({"closedColorField": 99}))
-
-
-def test_closed_enum_from_json_ignoring_unknown_fields() -> None:
-    msg = EnumMessage.from_json(
-        json.dumps({"closedColorField": 99}), ignore_unknown_fields=True
-    )
-    assert msg.closed_color_field == ClosedColor.UNSPECIFIED
 
 
 def test_to_json_del_before_multibyte_char() -> None:
