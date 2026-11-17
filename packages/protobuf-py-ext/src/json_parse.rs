@@ -695,10 +695,10 @@ fn read_enum<'py, R: JsonSource<'py>>(
             };
             if let Some(value) = enum_desc.values.get(&int_value) {
                 Ok(Some(value.bind(py).clone()))
-            } else if opts.ignore_unknown_fields {
+            } else if opts.ignore_unknown_fields && !enum_desc.open {
                 Ok(None)
             } else {
-                // Open enum: succeeds; closed enum: raises via Python enum call.
+                // Succeeds for open enum, raises an error for closed
                 Ok(Some(enum_desc.py_type.bind(py).call1((int_value,))?))
             }
         }
