@@ -3,7 +3,7 @@ name = "protobuf-py-bench"
 version = "0.0.1"
 requires-python = ">=3.10"
 dependencies = [
-  "PyYAML==6.0.3",
+  "PyYAML==6.0.4",
   "buf-bin==1.75.0",
   "fix-protobuf-imports==0.1.7",
   "protobuf==7.36.2",
