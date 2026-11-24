@@ -170,7 +170,8 @@ impl NativeMessage {
     }
 
     #[pyo3(signature = (json, *, ignore_unknown_fields = false, registry = None))]
-    fn _merge_from_json(
+    #[pyo3(name = "_merge_from_json")]
+    fn merge_from_json(
         slf: &Bound<'_, Self>,
         py: Python<'_>,
         json: &Bound<'_, PyAny>,
@@ -182,7 +183,8 @@ impl NativeMessage {
     }
 
     #[pyo3(signature = (*, registry = None, always_emit_implicit = false, print_enums_as_ints = false, use_proto_field_name = false))]
-    fn _to_json_value<'py>(
+    #[pyo3(name = "_to_json_value")]
+    fn to_json_value<'py>(
         slf: &Bound<'py, Self>,
         py: Python<'py>,
         registry: Option<Py<PyAny>>,
@@ -204,7 +206,8 @@ impl NativeMessage {
 
     #[classmethod]
     #[pyo3(signature = (data, *, ignore_unknown_fields = false, registry = None))]
-    fn _from_json_value<'py>(
+    #[pyo3(name = "_from_json_value")]
+    fn from_json_value<'py>(
         cls: &Bound<'py, PyType>,
         py: Python<'py>,
         data: Bound<'py, PyAny>,
@@ -264,7 +267,8 @@ impl NativeMessage {
         Ok(new)
     }
 
-    fn _merge_from_binary(
+    #[pyo3(name = "_merge_from_binary")]
+    fn merge_from_binary(
         slf: &Bound<'_, Self>,
         py: Python<'_>,
         data: Buffer,
@@ -338,7 +342,8 @@ impl NativeMessage {
         Ok(true)
     }
 
-    fn _merge_from(
+    #[pyo3(name = "_merge_from")]
+    fn merge_from(
         slf: &Bound<'_, Self>,
         py: Python<'_>,
         source: &Bound<'_, Self>,
@@ -383,7 +388,7 @@ impl NativeMessage {
                 } else {
                     target_value_any.cast_into::<NativeMessage>()?
                 };
-                NativeMessage::_merge_from(
+                NativeMessage::merge_from(
                     &target_value_message,
                     py,
                     source_value_message,
@@ -428,20 +433,23 @@ impl NativeMessage {
         Ok(())
     }
 
-    fn _get_field_number_present(&self, field_number: u32) -> bool {
+    #[pyo3(name = "_get_field_number_present")]
+    fn get_field_number_present(&self, field_number: u32) -> bool {
         self.present.get(field_number)
     }
 
-    fn _set_field_number_present(&self, field_number: u32) {
+    #[pyo3(name = "_set_field_number_present")]
+    fn set_field_number_present(&self, field_number: u32) {
         self.present.set(field_number, true);
     }
 
-    fn _clear_field_number_present(&self, field_number: u32) {
+    #[pyo3(name = "_clear_field_number_present")]
+    fn clear_field_number_present(&self, field_number: u32) {
         self.present.set(field_number, false);
     }
 
-    #[getter]
-    fn _present<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+    #[getter(_present)]
+    fn present<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
         let list = PyList::empty(py);
         self.present.for_each(|i| list.append(i))?;
         Ok(list)
