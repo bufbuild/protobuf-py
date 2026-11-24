@@ -468,8 +468,6 @@ def _build_field(
         if not in_oneof or proto.proto3_optional
         else proto.name,
         number=proto.number,
-        # Compilers always populate json_name, but descriptors embedded in other
-        # runtimes' generated code only keep it when it is declared in source.
         json_name=proto.json_name
         if proto.has_field("json_name")
         else proto_camel_case(proto.name),
