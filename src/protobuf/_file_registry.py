@@ -250,21 +250,25 @@ def _add_enum(
         values.append(desc_value)
         values_by_number[value_proto.number] = desc_value
         values_by_name[value_proto.name] = desc_value
-        if desc_value.json_name is not None:
+        if desc_value.json_name != desc_value.name:
             values_by_json_name[desc_value.json_name] = desc_value
     reg.add(desc_enum)
     return desc_enum
 
 
-def _enum_value_json_name(value_proto: EnumValueDescriptorProto) -> str | None:
+def _enum_value_json_name(value_proto: EnumValueDescriptorProto) -> str:
+    """Return the custom JSON name of an enum value, or its declared name."""
     options = value_proto.options
     if not options:
-        return None
+        return value_proto.name
     from .wkt.google.protobuf.json_enumvalue_options_pb import ext_json  # noqa: PLC0415
 
     if ext_json not in options:
-        return None
-    return options[ext_json].string
+        return value_proto.name
+    json_options = options[ext_json]
+    if not json_options.has_field("string"):
+        return value_proto.name
+    return json_options.string
 
 
 def _add_message(

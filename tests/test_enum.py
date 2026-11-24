@@ -62,16 +62,16 @@ def test_enum_base_class_desc() -> None:
     assert desc.values[1].name == "COLOR_RED"
     assert desc.values[2].name == "COLOR_GREEN"
     assert desc.values[3].name == "COLOR_BLUE"
-    assert all(value.json_name is None for value in desc.values)
+    assert all(value.json_name == value.name for value in desc.values)
 
 
 def test_enum_value_json_name() -> None:
-    """The (pb.enumvalue.json) option populates DescEnumValue.json_name."""
+    """The (pb.enumvalue.json) option overrides DescEnumValue.json_name."""
     desc = Season.desc()
-    assert desc.values[0].json_name is None
+    assert desc.values[0].json_name == "SEASON_UNSPECIFIED"
     assert desc.values[1].json_name == "primavera"
     assert desc.values[2].json_name == "estate"
-    assert desc.values[3].json_name is None
+    assert desc.values[3].json_name == "SEASON_FALL"
 
 
 def test_enum_base_class_int_operations() -> None:
