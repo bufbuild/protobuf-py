@@ -15,9 +15,11 @@
 from __future__ import annotations
 
 import math
+import re
 from base64 import b64decode
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Literal, TypeVar, cast
+from json import JSONDecodeError, loads
+from typing import TYPE_CHECKING, Literal, NoReturn, TypeVar, cast
 
 from typing_extensions import assert_never
 
@@ -55,6 +57,8 @@ from ._wkt_registry import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from ._enum import Enum
     from ._message import Message
     from ._registry import Registry
@@ -70,6 +74,108 @@ class FromJsonOptions:
     registry: Registry | None
     depth: int = 0
     """Current message nesting depth. Mutated during a parse."""
+    text: str | None = None
+    """The JSON text being parsed, for error messages, or None for a JSON value."""
+
+
+_URL_SAFE_TO_STANDARD_BASE64 = str.maketrans("-_", "+/")
+
+# A \u escape of a UTF-16 surrogate, which is only valid as part of a pair.
+_SURROGATE_ESCAPE = re.compile(r"\\u[dD][89a-fA-F][0-9a-fA-F]{2}")
+_SURROGATE = re.compile("[\ud800-\udfff]")
+# A bare -0 integer.
+_NEGATIVE_ZERO = re.compile(r"-0(?![.eE0-9])")
+
+
+class _NegativeZero(int):
+    """The integer -0, which json.loads reads as 0, losing the sign."""
+
+    __slots__ = ()
+
+    def __float__(self) -> float:
+        return -0.0
+
+
+class _DuplicateKeys(dict):
+    """A JSON object with a repeated key.
+
+    Acts as a dict holding the last value of each key, but also keeps every
+    pair so that earlier values are still read, as the native extension does.
+    """
+
+    __slots__ = ("pairs",)
+
+    def __init__(self, pairs: list[tuple[str, JsonValue]]) -> None:
+        super().__init__(pairs)
+        self.pairs = pairs
+
+
+def _object_from_pairs(pairs: list[tuple[str, JsonValue]]) -> dict[str, JsonValue]:
+    result = dict(pairs)
+    return result if len(result) == len(pairs) else _DuplicateKeys(pairs)
+
+
+def _object_items(json: dict[str, JsonValue]) -> Iterable[tuple[str, JsonValue]]:
+    """The keys and values of a JSON object, including any repeated keys."""
+    return json.pairs if isinstance(json, _DuplicateKeys) else json.items()
+
+
+def without_key(json: dict[str, JsonValue], key: str) -> dict[str, JsonValue]:
+    """A copy of a JSON object without a key, keeping any repeated keys."""
+    if isinstance(json, _DuplicateKeys):
+        return _object_from_pairs([pair for pair in json.pairs if pair[0] != key])
+    return {k: v for k, v in json.items() if k != key}
+
+
+def _parse_json_int(text: str) -> int:
+    return _NegativeZero(0) if text == "-0" else int(text)
+
+
+def parse_json_text(text: str) -> JsonValue:
+    """Parse JSON text with the same rules as the native extension.
+
+    json.loads accepts NaN, Infinity, and unpaired UTF-16 surrogate escapes,
+    which JSON doesn't allow, so reject them. Also keep the sign of -0 and the
+    earlier values of repeated keys.
+    """
+
+    def reject_constant(name: str) -> NoReturn:
+        msg = f"{name} is not valid JSON, quote it as a string"
+        # Position of error is approximate since this should be very rare
+        # and the error is generally enough.
+        raise JSONDecodeError(msg, text, text.find(name))
+
+    # A parse_int hook makes json.loads slower, so only use it when the text
+    # may contain -0.
+    value = loads(
+        text,
+        object_pairs_hook=_object_from_pairs,
+        parse_constant=reject_constant,
+        parse_int=_parse_json_int if _NEGATIVE_ZERO.search(text) else None,
+    )
+    # Walking the parsed value is slow, so only do it when the text has a
+    # surrogate escape.
+    if (escape := _SURROGATE_ESCAPE.search(text)) and _has_surrogate(value):
+        msg = "unpaired UTF-16 surrogate escape is not valid JSON"
+        # Position of error is approximate since this should be very rare
+        # and the error is generally    enough.
+        raise JSONDecodeError(msg, text, escape.start())
+    return value
+
+
+def _has_surrogate(value: JsonValue) -> bool:
+    match value:
+        case str():
+            return _SURROGATE.search(value) is not None
+        case list():
+            return any(_has_surrogate(item) for item in value)
+        case dict():
+            return any(
+                _has_surrogate(key) or _has_surrogate(item)
+                for key, item in _object_items(value)
+            )
+        case _:
+            return False
 
 
 def _enter_message(opts: FromJsonOptions) -> FromJsonOptions:
@@ -128,11 +234,11 @@ def _read_message_inner(msg: Message, json: JsonValue, opts: FromJsonOptions) ->
         raise TypeError(err)
 
     desc = msg.__class__._desc
-    # A field can be named twice by its proto name and its JSON name (identical
-    # keys are already collapsed to the last value by json.loads). Duplicates
-    # are last-in-wins, so reset the field before applying a later occurrence.
+    # A field can appear twice, as a repeated key or under both its proto name
+    # and JSON name. The last one wins, so reset the field before reading a
+    # later occurrence.
     seen = set[DescField]()
-    for key, value in json.items():
+    for key, value in _object_items(json):
         field = desc._fields_by_json_name.get(key)
         if field:
             field_value = field.value
@@ -156,11 +262,41 @@ def _read_message_inner(msg: Message, json: JsonValue, opts: FromJsonOptions) ->
                 and extension.extendee.type_name == desc.type_name
             ):
                 _read_extension(msg, extension, value, opts)
-            if not extension and not opts.ignore_unknown_fields:
+            elif extension or opts.ignore_unknown_fields:
+                # An unknown field, or an extension of another message.
+                _check_skipped_depth(value, opts)
+            else:
                 err = (
                     f"cannot decode {desc.type_name} from JSON: key: '{key}' is unknown"
                 )
                 raise ValueError(err)
+
+
+# The native extension's parser fails when a skipped value has anything,
+# scalars included, nested more than this many levels deep to bound recursion.
+# Ideally we could reject this during JSON parse but Python doesn't have
+# such a mechanism, so a highly nested unknown field can cause significant
+# recursion with pure Python.
+_SKIPPED_DEPTH_LIMIT = 200
+
+
+def _check_skipped_depth(value: JsonValue, opts: FromJsonOptions) -> None:
+    """Raise if a skipped value parsed from text is nested too deeply."""
+    if opts.text is None:
+        return
+    stack = [(value, 0)]
+    while stack:
+        item, depth = stack.pop()
+        if depth > _SKIPPED_DEPTH_LIMIT:
+            msg = "recursion limit exceeded in a skipped value"
+            raise JSONDecodeError(msg, opts.text, 0)
+        match item:
+            case list():
+                stack.extend((child, depth + 1) for child in item)
+            case dict():
+                stack.extend((child, depth + 1) for _, child in _object_items(item))
+            case _:
+                pass
 
 
 def _reset_duplicate_field(msg: Message, field: DescField) -> None:
@@ -320,7 +456,7 @@ def _read_map_field(
         return
     if not isinstance(json, dict):
         raise _field_error(field, f"expected dict got {type(json)}", TypeError)
-    for json_key, json_value in json.items():
+    for json_key, json_value in _object_items(json):
         key = _read_map_key(field, field_value, json_key)
         value = _read_container_item(field, field_value.value, json_value, opts)
         if value is not None:
@@ -444,12 +580,12 @@ def _read_scalar(
                 raise _field_error(
                     desc, f"expected base64-encoded string got: {type(json)}", TypeError
                 )
-            # Accept standard and URL-safe base64, adding padding if necessary
-            altchars = "-_" if "-" in json or "_" in json else None
+            # Accept standard, URL-safe, or mixed base64
+            json = json.translate(_URL_SAFE_TO_STANDARD_BASE64)
             if padding := len(json) % 4:
                 json = json + (4 - padding) * "="
             try:
-                return b64decode(json, altchars=altchars, validate=True)
+                return b64decode(json, validate=True)
             except ValueError:
                 raise _field_error(desc, "invalid base64 data", ValueError) from None
         case _:
@@ -514,7 +650,8 @@ def _parse_int(desc: DescField | DescExtension, json: JsonValue) -> int:
     if not isinstance(json, bool) and isinstance(
         json, int
     ):  # isinstance(bool_value, int) is True
-        return json
+        # A plain int rather than the -0 subclass.
+        return int(json)
 
     if isinstance(json, float):
         f = json
@@ -608,7 +745,7 @@ def _struct_from_json(
     assert isinstance(value_desc, DescMessage)  # noqa: S101
     value_wkt = match_wkt(value_desc)
     assert isinstance(value_wkt, WktValue)  # noqa: S101
-    for k, v in json.items():
+    for k, v in _object_items(json):
         val = cast("Value", value_desc.type())
         _value_from_json(val, v, opts, value_wkt)
         msg.fields[k] = val

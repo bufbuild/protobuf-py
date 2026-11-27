@@ -500,12 +500,21 @@ fn read_bytes<'py, R: JsonSource<'py>>(
             Exc::Type,
         ));
     }
-    // Autodetect standard vs URL-safe alphabet. The
-    // engines are lenient about padding and non-canonical trailing bits, like
-    // Python's `base64.b64decode(..., validate=True)`.
+    // Translate URL-safe characters to standard ones like upstream protobuf
+    // does, so either alphabet or a mix of both decodes. The engine allows
+    // missing padding and non-canonical trailing bits, like Python's
+    // `base64.b64decode(..., validate=True)`.
     let decoded = src.with_next_str(|text| {
-        let decoded = if text.contains('-') || text.contains('_') {
-            base64_url_safe().decode(text)
+        let decoded = if text.contains(['-', '_']) {
+            let standard: String = text
+                .chars()
+                .map(|c| match c {
+                    '-' => '+',
+                    '_' => '/',
+                    c => c,
+                })
+                .collect();
+            base64_standard().decode(standard)
         } else {
             base64_standard().decode(text)
         }
@@ -525,10 +534,6 @@ fn base64_decode_config() -> base64::engine::GeneralPurposeConfig {
 
 fn base64_standard() -> base64::engine::GeneralPurpose {
     base64::engine::GeneralPurpose::new(&base64::alphabet::STANDARD, base64_decode_config())
-}
-
-fn base64_url_safe() -> base64::engine::GeneralPurpose {
-    base64::engine::GeneralPurpose::new(&base64::alphabet::URL_SAFE, base64_decode_config())
 }
 
 /// Parses a float/double.

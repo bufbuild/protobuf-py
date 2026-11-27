@@ -13,10 +13,14 @@
 # limitations under the License.
 from __future__ import annotations
 
+import struct
+
 import pytest
 
 from .gen.delimited_encoding_pb import DelimitedEncoding
+from .gen.maps_pb import Maps
 from .gen.messages_pb import Recursive
+from .gen.scalars_pb import Scalars
 
 RECURSION_ERROR = "exceeded maximum recursion depth 100 while serializing message"
 
@@ -79,3 +83,14 @@ def test_cyclic_group() -> None:
     msg.child = msg
     with pytest.raises(RecursionError, match=RECURSION_ERROR):
         msg.to_binary()
+
+
+def test_map_entries_last_to_first() -> None:
+    msg = Maps(int32_to_int32={1: 2, 3: 4})
+    assert msg.to_binary() == b"\x0a\x04\x08\x03\x10\x04\x0a\x04\x08\x01\x10\x02"
+
+
+def test_float_signaling_nan_is_quiet() -> None:
+    signaling_nan = struct.unpack("<d", struct.pack("<Q", 0x7FF4_0000_0000_0000))[0]
+    msg = Scalars(float_field=signaling_nan)
+    assert msg.to_binary() == b"\x15\x00\x00\xe0\x7f"

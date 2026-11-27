@@ -13,6 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
+import math
 import struct
 from typing import TYPE_CHECKING, final
 
@@ -226,6 +227,13 @@ class BinaryWriter:
         Args:
             value: The float to encode.
         """
+        if math.isnan(value):
+            # Quiet a signaling NaN like converting it to a float does in
+            # hardware. CPython 3.14's struct keeps it signaling.
+            bits = (
+                struct.unpack("<Q", struct.pack("<d", value))[0] | 0x0008_0000_0000_0000
+            )
+            value = struct.unpack("<d", struct.pack("<Q", bits))[0]
         self._buf.extend(struct.pack("<f", value))
 
     def double(self, value: float) -> None:

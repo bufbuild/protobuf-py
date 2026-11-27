@@ -130,6 +130,16 @@ def test_print_enums_as_ints() -> None:
     )
 
 
+def test_order_set() -> None:
+    # Registered in the opposite order to how they're set.
+    message = _with_exts(Proto2Extendee(), (ext_string_ext, "a"), (ext_uint32_ext, 1))
+    registry = Registry(ext_uint32_ext, ext_string_ext)
+    assert (
+        message.to_json(registry=registry)
+        == '{"[proto2ext.string_ext]":"a","[proto2ext.uint32_ext]":1}'
+    )
+
+
 def test_without_registry() -> None:
     msg = _with_exts(Proto2Extendee(), (ext_uint32_ext, 123))
     json_str = msg.to_json()
