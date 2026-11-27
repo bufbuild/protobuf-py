@@ -14,10 +14,23 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from ._descriptors import DescEnum
+
+
+class _UnknownValue:
+    """The `_value_` of an enum value that is not a member, which is the int itself.
+
+    A member has its own `_value_`, which takes precedence over this.
+    """
+
+    def __get__(self, obj: int | None, owner: type | None = None) -> object:
+        return self if obj is None else int(obj)
+
+
+_UNKNOWN_VALUE = _UnknownValue()
 
 
 class Enum(IntEnum):
@@ -64,6 +77,15 @@ class Enum(IntEnum):
     if TYPE_CHECKING:
         _desc: DescEnum
 
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        # We avoid setting name and value onto unknown enum instances
+        # by setting them directly on subclasses. This prevents adding
+        # __dict__ to them, increasing memory usage significantly for
+        # no reason.
+        cls._name_ = cast("str", None)
+        cls._value_ = cast("int", _UNKNOWN_VALUE)
+
     @classmethod
     def _missing_(cls, value: object) -> Enum:
         """Handle unknown enum values.
@@ -88,11 +110,8 @@ class Enum(IntEnum):
             msg = f"`{value}` is not a valid {cls.__name__}"
             raise ValueError(msg)
 
-        # Create a pseudo-member for unknown values
-        pseudo_member = int.__new__(cls, value)
-        pseudo_member._name_ = cast("str", None)  # type: ignore[attr-defined]
-        pseudo_member._value_ = value  # type: ignore[attr-defined]
-        return pseudo_member  # type: ignore[return-value]
+        # Create a pseudo-member for unknown values.
+        return int.__new__(cls, value)
 
     def __str__(self) -> str:
         """Return a string representation of the enum value.
