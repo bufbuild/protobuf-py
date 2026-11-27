@@ -256,6 +256,38 @@ impl WktAny {
     }
 }
 
+/// Writes a `FieldMask` path in lowerCamelCase like upstream protobuf does.
+/// Fails if the path can't convert back, because it has an uppercase letter or
+/// an underscore not followed by a lowercase letter.
+fn write_field_mask_path(path: &str, out: &mut String) -> PyResult<()> {
+    let irreversible = || {
+        PyValueError::new_err(format!(
+            "invalid FieldMask path: lowerCamelCase of {path} is irreversible"
+        ))
+    };
+    let mut after_underscore = false;
+    for c in path.chars() {
+        if c.is_uppercase() {
+            return Err(irreversible());
+        }
+        if after_underscore {
+            if !c.is_lowercase() {
+                return Err(irreversible());
+            }
+            out.extend(c.to_uppercase());
+            after_underscore = false;
+        } else if c == '_' {
+            after_underscore = true;
+        } else {
+            out.push(c);
+        }
+    }
+    if after_underscore {
+        return Err(irreversible());
+    }
+    Ok(())
+}
+
 /// `google.protobuf.FieldMask`.
 pub(crate) struct WktFieldMask {
     paths: AttributeAccess,
@@ -280,13 +312,7 @@ impl WktFieldMask {
         }
         let mut out = String::new();
         for path in paths {
-            let path = path.extract::<&str>()?;
-            if !buffa_wkt::field_mask_path_round_trips(path) {
-                return Err(PyValueError::new_err(format!(
-                    "invalid FieldMask path: lowerCamelCase of {path} is irreversible"
-                )));
-            }
-            out.push_str(&buffa_wkt::snake_to_camel(path));
+            write_field_mask_path(path.extract::<&str>()?, &mut out)?;
             out.push(',');
         }
         // Drop trailing comma.
@@ -944,7 +970,26 @@ fn format_duration(seconds: i64, nanos: i32) -> PyResult<String> {
     buffa_wkt::fmt_duration(seconds, nanos).map_err(PyValueError::new_err)
 }
 
+// Workaround buffa accepting `+` in any numeric component of a timestamp by scanning
+// for it at the indexes it can appear at.
+fn has_signed_number(text: &str) -> bool {
+    let bytes = text.as_bytes();
+    let plus_at = |index: usize| bytes.get(index) == Some(&b'+');
+    // The year, month, day, hour, minute, and second.
+    if [0, 5, 8, 11, 14, 17].into_iter().any(plus_at) {
+        return true;
+    }
+    // The hours and minutes of an offset like +01:00.
+    let len = bytes.len();
+    !text.ends_with('Z') && len >= 6 && (plus_at(len - 5) || plus_at(len - 2))
+}
+
 fn parse_timestamp(type_name: &str, text: &str) -> PyResult<(i64, i32)> {
+    if has_signed_number(text) {
+        return Err(PyValueError::new_err(format!(
+            "cannot decode {type_name} from JSON: invalid RFC 3339 string"
+        )));
+    }
     buffa_wkt::parse_timestamp(text).map_err(|err| {
         // String matching on an error message not the best, but it works and
         // saves us a lot of parsing logic, notably tricky calendar date checking.

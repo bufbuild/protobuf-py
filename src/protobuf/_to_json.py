@@ -109,9 +109,7 @@ def _enum_to_json_value(
     if opts.print_enums_as_ints:
         return int(value)
     if enum_value := desc_enum._values_by_number.get(value):
-        if enum_value.json_name is not None:
-            return enum_value.json_name
-        return enum_value.name
+        return enum_value.json_name
     if not desc_enum.open:
         msg = f"invalid enum value {value} for enum {desc_enum.type_name}"
         raise ValueError(msg)
@@ -187,9 +185,10 @@ def _message_to_json_value(message: Message, opts: ToJsonOptions) -> JsonValue:
         result[json_key] = json_value
 
     # Extension fields
-    if opts.registry:
-        for ext_desc in opts.registry.extensions_for(message):
-            if ext_desc.type not in message:
+    if opts.registry and (unknown_fields := message._unknown_fields):
+        for number in unknown_fields:
+            ext_desc = opts.registry.extension_for(message._desc, number)
+            if ext_desc is None:
                 continue
             value = message[ext_desc.type]
             match field_value := ext_desc.value:

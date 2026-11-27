@@ -3,7 +3,7 @@
 use jiter::{Jiter, JiterError, NumberAny, NumberInt, Peek};
 use pyo3::{
     Bound, IntoPyObject as _, PyAny, PyErr, PyResult, Python,
-    exceptions::{PyTypeError, PyValueError},
+    exceptions::{PyOverflowError, PyTypeError, PyValueError},
     types::{
         PyAnyMethods as _, PyBool, PyDict, PyFloat, PyInt, PyList, PyString, PyStringMethods as _,
     },
@@ -158,9 +158,25 @@ impl<'py> JsonSource<'py> for JiterSource<'py> {
 
     fn next_float(&mut self) -> PyResult<f64> {
         let (py, data) = (self.py, self.data);
-        self.jiter
+        let start = self.jiter.current_index();
+        let value = self
+            .jiter
             .next_float()
-            .map_err(|err| jiter_decode_error(py, data, &err))
+            .map_err(|err| jiter_decode_error(py, data, &err))?;
+        // An integer too large for a double is an error rather than infinity,
+        // like Python's float(int).
+        if value.is_infinite()
+            && !self
+                .jiter
+                .slice_to_current(start)
+                .iter()
+                .any(|b| matches!(b, b'.' | b'e' | b'E'))
+        {
+            return Err(PyOverflowError::new_err(
+                "int too large to convert to float",
+            ));
+        }
+        Ok(value)
     }
 
     fn next_py_str(&mut self) -> PyResult<Bound<'py, PyString>> {

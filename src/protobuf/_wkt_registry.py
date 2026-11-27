@@ -21,7 +21,6 @@ of truth, replacing scattered string comparisons and cast chains.
 from __future__ import annotations
 
 import re
-from copy import copy
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, TypeAlias, cast
@@ -185,7 +184,9 @@ class WktDuration:
         nanos = 0
         if duration_match[2]:
             nanos = int(duration_match[2] + "0" * (9 - len(duration_match[2])))
-            if seconds < 0 or duration_match[1] == "-0":
+            # Use the sign in the text, since the seconds can be zero as in
+            # "-00.5s".
+            if duration_match[1].startswith("-"):
                 nanos = -nanos
         value.seconds = seconds
         value.nanos = nanos
@@ -225,7 +226,7 @@ class WktAny:
         return {"@type": message.type_url, **json_value}
 
     def from_json(self, msg: Message, json: JsonValue, opts: FromJsonOptions) -> bool:
-        from ._from_json import _read_message  # noqa: PLC0415
+        from ._from_json import _read_message, without_key  # noqa: PLC0415
         from .wkt import Any  # noqa: PLC0415
 
         value = cast("Any", msg)
@@ -249,9 +250,7 @@ class WktAny:
         if _has_custom_json(desc) and "value" in json:
             _read_message(message, json["value"], opts)
         else:
-            json = copy(json)
-            del json["@type"]
-            _read_message(message, json, opts)
+            _read_message(message, without_key(json, "@type"), opts)
         any_ = Any.pack(message)
         value.type_url = any_.type_url
         value.value = any_.value
@@ -263,22 +262,36 @@ class WktAny:
         return AnyMixin
 
 
+def _field_mask_path_to_json(path: str) -> str:
+    """Convert a FieldMask path to lowerCamelCase like upstream protobuf does.
+
+    Raises ValueError if the path can't convert back, because it has an
+    uppercase letter or an underscore not followed by a lowercase letter.
+    """
+    parts: list[str] = []
+    after_underscore = False
+    for c in path:
+        if c.isupper() or (after_underscore and not c.islower()):
+            break
+        if after_underscore:
+            parts.append(c.upper())
+            after_underscore = False
+        elif c == "_":
+            after_underscore = True
+        else:
+            parts.append(c)
+    else:
+        if not after_underscore:
+            return "".join(parts)
+    err = f"invalid FieldMask path: lowerCamelCase of {path} is irreversible"
+    raise ValueError(err)
+
+
 @dataclass(frozen=True, slots=True)
 class WktFieldMask:
     def to_json_value(self, msg: Message, _opts: ToJsonOptions) -> JsonValue:
-        from ._names import proto_camel_case, proto_snake_case  # noqa: PLC0415
-
         value = cast("FieldMask", msg)
-        parts: list[str] = []
-        for path in value.paths:
-            proto_camel_path = proto_camel_case(path)
-            if proto_snake_case(proto_camel_path) != path:
-                err = (
-                    f"invalid FieldMask path: lowerCamelCase of {path} is irreversible"
-                )
-                raise ValueError(err)
-            parts.append(proto_camel_path)
-        return ",".join(parts)
+        return ",".join(_field_mask_path_to_json(path) for path in value.paths)
 
     def from_json(self, msg: Message, json: JsonValue, _opts: FromJsonOptions) -> bool:
         from ._names import proto_snake_case  # noqa: PLC0415

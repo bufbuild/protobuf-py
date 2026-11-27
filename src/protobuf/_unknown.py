@@ -104,6 +104,7 @@ def get_unknown_field(
             for binary_field in binary_fields:
                 reader = BinaryReader(memoryview(binary_field))
                 while reader.offset < len(binary_field):
+                    tag_offset = reader.offset
                     tag = reader.tag()
                     read_list(
                         None,
@@ -114,6 +115,7 @@ def get_unknown_field(
                         reader,
                         opts,
                         depth=0,
+                        tag_offset=tag_offset,
                     )
             return list_value
         case DescFieldValueMap():

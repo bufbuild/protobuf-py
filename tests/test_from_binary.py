@@ -375,6 +375,12 @@ def test_unknown_skipped_group_exceeds_recursion_limit() -> None:
         Recursive.from_binary(data)
 
 
+def test_float_signaling_nan_is_quiet() -> None:
+    # float_field set to the signaling NaN 0x7fa12345.
+    msg = Scalars.from_binary(b"\x15\x45\x23\xa1\x7f")
+    assert msg.to_binary() == b"\x15\x45\x23\xe1\x7f"
+
+
 def test_varint_matches_limit() -> None:
     data = bytes([5 << 3 | WireType.VARINT.value]) + b"\x81" + b"\x80" * 8 + b"\x00"
     msg = Scalars.from_binary(data)
@@ -391,6 +397,72 @@ def test_varint_exceeds_limit_more_bytes() -> None:
     data = bytes([5 << 3 | WireType.VARINT.value]) + b"\x81" + b"\x80" * 8 + b"\x81"
     with pytest.raises(ValueError, match="invalid varint"):
         Scalars.from_binary(data)
+
+
+def test_truncated_varint() -> None:
+    data = bytes([5 << 3 | WireType.VARINT.value]) + b"\x81"
+    with pytest.raises(ValueError, match="varint"):
+        Scalars.from_binary(data)
+
+
+def test_map_entry_field_number_zero() -> None:
+    # An int32_to_int32 entry with a field numbered 0.
+    data = b"\x0a\x02\x00\x00"
+    with pytest.raises(ValueError, match="field number"):
+        Maps.from_binary(data)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        # A packed int32_list whose varint continues past its length.
+        pytest.param(b"\x1a\x01\x81\x01", id="packed"),
+        # A msg_list element with an unknown fixed64 past its length.
+        pytest.param(b"\x8a\x01\x01\x09" + b"\x00" * 8, id="message"),
+        # A msg_list element with an unknown group that ends past its length.
+        pytest.param(b"\x8a\x01\x01\x0b\x0c", id="group"),
+    ],
+)
+def test_read_past_length(data: bytes) -> None:
+    with pytest.raises(ValueError):  # noqa: PT011 - the implementations' messages differ
+        Lists.from_binary(data)
+
+
+def test_unknown_closed_enum_map_value_replaced() -> None:
+    # A string_to_closed_color entry for "a" with the value 99, then 2.
+    data = b"\x32\x07\x0a\x01a\x10\x63\x10\x02"
+    msg = EnumMessage.from_binary(data)
+    assert msg.string_to_closed_color == {"a": ClosedColor.GREEN}
+    assert not msg._unknown_fields
+
+
+def test_unknown_closed_enum_map_value_reads_entry() -> None:
+    # A string_to_closed_color entry for "a" with the value 99, then a field
+    # numbered 0.
+    data = b"\x32\x06\x0a\x01a\x10\x63\x00"
+    with pytest.raises(ValueError, match="field number"):
+        EnumMessage.from_binary(data)
+
+
+@pytest.mark.parametrize(
+    ("msg_class", "data"),
+    [
+        # Field 99 with its tag encoded in three bytes.
+        pytest.param(Scalars, b"\x98\x86\x00\x01", id="unknown field"),
+        # int32_list as fixed32, with its tag encoded in two bytes.
+        pytest.param(Lists, b"\x9d\x00\x01\x00\x00\x00", id="wire type mismatch"),
+    ],
+)
+def test_unknown_field_keeps_tag(msg_class: type[Message], data: bytes) -> None:
+    assert msg_class.from_binary(data).to_binary() == data
+
+
+def test_unknown_map_entry_encodes_length() -> None:
+    # An int32_to_int32 entry with a fixed32 key, and its length encoded in two
+    # bytes.
+    data = b"\x0a\x85\x00\x0d\x00\x00\x00\x00"
+    msg = Maps.from_binary(data)
+    assert msg._unknown_fields == {1: [b"\x0a\x05\x0d\x00\x00\x00\x00"]}
 
 
 class TestWireTypeMismatch:

@@ -1,6 +1,6 @@
 use pyo3::{
-    Bound, IntoPyObject as _, IntoPyObjectExt as _, Py, PyAny, PyResult, Python,
-    exceptions::PyTypeError,
+    Bound, IntoPyObject as _, IntoPyObjectExt as _, Py, PyAny, PyErr, PyResult, Python,
+    exceptions::{PyTypeError, PyUnicodeDecodeError},
     pyclass, pyfunction, pymethods,
     sync::PyOnceLock,
     types::{
@@ -514,6 +514,18 @@ pub(super) fn initialize_message_type(
     Ok(())
 }
 
+/// Checks that JSON bytes are valid UTF-8, like upstream protobuf's strict
+/// decoding. This can't be left to jiter, which doesn't check strings it
+/// skips, such as unknown fields.
+fn check_utf8(py: Python<'_>, data: &[u8]) -> PyResult<()> {
+    match std::str::from_utf8(data) {
+        Ok(_) => Ok(()),
+        Err(err) => Err(PyErr::from_value(
+            PyUnicodeDecodeError::new_utf8(py, data, err)?.into_any(),
+        )),
+    }
+}
+
 /// Parses JSON (`str`/`bytes`/`bytearray`) into `message`.
 fn parse_json_into<'py>(
     py: Python<'py>,
@@ -530,9 +542,11 @@ fn parse_json_into<'py>(
     if let Ok(text) = json.cast::<PyString>() {
         merge_from_json(py, marshaler, message, text.to_str()?.as_bytes(), &opts)
     } else if let Ok(bytes) = json.cast::<PyBytes>() {
+        check_utf8(py, bytes.as_bytes())?;
         merge_from_json(py, marshaler, message, bytes.as_bytes(), &opts)
     } else if let Ok(bytearray) = json.cast::<PyByteArray>() {
         let owned = bytearray.to_vec();
+        check_utf8(py, &owned)?;
         merge_from_json(py, marshaler, message, &owned, &opts)
     } else {
         Err(PyTypeError::new_err(format!(

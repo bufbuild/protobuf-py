@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import json
+import math
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
@@ -464,6 +465,8 @@ def test_use_proto_field_name(message: Message, expected: Any) -> None:
         pytest.param("+/8", id="std/unpadded"),
         pytest.param("-_8=", id="url/padded"),
         pytest.param("-_8", id="url/unpadded"),
+        pytest.param("+_8=", id="mixed/padded"),
+        pytest.param("-/8", id="mixed/unpadded"),
     ],
 )
 def test_bytes_from_json(json_str: str) -> None:
@@ -481,6 +484,93 @@ def test_from_json_ignore_unknown_fields() -> None:
         json.dumps({"notAKnownField": "abc"}), ignore_unknown_fields=True
     )
     assert msg == Scalars()
+
+
+@pytest.mark.parametrize(
+    ("data", "ignore_unknown_fields"),
+    [
+        pytest.param(b'{"int32Field":\xff}', False, id="invalid"),
+        pytest.param(bytearray(b'{"int32Field":\xff}'), False, id="bytearray"),
+        pytest.param(b'{"notAKnownField":"\xff"}', True, id="skipped"),
+        pytest.param(b'{"stringField":"\xed\xa0\x80"}', False, id="surrogate"),
+        pytest.param("{}".encode("utf-16"), False, id="utf-16 with BOM"),
+    ],
+)
+def test_from_json_bytes_not_utf8(
+    data: bytes | bytearray, ignore_unknown_fields: bool
+) -> None:
+    with pytest.raises(UnicodeDecodeError):
+        Scalars.from_json(data, ignore_unknown_fields=ignore_unknown_fields)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        pytest.param(b"\xef\xbb\xbf{}", id="utf-8 BOM"),
+        pytest.param("{}".encode("utf-16-le"), id="utf-16"),
+        pytest.param("{}".encode("utf-32-be"), id="utf-32"),
+    ],
+)
+def test_from_json_bytes_only_utf8(data: bytes) -> None:
+    with pytest.raises(json.JSONDecodeError):
+        Scalars.from_json(data)
+
+
+@pytest.mark.parametrize(
+    ("data", "ignore_unknown_fields"),
+    [
+        pytest.param('{"doubleField": NaN}', False, id="NaN"),
+        pytest.param('{"doubleField": -Infinity}', False, id="-Infinity"),
+        pytest.param('{"notAKnownField": Infinity}', True, id="unknown field"),
+    ],
+)
+def test_from_json_bare_constant(data: str, ignore_unknown_fields: bool) -> None:
+    with pytest.raises(json.JSONDecodeError):
+        Scalars.from_json(data, ignore_unknown_fields=ignore_unknown_fields)
+
+
+@pytest.mark.parametrize(
+    ("data", "ignore_unknown_fields"),
+    [
+        pytest.param('{"stringField": "\\ud800"}', False, id="high"),
+        pytest.param('{"stringField": "a\\udc00"}', False, id="low"),
+        pytest.param('{"notAKnownField": "\\ud800"}', True, id="unknown field"),
+    ],
+)
+def test_from_json_unpaired_surrogate(data: str, ignore_unknown_fields: bool) -> None:
+    with pytest.raises(json.JSONDecodeError):
+        Scalars.from_json(data.encode(), ignore_unknown_fields=ignore_unknown_fields)
+
+
+def test_from_json_paired_surrogates() -> None:
+    msg = Scalars.from_json(b'{"stringField": "\\ud83d\\ude00"}')
+    assert msg.string_field == "\U0001f600"
+
+
+def test_from_json_negative_zero() -> None:
+    msg = Scalars.from_json('{"doubleField": -0, "floatField": -0, "int32Field": -0}')
+    assert math.copysign(1, msg.double_field) == -1
+    assert math.copysign(1, msg.float_field) == -1
+    assert type(msg.int32_field) is int
+
+
+def test_from_json_negative_zero_enum() -> None:
+    msg = EnumMessage.from_json('{"colorField": -0}')
+    assert msg.color_field == Color(0)
+
+
+@pytest.mark.parametrize(
+    ("depth", "valid"),
+    [pytest.param(200, True, id="at limit"), pytest.param(201, False, id="past limit")],
+)
+def test_from_json_skipped_value_depth(depth: int, valid: bool) -> None:
+    # An ignored field whose innermost value is nested depth levels down.
+    data = '{"notAKnownField": ' + "[" * depth + "1" + "]" * depth + "}"
+    if valid:
+        assert Scalars.from_json(data, ignore_unknown_fields=True) == Scalars()
+    else:
+        with pytest.raises(json.JSONDecodeError):
+            Scalars.from_json(data, ignore_unknown_fields=True)
 
 
 def test_from_json_enum_declared_name_with_custom_json_name() -> None:
@@ -792,6 +882,27 @@ def test_from_json_duplicate_key() -> None:
     assert msg.scalar_field == 2
 
 
+@pytest.mark.parametrize(
+    ("msg_class", "data", "error_type"),
+    [
+        pytest.param(
+            MixedFields,
+            '{"messageField": {"unknown": 1}, "messageField": {}}',
+            ValueError,
+            id="message",
+        ),
+        pytest.param(
+            Maps, '{"stringToString": {"a": 1, "a": "2"}}', TypeError, id="map"
+        ),
+    ],
+)
+def test_from_json_duplicate_key_reads_earlier_value(
+    msg_class: type[Message], data: str, error_type: type[Exception]
+) -> None:
+    with pytest.raises(error_type):
+        msg_class.from_json(data)
+
+
 def test_from_json_field_set_multiple_times() -> None:
     msg = JsonNames.from_json('{"scalar_field": 1, "scalarFieldJsonName": 2}')
     assert msg.scalar_field == 2
@@ -809,10 +920,8 @@ def test_from_json_map_distinct_raw_keys_not_duplicate() -> None:
     assert msg.int32_to_int32 == {3: 2}
 
 
-# A duplicated field replaces the earlier value rather than merging into it.
-# The key pair is parametrized because identical keys are collapsed by
-# json.loads before the pure-Python parser runs, while the proto name and JSON
-# name of one field reach both parsers as two distinct keys.
+# A duplicated field replaces the earlier value rather than merging into it,
+# whether by a repeated key or by the proto name and JSON name of one field.
 @pytest.mark.parametrize(
     ("first", "second"),
     [("messageField", "messageField"), ("message_field", "messageField")],

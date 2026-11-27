@@ -715,9 +715,6 @@ impl MessageParser {
             let checkpoint = buffer.clone();
             let tag = decode_tag(buffer)?;
             let field_number = tag >> 3;
-            if field_number == 0 {
-                return Err(PyValueError::new_err("invalid field number: 0"));
-            }
             let wire_type = WireType::from_tag(tag)?;
             if let Some(field) = self.inner.fields.get(field_number)
                 && field.wire_type_matches(wire_type)
@@ -992,7 +989,11 @@ const fn decode_zigzag64(value: u64) -> i64 {
 
 fn decode_tag(buffer: &mut Bytes) -> PyResult<u32> {
     let tag = decode_varint(&mut buffer.take(5)).map_err(map_varint_err)?;
-    u32::try_from(tag).map_err(map_varint_err)
+    let tag = u32::try_from(tag).map_err(map_varint_err)?;
+    if tag >> 3 == 0 {
+        return Err(PyValueError::new_err("invalid field number: 0"));
+    }
+    Ok(tag)
 }
 
 /// A lookup table for field parsers. Most messages are small or contiguous, and we can significantly

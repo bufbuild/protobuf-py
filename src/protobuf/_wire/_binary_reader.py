@@ -13,6 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
+import math
 import struct
 from dataclasses import dataclass
 from typing import final
@@ -55,24 +56,48 @@ class BinaryReader:
         """
         self._data = data
         self._offset = 0
+        # The end of the innermost length-delimited value being read.
+        self._end = len(data)
 
     @property
     def offset(self) -> int:
         """The current read position within the buffer."""
         return self._offset
 
+    def push_limit(self, length: int) -> int:
+        """Limit reads to the next length bytes, such as a length-delimited message.
+
+        Returns:
+            The previous limit, to restore with [`pop_limit`][].
+        """
+        end = self._offset + length
+        if end > self._end:
+            msg = "unexpected end of buffer"
+            raise ValueError(msg)
+        previous = self._end
+        self._end = end
+        return previous
+
+    def pop_limit(self, previous: int) -> None:
+        """Restore the limit that [`push_limit`][] returned."""
+        self._end = previous
+
     def read(self, size: int) -> memoryview:
         """Read a given number of bytes from the buffer."""
-        if self._offset + size > len(self._data):
+        if self._offset + size > self._end:
             msg = "unexpected end of buffer"
-            raise EOFError(msg)
+            raise ValueError(msg)
         result = self._data[self._offset : self._offset + size]
         self._offset += size
         return result
 
+    def since(self, start: int) -> memoryview:
+        """Return a memoryview on the bytes read since the given offset."""
+        return self._data[start : self._offset]
+
     def seek(self, offset: int) -> None:
         """Move the buffer position to the given offset."""
-        if offset < 0 or offset > len(self._data):
+        if offset < 0 or offset > self._end:
             msg = "invalid seek offset"
             raise ValueError(msg)
         self._offset = offset
@@ -84,13 +109,13 @@ class BinaryReader:
 
         data = self._data
         offset = self._offset
-        end = len(data)
+        end = self._end
 
         # protobuf guarantees varints are at most 10 bytes
         for i in range(limit):
             if offset >= end:
                 msg = "unexpected end of buffer while reading varint"
-                raise EOFError(msg)
+                raise ValueError(msg)
             byte = data[offset]
             offset += 1
 
@@ -148,7 +173,14 @@ class BinaryReader:
 
     def float_(self) -> float:
         """Read 4 bytes and interpret them as a 32-bit floating point number."""
-        return struct.unpack("<f", self.read(4))[0]
+        data = self.read(4)
+        value = struct.unpack("<f", data)[0]
+        if math.isnan(value):
+            # Quiet a signaling NaN like converting it to a double does in
+            # hardware. CPython 3.14's struct keeps it signaling.
+            bits = struct.unpack("<I", data)[0] | 0x0040_0000
+            value = struct.unpack("<f", struct.pack("<I", bits))[0]
+        return value
 
     def double(self) -> float:
         """Read 8 bytes and interpret them as a 64-bit floating point number."""
@@ -169,6 +201,43 @@ class BinaryReader:
     def sfixed64(self) -> int:
         """Read 8 bytes and interpret them as a signed 64-bit integer."""
         return struct.unpack("<q", self.read(8))[0]
+
+    def group_length(self, field_number: int) -> tuple[int, int]:
+        """Find the end of the group being read, without reading it.
+
+        Scans without recursing, so groups can nest any number of levels.
+
+        Returns:
+            The length of the group's fields, and the length of its end tag.
+        """
+        start = self._offset
+        groups = [field_number]
+        try:
+            while self._offset < self._end:
+                tag_offset = self._offset
+                tag = self.tag()
+                match tag.wire_type:
+                    case WireType.SGROUP:
+                        groups.append(tag.number)
+                    case WireType.EGROUP:
+                        if tag.number != groups[-1]:
+                            msg = f"mismatched group end tag: expected {groups[-1]}, got {tag.number}"
+                            raise ValueError(msg)
+                        groups.pop()
+                        if not groups:
+                            return tag_offset - start, self._offset - tag_offset
+                    case WireType.VARINT:
+                        self.varint()
+                    case WireType.BIT64:
+                        self.read(8)
+                    case WireType.LENGTH_DELIMITED:
+                        self.read(self.varint())
+                    case WireType.BIT32:
+                        self.read(4)
+            msg = "unterminated group"
+            raise ValueError(msg)
+        finally:
+            self._offset = start
 
     def skip(self, wire_type: WireType, depth: int, *, field_number: int) -> memoryview:
         """Skip a field value and return a memoryview on the skipped bytes.
