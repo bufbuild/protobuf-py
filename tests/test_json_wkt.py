@@ -481,8 +481,8 @@ def test_from_json_integer_too_large_for_double(message_type: type[Message]) -> 
 def test_value_from_json_deeper_than_parser_limit(
     suffix: str, error_type: type[Exception]
 ) -> None:
-    # Deeper than both the recursion limit and the native parser's nesting
-    # limit, which a syntax error after takes precedence over.
+    # Nested past both the recursion limit and the native parser's nesting
+    # limit. A syntax error after it is still reported.
     data = "[" * 250 + "]" * 250 + suffix
     with pytest.raises(error_type):
         Value.from_json(data)

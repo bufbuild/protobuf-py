@@ -514,8 +514,9 @@ pub(super) fn initialize_message_type(
     Ok(())
 }
 
-/// Checks that JSON bytes are UTF-8, as decoding them strictly before parsing
-/// does. The parser does not check strings it skips, such as unknown fields.
+/// Checks that JSON bytes are valid UTF-8, like upstream protobuf's strict
+/// decoding. This can't be left to jiter, which doesn't check strings it
+/// skips, such as unknown fields.
 fn check_utf8(py: Python<'_>, data: &[u8]) -> PyResult<()> {
     match std::str::from_utf8(data) {
         Ok(_) => Ok(()),

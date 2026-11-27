@@ -58,8 +58,8 @@ pub(crate) fn merge_from_json<'py>(
     read_message(marshaler, message, &mut src, opts, 0)
         .and_then(|()| src.finish())
         .map_err(|err| {
-            // Python parses the whole document before reading it into the
-            // message, so a syntax error anywhere takes precedence.
+            // Python parses the whole document before reading any of it, so
+            // a syntax error anywhere wins over this error.
             check_syntax(py, data).err().unwrap_or(err)
         })
 }
@@ -505,9 +505,9 @@ fn read_bytes<'py, R: JsonSource<'py>>(
             Exc::Type,
         ));
     }
-    // Accepts the URL-safe alphabet by translating it to the standard one,
-    // as upstream protobuf does, which also accepts the two mixed. The engine
-    // is lenient about padding and non-canonical trailing bits, like Python's
+    // Translate URL-safe characters to standard ones like upstream protobuf
+    // does, so either alphabet or a mix of both decodes. The engine allows
+    // missing padding and non-canonical trailing bits, like Python's
     // `base64.b64decode(..., validate=True)`.
     let decoded = src.with_next_str(|text| {
         let decoded = if text.contains(['-', '_']) {

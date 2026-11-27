@@ -131,7 +131,7 @@ def test_print_enums_as_ints() -> None:
 
 
 def test_order_set() -> None:
-    # The registry has them in the other order.
+    # Registered in the opposite order to how they're set.
     message = _with_exts(Proto2Extendee(), (ext_string_ext, "a"), (ext_uint32_ext, 1))
     registry = Registry(ext_uint32_ext, ext_string_ext)
     assert (

@@ -256,6 +256,38 @@ impl WktAny {
     }
 }
 
+/// Writes a `FieldMask` path in lowerCamelCase like upstream protobuf does.
+/// Fails if the path can't convert back, because it has an uppercase letter or
+/// an underscore not followed by a lowercase letter.
+fn write_field_mask_path(path: &str, out: &mut String) -> PyResult<()> {
+    let irreversible = || {
+        PyValueError::new_err(format!(
+            "invalid FieldMask path: lowerCamelCase of {path} is irreversible"
+        ))
+    };
+    let mut after_underscore = false;
+    for c in path.chars() {
+        if c.is_uppercase() {
+            return Err(irreversible());
+        }
+        if after_underscore {
+            if !c.is_lowercase() {
+                return Err(irreversible());
+            }
+            out.extend(c.to_uppercase());
+            after_underscore = false;
+        } else if c == '_' {
+            after_underscore = true;
+        } else {
+            out.push(c);
+        }
+    }
+    if after_underscore {
+        return Err(irreversible());
+    }
+    Ok(())
+}
+
 /// `google.protobuf.FieldMask`.
 pub(crate) struct WktFieldMask {
     paths: AttributeAccess,
@@ -280,13 +312,7 @@ impl WktFieldMask {
         }
         let mut out = String::new();
         for path in paths {
-            let path = path.extract::<&str>()?;
-            if !buffa_wkt::field_mask_path_round_trips(path) {
-                return Err(PyValueError::new_err(format!(
-                    "invalid FieldMask path: lowerCamelCase of {path} is irreversible"
-                )));
-            }
-            out.push_str(&buffa_wkt::snake_to_camel(path));
+            write_field_mask_path(path.extract::<&str>()?, &mut out)?;
             out.push(',');
         }
         // Drop trailing comma.
@@ -944,7 +970,33 @@ fn format_duration(seconds: i64, nanos: i32) -> PyResult<String> {
     buffa_wkt::fmt_duration(seconds, nanos).map_err(PyValueError::new_err)
 }
 
+/// Whether the numbers in an RFC 3339 timestamp are all digits. buffa parses
+/// them with `str::parse`, which also accepts a leading sign.
+fn timestamp_numbers_are_digits(text: &str) -> bool {
+    let bytes = text.as_bytes();
+    let digits = |range: std::ops::Range<usize>| {
+        bytes
+            .get(range)
+            .is_some_and(|digits| digits.iter().all(u8::is_ascii_digit))
+    };
+    let len = bytes.len();
+    let offset =
+        text.ends_with('Z') || (len >= 6 && digits(len - 5..len - 3) && digits(len - 2..len));
+    digits(0..4)
+        && digits(5..7)
+        && digits(8..10)
+        && digits(11..13)
+        && digits(14..16)
+        && digits(17..19)
+        && offset
+}
+
 fn parse_timestamp(type_name: &str, text: &str) -> PyResult<(i64, i32)> {
+    if !timestamp_numbers_are_digits(text) {
+        return Err(PyValueError::new_err(format!(
+            "cannot decode {type_name} from JSON: invalid RFC 3339 string"
+        )));
+    }
     buffa_wkt::parse_timestamp(text).map_err(|err| {
         // String matching on an error message not the best, but it works and
         // saves us a lot of parsing logic, notably tricky calendar date checking.

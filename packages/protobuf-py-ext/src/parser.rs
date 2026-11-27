@@ -585,10 +585,10 @@ impl FieldParser {
                                 checkpoint.len() - buffer.len() - varint_len(end_tag as u64);
                             (checkpoint.split_to(field_len), None)
                         }
-                        // Python reads a group as it goes, so an error before
-                        // the missing end tag, such as exceeding the recursion
-                        // limit, takes precedence. Reads the rest of the buffer
-                        // as the group to raise it.
+                        // Python parses a group as it reads it, so an earlier
+                        // error such as exceeding the recursion limit wins
+                        // over the missing end tag. Parse the rest of the
+                        // buffer as the group to find it.
                         Err(err) => (checkpoint, Some(err)),
                     }
                 };
@@ -614,8 +614,8 @@ impl FieldParser {
                     depth + 1,
                 );
                 if let Some(group_error) = group_error {
-                    // Keeps the error about the group unless reading what
-                    // came before it raised a different type of error.
+                    // Prefer the end tag error unless parsing raised a
+                    // different exception type.
                     return Err(match merged {
                         Err(err) if !err.get_type(py).is(py.get_type::<PyValueError>()) => err,
                         _ => group_error,

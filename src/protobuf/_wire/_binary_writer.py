@@ -228,8 +228,8 @@ class BinaryWriter:
             value: The float to encode.
         """
         if math.isnan(value):
-            # Sets the quiet bit of a signaling NaN, as converting it to a
-            # float does in hardware, but not in CPython 3.14's struct.
+            # Quiet a signaling NaN like converting it to a float does in
+            # hardware. CPython 3.14's struct keeps it signaling.
             bits = (
                 struct.unpack("<Q", struct.pack("<d", value))[0] | 0x0008_0000_0000_0000
             )

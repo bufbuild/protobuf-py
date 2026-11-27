@@ -683,8 +683,8 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
         from ._from_json import FromJsonOptions, _read_message, parse_json_text  # noqa: PLC0415
 
         if not isinstance(json, str):
-            # Decodes strictly as upstream protobuf does, instead of letting
-            # json.loads detect UTF-16 and UTF-32 and pass surrogates through.
+            # Decode strictly like upstream protobuf. json.loads would also
+            # accept UTF-16 and UTF-32 and let surrogates through.
             json = json.decode("utf-8")
         json_value = parse_json_text(json)
         opts = FromJsonOptions(

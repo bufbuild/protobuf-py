@@ -184,7 +184,8 @@ class WktDuration:
         nanos = 0
         if duration_match[2]:
             nanos = int(duration_match[2] + "0" * (9 - len(duration_match[2])))
-            # The sign also applies when the seconds are zero, such as "-00.5s".
+            # Use the sign in the text, since the seconds can be zero as in
+            # "-00.5s".
             if duration_match[1].startswith("-"):
                 nanos = -nanos
         value.seconds = seconds
@@ -262,10 +263,10 @@ class WktAny:
 
 
 def _field_mask_path_to_json(path: str) -> str:
-    """Convert a FieldMask path to lowerCamelCase as upstream protobuf does.
+    """Convert a FieldMask path to lowerCamelCase like upstream protobuf does.
 
-    Fails for a path that would not convert back: one with an uppercase letter,
-    or an underscore that is not followed by a lowercase letter.
+    Raises ValueError if the path can't convert back, because it has an
+    uppercase letter or an underscore not followed by a lowercase letter.
     """
     parts: list[str] = []
     after_underscore = False

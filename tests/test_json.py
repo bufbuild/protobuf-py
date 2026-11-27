@@ -569,7 +569,7 @@ def test_from_json_negative_zero_enum() -> None:
     [pytest.param(200, True, id="at limit"), pytest.param(201, False, id="past limit")],
 )
 def test_from_json_skipped_value_depth(depth: int, valid: bool) -> None:
-    # The innermost value of an ignored field is depth levels down.
+    # An ignored field whose innermost value is nested depth levels down.
     data = '{"notAKnownField": ' + "[" * depth + "1" + "]" * depth + "}"
     if valid:
         assert Scalars.from_json(data, ignore_unknown_fields=True) == Scalars()

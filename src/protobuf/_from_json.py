@@ -75,21 +75,21 @@ class FromJsonOptions:
     depth: int = 0
     """Current message nesting depth. Mutated during a parse."""
     text: str | None = None
-    """The JSON text being parsed, if any, for errors about it."""
+    """The JSON text being parsed, for error messages, or None for a JSON value."""
 
 
-# An escaped UTF-16 surrogate, which must be paired to be valid.
+# A \u escape of a UTF-16 surrogate, which is only valid as part of a pair.
 _SURROGATE_ESCAPE = re.compile(r"\\u[dD][89a-fA-F][0-9a-fA-F]{2}")
 _HIGH_THEN_LOW_ESCAPE = re.compile(
     r"\\u[dD][89abAB][0-9a-fA-F]{2}\\u[dD][c-fC-F][0-9a-fA-F]{2}"
 )
 _SURROGATE = re.compile("[\ud800-\udfff]")
-# A JSON number that is an integer negative zero.
+# A bare -0 integer.
 _NEGATIVE_ZERO = re.compile(r"-0(?![.eE0-9])")
 
 
 class _NegativeZero(int):
-    """-0, which json.loads reads as the int 0, losing its sign as a float."""
+    """The integer -0, which json.loads reads as 0, losing the sign as a float."""
 
     __slots__ = ()
 
@@ -98,10 +98,10 @@ class _NegativeZero(int):
 
 
 class _DuplicateKeys(dict):
-    """A JSON object with a repeated key, which also keeps every key and value.
+    """A JSON object with a repeated key.
 
-    The last value of a key wins, but the native extension reads each value in
-    order, so the earlier ones are read too.
+    Acts as a dict holding the last value of each key, but also keeps every
+    pair so that earlier values are still read, as the native extension does.
     """
 
     __slots__ = ("pairs",)
@@ -133,27 +133,27 @@ def _parse_json_int(text: str) -> int:
 
 
 def parse_json_text(text: str) -> JsonValue:
-    """Parse JSON text, rejecting what JSON does not allow but json.loads does.
+    """Parse JSON text with the same rules as the native extension.
 
-    That is the NaN and Infinity constants, and escapes of unpaired UTF-16
-    surrogates. The native extension's parser rejects them. Also keeps the sign
-    of -0 as the native extension does.
+    json.loads accepts NaN, Infinity, and unpaired UTF-16 surrogate escapes,
+    which JSON doesn't allow, so reject them. Also keep the sign of -0 and the
+    earlier values of repeated keys.
     """
 
     def reject_constant(name: str) -> NoReturn:
         msg = f"{name} is not valid JSON, quote it as a string"
         raise JSONDecodeError(msg, text, _constant_position(text, name))
 
-    # Only parses integers in Python if there may be a negative zero, which is
-    # rare.
+    # A parse_int hook makes json.loads slower, so only use it when the text
+    # may contain -0.
     value = loads(
         text,
         object_pairs_hook=_object_from_pairs,
         parse_constant=reject_constant,
         parse_int=_parse_json_int if _NEGATIVE_ZERO.search(text) else None,
     )
-    # Only looks for unpaired surrogates in what was parsed if there are
-    # escaped ones in the text, which is rare.
+    # Walking the parsed value is slow, so only do it when the text has a
+    # surrogate escape.
     if _SURROGATE_ESCAPE.search(text) and _has_surrogate(value):
         msg = "unpaired UTF-16 surrogate escape is not valid JSON"
         raise JSONDecodeError(msg, text, _unpaired_surrogate_position(text))
@@ -176,9 +176,9 @@ def _has_surrogate(value: JsonValue) -> bool:
 
 
 def _unpaired_surrogate_position(text: str) -> int:
-    """The position of the first escape of an unpaired surrogate, approximately.
+    """Approximate position of the first unpaired surrogate escape.
 
-    Does not account for escaped backslashes before it.
+    Doesn't account for escaped backslashes before it.
     """
     paired_end = -1
     for match in _SURROGATE_ESCAPE.finditer(text):
@@ -193,10 +193,10 @@ def _unpaired_surrogate_position(text: str) -> int:
 
 
 def _constant_position(text: str, name: str) -> int:
-    """The position of the first constant called name outside of a string.
+    """Position of the first `name` outside of a string.
 
-    json.loads only rejects it if everything before it is valid, so this is the
-    one it rejected.
+    json.loads only reaches a constant if everything before it is valid, so
+    this is the one it rejected.
     """
     in_string = False
     escaped = False
@@ -271,9 +271,9 @@ def _read_message_inner(msg: Message, json: JsonValue, opts: FromJsonOptions) ->
         raise TypeError(err)
 
     desc = msg.__class__._desc
-    # A field can be named twice, by a repeated key or by its proto name and
-    # its JSON name. Duplicates are last-in-wins, so reset the field before
-    # applying a later occurrence.
+    # A field can appear twice, as a repeated key or under both its proto name
+    # and JSON name. The last one wins, so reset the field before reading a
+    # later occurrence.
     seen = set[DescField]()
     for key, value in _object_items(json):
         field = desc._fields_by_json_name.get(key)
@@ -300,7 +300,7 @@ def _read_message_inner(msg: Message, json: JsonValue, opts: FromJsonOptions) ->
             ):
                 _read_extension(msg, extension, value, opts)
             elif extension or opts.ignore_unknown_fields:
-                # Skips the value, which may be an extension of another message.
+                # An unknown field, or an extension of another message.
                 _check_skipped_depth(value, opts)
             else:
                 err = (
@@ -309,8 +309,8 @@ def _read_message_inner(msg: Message, json: JsonValue, opts: FromJsonOptions) ->
                 raise ValueError(err)
 
 
-# How deeply a value in a skipped JSON value may be nested, scalars included.
-# The native extension's parser limits it to this when skipping text.
+# The native extension's parser fails when a skipped value has anything,
+# scalars included, nested more than this many levels deep.
 _SKIPPED_DEPTH_LIMIT = 200
 
 
@@ -684,7 +684,7 @@ def _parse_int(desc: DescField | DescExtension, json: JsonValue) -> int:
     if not isinstance(json, bool) and isinstance(
         json, int
     ):  # isinstance(bool_value, int) is True
-        # Not a subclass, such as for -0.
+        # A plain int rather than the -0 subclass.
         return int(json)
 
     if isinstance(json, float):

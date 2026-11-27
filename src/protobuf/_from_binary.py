@@ -111,8 +111,8 @@ def read_message(
         msg = f"exceeded maximum recursion depth {DEPTH_LIMIT} while parsing message"
         raise RecursionError(msg)
     desc_message = message._desc
-    # Groups end at their end tag, and length-delimited messages at their
-    # length, which bounds what their fields read.
+    # Fields of a length-delimited message must not read past its length.
+    # Groups end at their end tag instead.
     previous_limit = None if group_number is not None else reader.push_limit(length)
     end = reader.offset + length
 
@@ -131,7 +131,7 @@ def read_message(
         if desc_field is None:  # Unknown field
             reader.skip(tag.wire_type, depth + 1, field_number=tag.number)
             if not opts.ignore_unknown_fields:
-                # Keeps the tag as it was encoded.
+                # Keep the tag bytes as they were, even if not canonical.
                 message._get_or_init_unknown_fields().setdefault(tag.number, []).append(
                     bytes(reader.since(tag_offset))
                 )
@@ -212,7 +212,7 @@ def read_list(
         # Wire type doesn't match expected unpacked type, skip the field.
         reader.skip(wire_type, depth + 1, field_number=field_number)
         if not opts.ignore_unknown_fields and message:
-            # Keeps the tag as it was encoded.
+            # Keep the tag bytes as they were, even if not canonical.
             message._get_or_init_unknown_fields().setdefault(field_number, []).append(
                 bytes(reader.since(tag_offset))
             )
@@ -308,9 +308,8 @@ def read_map_entry(
     key: Any = None
     value: Any = None
     message_value: Message | None = None
-    # Whether the value is a closed enum value that has no known enum variant,
-    # which makes the whole entry unknown. A later value in the entry replaces
-    # it, so the rest of the entry is still read.
+    # An unknown closed enum value makes the whole entry unknown. Keep reading
+    # though, since a later value in the same entry replaces it.
     unknown_enum_value = False
 
     while reader.offset < end:
@@ -378,8 +377,9 @@ def _read_unknown_map_entry(
     start_offset: int,
     opts: FromBinaryOptions,
 ) -> None:
-    # The entire map entry must be recorded to unknown fields, with its tag
-    # and length encoded again. Simplest way is to reset the reader.
+    # Record the whole entry as an unknown field, with its tag and length
+    # re-encoded like the native extension does. Simplest way is to reset the
+    # reader.
     reader.seek(start_offset)
     length = reader.varint()
     entry_bytes = reader.read(length)

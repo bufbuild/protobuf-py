@@ -176,8 +176,8 @@ class BinaryReader:
         data = self.read(4)
         value = struct.unpack("<f", data)[0]
         if math.isnan(value):
-            # Sets the quiet bit of a signaling NaN, as converting it to a
-            # double does in hardware, but not in CPython 3.14's struct.
+            # Quiet a signaling NaN like converting it to a double does in
+            # hardware. CPython 3.14's struct keeps it signaling.
             bits = struct.unpack("<I", data)[0] | 0x0040_0000
             value = struct.unpack("<f", struct.pack("<I", bits))[0]
         return value

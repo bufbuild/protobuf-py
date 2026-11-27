@@ -82,14 +82,14 @@ impl<'a> JiterSource<'a> {
     }
 }
 
-/// Checks that `data` is a single JSON document, raising the
-/// `json.JSONDecodeError` that parsing it fails with.
+/// Returns the `json.JSONDecodeError` for `data` if it is not a single valid
+/// JSON document.
 pub(crate) fn check_syntax(py: Python<'_>, data: &[u8]) -> PyResult<()> {
     let mut jiter = Jiter::new(data);
     match jiter.next_skip().and_then(|()| jiter.finish()) {
         Ok(()) => Ok(()),
-        // Python's parsing allows deeper nesting than jiter, so it checks
-        // what is past jiter's limit.
+        // jiter stops at its nesting limit but Python allows deeper nesting,
+        // so let Python check the rest.
         Err(JiterError {
             error_type: JiterErrorType::JsonError(JsonErrorType::RecursionLimitExceeded),
             ..
@@ -98,8 +98,8 @@ pub(crate) fn check_syntax(py: Python<'_>, data: &[u8]) -> PyResult<()> {
     }
 }
 
-/// Parses `data` as protobuf-py's Python code does, raising the
-/// `json.JSONDecodeError` that it fails with, if any.
+/// Returns the `json.JSONDecodeError` that protobuf-py's Python parsing
+/// raises for `data`, if any.
 fn check_syntax_in_python(py: Python<'_>, data: &[u8]) -> PyResult<()> {
     let Ok(text) = std::str::from_utf8(data) else {
         return Ok(());
@@ -195,8 +195,8 @@ impl<'py> JsonSource<'py> for JiterSource<'py> {
             .jiter
             .next_float()
             .map_err(|err| jiter_decode_error(py, data, &err))?;
-        // Python converts an integer with float(), which raises for one too
-        // large for a double instead of returning infinity.
+        // An integer too large for a double is an error rather than infinity,
+        // like Python's float(int).
         if value.is_infinite()
             && !self
                 .jiter

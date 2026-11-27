@@ -184,8 +184,8 @@ def test_mismatched_egroup() -> None:
 
 
 def test_unterminated_group_exceeds_recursion_limit() -> None:
-    # The singular field, with more unknown groups nested in it than the
-    # recursion limit, and no end tags.
+    # The singular group, with more unknown groups nested in it than the
+    # recursion limit and no end tags.
     w = BinaryWriter()
     w.tag(2, WireType.SGROUP)
     for _ in range(101):
