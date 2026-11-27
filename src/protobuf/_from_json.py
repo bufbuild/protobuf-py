@@ -80,16 +80,13 @@ class FromJsonOptions:
 
 # A \u escape of a UTF-16 surrogate, which is only valid as part of a pair.
 _SURROGATE_ESCAPE = re.compile(r"\\u[dD][89a-fA-F][0-9a-fA-F]{2}")
-_HIGH_THEN_LOW_ESCAPE = re.compile(
-    r"\\u[dD][89abAB][0-9a-fA-F]{2}\\u[dD][c-fC-F][0-9a-fA-F]{2}"
-)
 _SURROGATE = re.compile("[\ud800-\udfff]")
 # A bare -0 integer.
 _NEGATIVE_ZERO = re.compile(r"-0(?![.eE0-9])")
 
 
 class _NegativeZero(int):
-    """The integer -0, which json.loads reads as 0, losing the sign as a float."""
+    """The integer -0, which json.loads reads as 0, losing the sign."""
 
     __slots__ = ()
 
@@ -142,7 +139,9 @@ def parse_json_text(text: str) -> JsonValue:
 
     def reject_constant(name: str) -> NoReturn:
         msg = f"{name} is not valid JSON, quote it as a string"
-        raise JSONDecodeError(msg, text, _constant_position(text, name))
+        # Position of error is approximate since this should be very rare
+        # and the error is generally enough.
+        raise JSONDecodeError(msg, text, text.find(name))
 
     # A parse_int hook makes json.loads slower, so only use it when the text
     # may contain -0.
@@ -154,9 +153,11 @@ def parse_json_text(text: str) -> JsonValue:
     )
     # Walking the parsed value is slow, so only do it when the text has a
     # surrogate escape.
-    if _SURROGATE_ESCAPE.search(text) and _has_surrogate(value):
+    if (escape := _SURROGATE_ESCAPE.search(text)) and _has_surrogate(value):
         msg = "unpaired UTF-16 surrogate escape is not valid JSON"
-        raise JSONDecodeError(msg, text, _unpaired_surrogate_position(text))
+        # Position of error is approximate since this should be very rare
+        # and the error is generally    enough.
+        raise JSONDecodeError(msg, text, escape.start())
     return value
 
 
@@ -173,46 +174,6 @@ def _has_surrogate(value: JsonValue) -> bool:
             )
         case _:
             return False
-
-
-def _unpaired_surrogate_position(text: str) -> int:
-    """Approximate position of the first unpaired surrogate escape.
-
-    Doesn't account for escaped backslashes before it.
-    """
-    paired_end = -1
-    for match in _SURROGATE_ESCAPE.finditer(text):
-        start = match.start()
-        if start < paired_end:
-            continue
-        if _HIGH_THEN_LOW_ESCAPE.match(text, start):
-            paired_end = start + 12
-            continue
-        return start
-    return 0
-
-
-def _constant_position(text: str, name: str) -> int:
-    """Position of the first `name` outside of a string.
-
-    json.loads only reaches a constant if everything before it is valid, so
-    this is the one it rejected.
-    """
-    in_string = False
-    escaped = False
-    for i, c in enumerate(text):
-        if in_string:
-            if escaped:
-                escaped = False
-            elif c == "\\":
-                escaped = True
-            elif c == '"':
-                in_string = False
-        elif c == '"':
-            in_string = True
-        elif text.startswith(name, i):
-            return i
-    return 0
 
 
 def _enter_message(opts: FromJsonOptions) -> FromJsonOptions:
@@ -310,7 +271,10 @@ def _read_message_inner(msg: Message, json: JsonValue, opts: FromJsonOptions) ->
 
 
 # The native extension's parser fails when a skipped value has anything,
-# scalars included, nested more than this many levels deep.
+# scalars included, nested more than this many levels deep to bound recursion.
+# Ideally we could reject this during JSON parse but Python doesn't have
+# such a mechanism, so a highly nested unknown field can cause significant
+# recursion with pure Python.
 _SKIPPED_DEPTH_LIMIT = 200
 
 

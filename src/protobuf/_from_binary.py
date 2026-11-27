@@ -377,9 +377,8 @@ def _read_unknown_map_entry(
     start_offset: int,
     opts: FromBinaryOptions,
 ) -> None:
-    # Record the whole entry as an unknown field, with its tag and length
-    # re-encoded like the native extension does. Simplest way is to reset the
-    # reader.
+    # The entire map entry must be recorded to unknown fields. Simplest way
+    # is to reset the reader.
     reader.seek(start_offset)
     length = reader.varint()
     entry_bytes = reader.read(length)

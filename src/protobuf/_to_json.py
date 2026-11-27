@@ -186,8 +186,7 @@ def _message_to_json_value(message: Message, opts: ToJsonOptions) -> JsonValue:
         )
         result[json_key] = json_value
 
-    # Extensions are stored in the unknown fields. Write them in the order
-    # they were set or parsed, as the native extension does.
+    # Extension fields
     if opts.registry and (unknown_fields := message._unknown_fields):
         for number in unknown_fields:
             ext_desc = opts.registry.extension_for(message._desc, number)
