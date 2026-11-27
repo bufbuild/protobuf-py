@@ -572,25 +572,16 @@ impl FieldParser {
                 message: message_desc,
                 ..
             } => {
-                let (mut message_buffer, group_error) = if wire_type == WireType::LengthDelimited {
+                let mut message_buffer = if wire_type == WireType::LengthDelimited {
                     let len = decode_varint(buffer).map_err(map_varint_err)? as usize;
                     check_buffer_remaining(buffer, len)?;
-                    (buffer.split_to(len), None)
+                    buffer.split_to(len)
                 } else {
                     let mut checkpoint = buffer.clone();
-                    match consume_group(tag, buffer) {
-                        Ok(()) => {
-                            let end_tag = (tag & !0b111) | (WireType::EndGroup as u32);
-                            let field_len =
-                                checkpoint.len() - buffer.len() - varint_len(end_tag as u64);
-                            (checkpoint.split_to(field_len), None)
-                        }
-                        // Python parses a group as it reads it, so an earlier
-                        // error such as exceeding the recursion limit wins
-                        // over the missing end tag. Parse the rest of the
-                        // buffer as the group to find it.
-                        Err(err) => (checkpoint, Some(err)),
-                    }
+                    consume_group(tag, buffer)?;
+                    let end_tag = (tag & !0b111) | (WireType::EndGroup as u32);
+                    let field_len = checkpoint.len() - buffer.len() - varint_len(end_tag as u64);
+                    checkpoint.split_to(field_len)
                 };
                 let marshaler = message_desc.get_marshaler(py)?;
                 let parser = &marshaler.parser;
@@ -606,22 +597,13 @@ impl FieldParser {
                 } else {
                     marshaler.new_empty_message(py, parser.inner.python_type.bind(py))?
                 };
-                let merged = parser.merge_from_binary(
+                parser.merge_from_binary(
                     py,
                     &message_instance,
                     &mut message_buffer,
                     opts,
                     depth + 1,
-                );
-                if let Some(group_error) = group_error {
-                    // Prefer the end tag error unless parsing raised a
-                    // different exception type.
-                    return Err(match merged {
-                        Err(err) if !err.get_type(py).is(py.get_type::<PyValueError>()) => err,
-                        _ => group_error,
-                    });
-                }
-                merged?;
+                )?;
                 message_instance.into_any()
             }
             FieldParserValue::Enum(enum_) => {

@@ -1,6 +1,6 @@
 //! Input abstraction for JSON parsing, to read from either a string or Python object.
 
-use jiter::{Jiter, JiterError, JiterErrorType, JsonErrorType, NumberAny, NumberInt, Peek};
+use jiter::{Jiter, JiterError, NumberAny, NumberInt, Peek};
 use pyo3::{
     Bound, IntoPyObject as _, PyAny, PyErr, PyResult, Python,
     exceptions::{PyOverflowError, PyTypeError, PyValueError},
@@ -79,38 +79,6 @@ impl<'a> JiterSource<'a> {
         self.jiter
             .finish()
             .map_err(|err| jiter_decode_error(py, data, &err))
-    }
-}
-
-/// Returns the `json.JSONDecodeError` for `data` if it is not a single valid
-/// JSON document.
-pub(crate) fn check_syntax(py: Python<'_>, data: &[u8]) -> PyResult<()> {
-    let mut jiter = Jiter::new(data);
-    match jiter.next_skip().and_then(|()| jiter.finish()) {
-        Ok(()) => Ok(()),
-        // jiter stops at its nesting limit but Python allows deeper nesting,
-        // so let Python check the rest.
-        Err(JiterError {
-            error_type: JiterErrorType::JsonError(JsonErrorType::RecursionLimitExceeded),
-            ..
-        }) => check_syntax_in_python(py, data),
-        Err(err) => Err(jiter_decode_error(py, data, &err)),
-    }
-}
-
-/// Returns the `json.JSONDecodeError` that protobuf-py's Python parsing
-/// raises for `data`, if any.
-fn check_syntax_in_python(py: Python<'_>, data: &[u8]) -> PyResult<()> {
-    let Ok(text) = std::str::from_utf8(data) else {
-        return Ok(());
-    };
-    let json_decode_error = py.import("json")?.getattr("JSONDecodeError")?;
-    match py
-        .import("protobuf._from_json")
-        .and_then(|module| module.call_method1("parse_json_text", (text,)))
-    {
-        Err(err) if err.is_instance(py, &json_decode_error) => Err(err),
-        _ => Ok(()),
     }
 }
 

@@ -183,16 +183,17 @@ def test_mismatched_egroup() -> None:
         DelimitedEncoding.from_binary(data)
 
 
-def test_unterminated_group_exceeds_recursion_limit() -> None:
+def test_unterminated_group_nested_past_recursion_limit() -> None:
     # The singular group, with more unknown groups nested in it than the
-    # recursion limit and no end tags.
+    # recursion limit and no end tags. The missing end tag is found before
+    # the nesting is read.
     w = BinaryWriter()
     w.tag(2, WireType.SGROUP)
     for _ in range(101):
         w.tag(9, WireType.SGROUP)
     data = w.finish()
 
-    with pytest.raises(RecursionError):
+    with pytest.raises(ValueError, match="unterminated group"):
         DelimitedEncoding.from_binary(data)
 
 

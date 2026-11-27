@@ -107,24 +107,25 @@ def read_message(
     length: int = 0,
     group_number: int | None = None,
 ) -> Message:
+    if group_number is not None:
+        # Like the native extension, find the end of a group before reading
+        # it, so that a group without one fails as such even if reading it
+        # would fail first, such as by nesting too deeply.
+        length, end_tag_length = reader.group_length(group_number)
+        read_message(message, reader, opts, depth, length=length)
+        reader.read(end_tag_length)
+        return message
     if depth > DEPTH_LIMIT:
         msg = f"exceeded maximum recursion depth {DEPTH_LIMIT} while parsing message"
         raise RecursionError(msg)
     desc_message = message._desc
     # Fields of a length-delimited message must not read past its length.
-    # Groups end at their end tag instead.
-    previous_limit = None if group_number is not None else reader.push_limit(length)
+    previous_limit = reader.push_limit(length)
     end = reader.offset + length
 
-    while group_number is not None or reader.offset < end:
+    while reader.offset < end:
         tag_offset = reader.offset
         tag = reader.tag()
-
-        if group_number is not None and tag.wire_type == WireType.EGROUP:
-            if tag.number != group_number:
-                msg = f"mismatched group end tag: expected {group_number}, got {tag.number}"
-                raise ValueError(msg)
-            break
 
         desc_field = desc_message._fields_by_tag.get(tag.raw)
 
@@ -183,8 +184,7 @@ def read_message(
             case _:
                 assert_never(desc_field)
 
-    if previous_limit is not None:
-        reader.pop_limit(previous_limit)
+    reader.pop_limit(previous_limit)
     return message
 
 

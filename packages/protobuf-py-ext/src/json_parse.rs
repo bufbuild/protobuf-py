@@ -18,7 +18,7 @@ use pyo3::{
 
 use crate::{
     descriptor::{DescEnum, DescFieldValue, ScalarType},
-    json_source::{JiterSource, JsonKind, JsonSource, PyTreeSource, check_syntax},
+    json_source::{JiterSource, JsonKind, JsonSource, PyTreeSource},
     marshaler::MessageMarshaler,
     nativemessage::NativeMessage,
     oneof::Oneof,
@@ -55,13 +55,8 @@ pub(crate) fn merge_from_json<'py>(
     opts: &FromJsonOpts,
 ) -> PyResult<()> {
     let mut src = JiterSource::new(py, data);
-    read_message(marshaler, message, &mut src, opts, 0)
-        .and_then(|()| src.finish())
-        .map_err(|err| {
-            // Python parses the whole document before reading any of it, so
-            // a syntax error anywhere wins over this error.
-            check_syntax(py, data).err().unwrap_or(err)
-        })
+    read_message(marshaler, message, &mut src, opts, 0)?;
+    src.finish()
 }
 
 /// Parses a message from a Python JSON tree (`message_from_json_value`).

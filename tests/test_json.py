@@ -516,11 +516,6 @@ def test_from_json_bytes_only_utf8(data: bytes) -> None:
         Scalars.from_json(data)
 
 
-def test_from_json_syntax_error_after_type_error() -> None:
-    with pytest.raises(json.JSONDecodeError):
-        Scalars.from_json("1-")
-
-
 @pytest.mark.parametrize(
     ("data", "ignore_unknown_fields"),
     [

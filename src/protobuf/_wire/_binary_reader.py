@@ -202,6 +202,43 @@ class BinaryReader:
         """Read 8 bytes and interpret them as a signed 64-bit integer."""
         return struct.unpack("<q", self.read(8))[0]
 
+    def group_length(self, field_number: int) -> tuple[int, int]:
+        """Find the end of the group being read, without reading it.
+
+        Scans without recursing, so groups can nest any number of levels.
+
+        Returns:
+            The length of the group's fields, and the length of its end tag.
+        """
+        start = self._offset
+        groups = [field_number]
+        try:
+            while self._offset < self._end:
+                tag_offset = self._offset
+                tag = self.tag()
+                match tag.wire_type:
+                    case WireType.SGROUP:
+                        groups.append(tag.number)
+                    case WireType.EGROUP:
+                        if tag.number != groups[-1]:
+                            msg = f"mismatched group end tag: expected {groups[-1]}, got {tag.number}"
+                            raise ValueError(msg)
+                        groups.pop()
+                        if not groups:
+                            return tag_offset - start, self._offset - tag_offset
+                    case WireType.VARINT:
+                        self.varint()
+                    case WireType.BIT64:
+                        self.read(8)
+                    case WireType.LENGTH_DELIMITED:
+                        self.read(self.varint())
+                    case WireType.BIT32:
+                        self.read(4)
+            msg = "unterminated group"
+            raise ValueError(msg)
+        finally:
+            self._offset = start
+
     def skip(self, wire_type: WireType, depth: int, *, field_number: int) -> memoryview:
         """Skip a field value and return a memoryview on the skipped bytes.
 
