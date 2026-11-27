@@ -78,6 +78,8 @@ class FromJsonOptions:
     """The JSON text being parsed, for error messages, or None for a JSON value."""
 
 
+_URL_SAFE_TO_STANDARD_BASE64 = str.maketrans("-_", "+/")
+
 # A \u escape of a UTF-16 surrogate, which is only valid as part of a pair.
 _SURROGATE_ESCAPE = re.compile(r"\\u[dD][89a-fA-F][0-9a-fA-F]{2}")
 _SURROGATE = re.compile("[\ud800-\udfff]")
@@ -578,12 +580,12 @@ def _read_scalar(
                 raise _field_error(
                     desc, f"expected base64-encoded string got: {type(json)}", TypeError
                 )
-            # Accept standard and URL-safe base64, adding padding if necessary
-            altchars = "-_" if "-" in json or "_" in json else None
+            # Accept standard, URL-safe, or mixed base64
+            json = json.translate(_URL_SAFE_TO_STANDARD_BASE64)
             if padding := len(json) % 4:
                 json = json + (4 - padding) * "="
             try:
-                return b64decode(json, altchars=altchars, validate=True)
+                return b64decode(json, validate=True)
             except ValueError:
                 raise _field_error(desc, "invalid base64 data", ValueError) from None
         case _:
