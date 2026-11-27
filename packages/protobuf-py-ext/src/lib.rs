@@ -20,8 +20,12 @@ mod serializer;
 mod wkt_registry;
 
 /// A Python module implemented in Rust.
+///
+/// Public only so the fuzz targets can register it with an embedded
+/// interpreter.
+#[doc(hidden)]
 #[pymodule(name = "_protobuf_ext", gil_used = false)]
-mod protobuf_python_ext {
+pub mod protobuf_python_ext {
     #[allow(clippy::wildcard_imports)]
     use super::*;
 
