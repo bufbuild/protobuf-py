@@ -31,6 +31,8 @@ const REPO: &str = env!("PROTOBUF_PY_FUZZ_REPO");
 /// Imports the message types and returns them sorted by name, with a registry
 /// of all of them for `Any` and extensions.
 const BOOTSTRAP: &str = r#"
+from json import JSONDecodeError
+
 from protobuf import Message, Registry
 from protobuf._to_binary import ToBinaryOptions, write_message
 from protobuf._wire import BinaryWriter
@@ -83,6 +85,8 @@ pub struct Harness {
     /// Serializes a message with Python's code without validating it, to
     /// compare messages.
     contents: Py<PyAny>,
+    /// `json.JSONDecodeError`.
+    json_decode_error: Py<PyAny>,
 }
 
 /// Where to find the interpreter's home and the Python packages.
@@ -177,6 +181,7 @@ static HARNESS: LazyLock<Harness> = LazyLock::new(|| {
                 .expect("Message is a type")
                 .unbind(),
             contents: item("contents").unbind(),
+            json_decode_error: item("JSONDecodeError").unbind(),
         }
     })
 });
@@ -398,6 +403,10 @@ pub fn to_json(
 /// raised the same type of error that invalid input raises, and panics
 /// otherwise.
 ///
+/// Allows one difference: Python parses a whole JSON document before reading
+/// it into a message, so it raises a syntax error that the native extension,
+/// which reads as it parses, may not reach after finding another error first.
+///
 /// # Panics
 ///
 /// If only one implementation succeeded, they raised different types of
@@ -413,8 +422,10 @@ pub fn agree<T>(
         (Err(native), Err(python)) => {
             expect_parse_error(py, &native, &format!("{context} (native)"));
             expect_parse_error(py, &python, &format!("{context} (Python)"));
+            let python_syntax_error = context == "from_json"
+                && python.is_instance(py, harness().json_decode_error.bind(py));
             assert!(
-                native.get_type(py).is(python.get_type(py)),
+                python_syntax_error || native.get_type(py).is(python.get_type(py)),
                 "{context}: native raised {native} but Python {python}"
             );
             None
