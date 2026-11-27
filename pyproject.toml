@@ -325,17 +325,68 @@ cwd = "packages/bench"
 [tool.poe.tasks.format-ext]
 help = "Format native extension code (requires Rust)"
 sequence = [
-  { cmd = "cargo clippy --fix --allow-dirty" },
-  { cmd = "cargo fmt" },
+  { cmd = "cargo clippy --workspace --all-features --all-targets --fix --allow-dirty" },
+  { cmd = "cargo fmt --all" },
 ]
 cwd = "packages/protobuf-py-ext"
 
 [tool.poe.tasks.lint-ext]
 help = "Lint native extension code (requires Rust)"
 sequence = [
-  { cmd = "cargo clippy" },
-  { cmd = "cargo fmt --check" },
+  { cmd = "cargo clippy --workspace --all-features --all-targets" },
+  { cmd = "cargo fmt --all --check" },
 ]
+cwd = "packages/protobuf-py-ext"
+
+[tool.poe.tasks.fuzz-seeds]
+help = "Write the seeds that the fuzz targets read from the conformance suite"
+cmd = "cargo run -p protobuf-py-ext-fuzz --example seeds -- fuzz/seeds"
+cwd = "packages/protobuf-py-ext"
+
+[tool.poe.tasks.fuzz]
+help = "Run each fuzz target of the native extension for FUZZ_SECONDS (default 60), keeping the corpus in fuzz/corpus (requires nightly Rust and cargo-fuzz)"
+deps = ["fuzz-seeds"]
+interpreter = "bash"
+shell = """
+set -euo pipefail
+: "${FUZZ_TARGETS:=binary json}"
+# cargo-fuzz defaults to the triple it was built for, which is musl when installed prebuilt.
+triple="$(rustc +nightly -vV | sed -n 's/^host: //p')"
+# The embedded interpreter is never finalized, so leak detection is off.
+export ASAN_OPTIONS="detect_leaks=0${ASAN_OPTIONS:+:${ASAN_OPTIONS}}"
+# The extension's release profile uses LTO for wheels, which drops the coverage
+# instrumentation.
+export CARGO_PROFILE_RELEASE_LTO=false
+for target in ${FUZZ_TARGETS}; do
+  mkdir -p "fuzz/corpus/${target}"
+  inputs=("fuzz/corpus/${target}")
+  if [ -d "fuzz/seeds/${target}" ]; then
+    inputs+=("fuzz/seeds/${target}")
+  fi
+  cargo +nightly fuzz run --target "${triple}" "${target}" "${inputs[@]}" -- \
+    -max_total_time="${FUZZ_SECONDS:-60}" -max_len=16384 -detect_leaks=0 -print_final_stats=1
+done
+"""
+cwd = "packages/protobuf-py-ext"
+
+[tool.poe.tasks.fuzz-cmin]
+help = "Minimize each fuzz target's corpus in fuzz/corpus (requires nightly Rust and cargo-fuzz)"
+interpreter = "bash"
+shell = """
+set -euo pipefail
+: "${FUZZ_TARGETS:=binary json}"
+triple="$(rustc +nightly -vV | sed -n 's/^host: //p')"
+export ASAN_OPTIONS="detect_leaks=0${ASAN_OPTIONS:+:${ASAN_OPTIONS}}"
+# The extension's release profile uses LTO for wheels, which drops the coverage
+# instrumentation.
+export CARGO_PROFILE_RELEASE_LTO=false
+for target in ${FUZZ_TARGETS}; do
+  if [ -d "fuzz/corpus/${target}" ]; then
+    cargo +nightly fuzz cmin --target "${triple}" "${target}" "fuzz/corpus/${target}" -- \
+      -max_len=16384 -detect_leaks=0
+  fi
+done
+"""
 cwd = "packages/protobuf-py-ext"
 
 ## Diffcheck
