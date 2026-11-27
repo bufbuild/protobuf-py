@@ -406,7 +406,9 @@ def test_timestamp_to_json_error(seconds: int, nanos: int, match: str) -> None:
         ('"2025-13-01T00:00:00Z"', ValueError, "invalid RFC 3339"),
         ('"+940-01-01T00:00:00Z"', ValueError, "invalid RFC 3339"),
         ('"2025-+1-01T00:00:00Z"', ValueError, "invalid RFC 3339"),
+        ('"2025-01-01T+1:00:00Z"', ValueError, "invalid RFC 3339"),
         ('"2025-01-01T00:00:00++1:00"', ValueError, "invalid RFC 3339"),
+        ('"2025-01-01T00:00:00+01:+1"', ValueError, "invalid RFC 3339"),
         (
             '"9999-12-31T23:59:59-01:00"',
             ValueError,

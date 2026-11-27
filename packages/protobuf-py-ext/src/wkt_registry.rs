@@ -970,29 +970,22 @@ fn format_duration(seconds: i64, nanos: i32) -> PyResult<String> {
     buffa_wkt::fmt_duration(seconds, nanos).map_err(PyValueError::new_err)
 }
 
-/// Whether the numbers in an RFC 3339 timestamp are all digits. buffa parses
-/// them with `str::parse`, which also accepts a leading sign.
-fn timestamp_numbers_are_digits(text: &str) -> bool {
+// Workaround buffa accepting `+` in any numeric component of a timestamp by scanning
+// for it at the indexes it can appear at.
+fn has_signed_number(text: &str) -> bool {
     let bytes = text.as_bytes();
-    let digits = |range: std::ops::Range<usize>| {
-        bytes
-            .get(range)
-            .is_some_and(|digits| digits.iter().all(u8::is_ascii_digit))
-    };
+    let plus_at = |index: usize| bytes.get(index) == Some(&b'+');
+    // The year, month, day, hour, minute, and second.
+    if [0, 5, 8, 11, 14, 17].into_iter().any(plus_at) {
+        return true;
+    }
+    // The hours and minutes of an offset like +01:00.
     let len = bytes.len();
-    let offset =
-        text.ends_with('Z') || (len >= 6 && digits(len - 5..len - 3) && digits(len - 2..len));
-    digits(0..4)
-        && digits(5..7)
-        && digits(8..10)
-        && digits(11..13)
-        && digits(14..16)
-        && digits(17..19)
-        && offset
+    !text.ends_with('Z') && len >= 6 && (plus_at(len - 5) || plus_at(len - 2))
 }
 
 fn parse_timestamp(type_name: &str, text: &str) -> PyResult<(i64, i32)> {
-    if !timestamp_numbers_are_digits(text) {
+    if has_signed_number(text) {
         return Err(PyValueError::new_err(format!(
             "cannot decode {type_name} from JSON: invalid RFC 3339 string"
         )));
