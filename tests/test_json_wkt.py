@@ -378,6 +378,11 @@ def test_duration_from_json_empty_fraction(json_str: str, expected: Duration) ->
     assert Duration.from_json(json_str) == expected
 
 
+@pytest.mark.parametrize("json_str", ['"-0.01s"', '"-00.01s"'])
+def test_duration_from_json_negative_zero_seconds(json_str: str) -> None:
+    assert Duration.from_json(json_str) == Duration(nanos=-10_000_000)
+
+
 @pytest.mark.parametrize(
     ("seconds", "nanos", "match"),
     [
@@ -399,6 +404,9 @@ def test_timestamp_to_json_error(seconds: int, nanos: int, match: str) -> None:
         ('"2025-01-27t11:42:15Z"', ValueError, "invalid RFC 3339"),
         ('"2025-01-27 11:42:15Z"', ValueError, "invalid RFC 3339"),
         ('"2025-13-01T00:00:00Z"', ValueError, "invalid RFC 3339"),
+        ('"+940-01-01T00:00:00Z"', ValueError, "invalid RFC 3339"),
+        ('"2025-+1-01T00:00:00Z"', ValueError, "invalid RFC 3339"),
+        ('"2025-01-01T00:00:00++1:00"', ValueError, "invalid RFC 3339"),
         (
             '"9999-12-31T23:59:59-01:00"',
             ValueError,
@@ -413,9 +421,34 @@ def test_timestamp_from_json_error(
         Timestamp.from_json(json_str)
 
 
-def test_field_mask_to_json_irreversible() -> None:
+@pytest.mark.parametrize(
+    ("paths", "expected"),
+    [
+        pytest.param([""], '""', id="empty path"),
+        pytest.param(["a..b"], '"a..b"', id="empty component"),
+        pytest.param(["1"], '"1"', id="digit"),
+        pytest.param(["a."], '"a."', id="trailing dot"),
+        pytest.param(["_a"], '"A"', id="leading underscore"),
+    ],
+)
+def test_field_mask_to_json_paths(paths: list[str], expected: str) -> None:
+    assert FieldMask(paths=paths).to_json() == expected
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "user.displayName",
+        "foo_3_bar",
+        "foo__bar",
+        "foo_",
+        # An uppercase letter without a lowercase form.
+        "foo_\u03d4",
+    ],
+)
+def test_field_mask_to_json_irreversible(path: str) -> None:
     with pytest.raises(ValueError, match="irreversible"):
-        FieldMask(paths=["user.displayName"]).to_json()
+        FieldMask(paths=[path]).to_json()
 
 
 @pytest.mark.parametrize(
@@ -430,6 +463,29 @@ def test_field_mask_from_json_error(
 ) -> None:
     with pytest.raises(error_type, match=match):
         FieldMask.from_json(json_str)
+
+
+@pytest.mark.parametrize("message_type", [Value, DoubleValue])
+def test_from_json_integer_too_large_for_double(message_type: type[Message]) -> None:
+    with pytest.raises(OverflowError):
+        message_type.from_json("1" + "0" * 400)
+
+
+@pytest.mark.parametrize(
+    ("suffix", "error_type"),
+    [
+        pytest.param("", RecursionError, id="valid"),
+        pytest.param("x", json.JSONDecodeError, id="syntax error after"),
+    ],
+)
+def test_value_from_json_deeper_than_parser_limit(
+    suffix: str, error_type: type[Exception]
+) -> None:
+    # Deeper than both the recursion limit and the native parser's nesting
+    # limit, which a syntax error after takes precedence over.
+    data = "[" * 250 + "]" * 250 + suffix
+    with pytest.raises(error_type):
+        Value.from_json(data)
 
 
 @pytest.mark.parametrize(

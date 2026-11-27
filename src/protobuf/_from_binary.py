@@ -111,9 +111,13 @@ def read_message(
         msg = f"exceeded maximum recursion depth {DEPTH_LIMIT} while parsing message"
         raise RecursionError(msg)
     desc_message = message._desc
-    end = reader.offset + length  # Only used for length-delimited messages
+    # Groups end at their end tag, and length-delimited messages at their
+    # length, which bounds what their fields read.
+    previous_limit = None if group_number is not None else reader.push_limit(length)
+    end = reader.offset + length
 
     while group_number is not None or reader.offset < end:
+        tag_offset = reader.offset
         tag = reader.tag()
 
         if group_number is not None and tag.wire_type == WireType.EGROUP:
@@ -125,11 +129,11 @@ def read_message(
         desc_field = desc_message._fields_by_tag.get(tag.raw)
 
         if desc_field is None:  # Unknown field
-            field_raw = reader.skip(tag.wire_type, depth + 1, field_number=tag.number)
+            reader.skip(tag.wire_type, depth + 1, field_number=tag.number)
             if not opts.ignore_unknown_fields:
-                key_raw = _encode_varint((tag.number << 3) | tag.wire_type)
+                # Keeps the tag as it was encoded.
                 message._get_or_init_unknown_fields().setdefault(tag.number, []).append(
-                    key_raw + bytes(field_raw)
+                    bytes(reader.since(tag_offset))
                 )
             continue
 
@@ -167,6 +171,7 @@ def read_message(
                     reader,
                     opts,
                     depth,
+                    tag_offset=tag_offset,
                 )
             case DescFieldValueMap():
                 entry = read_map_entry(
@@ -178,6 +183,8 @@ def read_message(
             case _:
                 assert_never(desc_field)
 
+    if previous_limit is not None:
+        reader.pop_limit(previous_limit)
     return message
 
 
@@ -190,6 +197,8 @@ def read_list(
     reader: BinaryReader,
     opts: FromBinaryOptions,
     depth: int,
+    *,
+    tag_offset: int,
 ) -> None:
     element_type = field_value.element
 
@@ -201,11 +210,11 @@ def read_list(
 
     if wire_type != field_value._unpacked_wire_type:
         # Wire type doesn't match expected unpacked type, skip the field.
-        field_bytes = reader.skip(wire_type, depth + 1, field_number=field_number)
+        reader.skip(wire_type, depth + 1, field_number=field_number)
         if not opts.ignore_unknown_fields and message:
-            key_raw = _encode_varint((field_number << 3) | wire_type)
+            # Keeps the tag as it was encoded.
             message._get_or_init_unknown_fields().setdefault(field_number, []).append(
-                key_raw + bytes(field_bytes)
+                bytes(reader.since(tag_offset))
             )
         return
 
@@ -245,6 +254,7 @@ def _read_packed_list(
     opts: FromBinaryOptions,
 ) -> None:
     length = reader.varint()
+    previous_limit = reader.push_limit(length)
     end = reader.offset + length
     while reader.offset < end:
         match element_type:
@@ -259,6 +269,7 @@ def _read_packed_list(
                     _write_unknown_enum_field(message, field_number, value)
             case _:
                 assert_never(element_type)
+    reader.pop_limit(previous_limit)
 
 
 def read_enum(desc_enum: DescEnum, reader: BinaryReader) -> Enum | int:
@@ -291,25 +302,32 @@ def read_map_entry(
 ) -> tuple[Any, Any] | None:
     start_offset = reader.offset
     length = reader.varint()
+    previous_limit = reader.push_limit(length)
     end = reader.offset + length
 
     key: Any = None
     value: Any = None
     message_value: Message | None = None
+    # Whether the value is a closed enum value that has no known enum variant,
+    # which makes the whole entry unknown. A later value in the entry replaces
+    # it, so the rest of the entry is still read.
+    unknown_enum_value = False
 
     while reader.offset < end:
         tag = reader.tag()
         if tag.number == 1:  # key
             if tag.wire_type != field_value._key_wire_type:
+                reader.pop_limit(previous_limit)
                 _read_unknown_map_entry(
-                    message, field_number, reader, start_offset, opts, depth
+                    message, field_number, reader, start_offset, opts
                 )
                 return None
             key = read_scalar(field_value.key, reader)
         elif tag.number == 2:  # value
             if tag.wire_type != field_value._value_wire_type:
+                reader.pop_limit(previous_limit)
                 _read_unknown_map_entry(
-                    message, field_number, reader, start_offset, opts, depth
+                    message, field_number, reader, start_offset, opts
                 )
                 return None
             match field_value.value:
@@ -317,11 +335,7 @@ def read_map_entry(
                     value = read_scalar(scalar_type, reader)
                 case DescEnum() as desc_enum:
                     value = read_enum(desc_enum, reader)
-                    if not isinstance(value, Enum):
-                        _read_unknown_map_entry(
-                            message, field_number, reader, start_offset, opts, depth
-                        )
-                        return None
+                    unknown_enum_value = not isinstance(value, Enum)
                 case DescMessage():
                     # A repeated value field within one entry merges into the
                     # previous value, like any other singular message field.
@@ -335,6 +349,11 @@ def read_map_entry(
                     assert_never(field_value.value)
         else:
             reader.skip(tag.wire_type, depth + 1, field_number=tag.number)
+    reader.pop_limit(previous_limit)
+
+    if unknown_enum_value:
+        _read_unknown_map_entry(message, field_number, reader, start_offset, opts)
+        return None
 
     if key is None:
         key = scalar_zero_value(field_value.key)
@@ -358,18 +377,16 @@ def _read_unknown_map_entry(
     reader: BinaryReader,
     start_offset: int,
     opts: FromBinaryOptions,
-    depth: int,
 ) -> None:
-    # The entire map entry must be recorded to unknown fields. Simplest way
-    # is to reset the reader and skip.
+    # The entire map entry must be recorded to unknown fields, with its tag
+    # and length encoded again. Simplest way is to reset the reader.
     reader.seek(start_offset)
-    entry_bytes = reader.skip(
-        WireType.LENGTH_DELIMITED, depth, field_number=field_number
-    )
+    length = reader.varint()
+    entry_bytes = reader.read(length)
     if not opts.ignore_unknown_fields and message:
         key_raw = _encode_varint((field_number << 3) | WireType.LENGTH_DELIMITED)
         message._get_or_init_unknown_fields().setdefault(field_number, []).append(
-            key_raw + bytes(entry_bytes)
+            key_raw + _encode_varint(length) + bytes(entry_bytes)
         )
 
 

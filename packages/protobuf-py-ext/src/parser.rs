@@ -572,16 +572,25 @@ impl FieldParser {
                 message: message_desc,
                 ..
             } => {
-                let mut message_buffer = if wire_type == WireType::LengthDelimited {
+                let (mut message_buffer, group_error) = if wire_type == WireType::LengthDelimited {
                     let len = decode_varint(buffer).map_err(map_varint_err)? as usize;
                     check_buffer_remaining(buffer, len)?;
-                    buffer.split_to(len)
+                    (buffer.split_to(len), None)
                 } else {
                     let mut checkpoint = buffer.clone();
-                    consume_group(tag, buffer)?;
-                    let end_tag = (tag & !0b111) | (WireType::EndGroup as u32);
-                    let field_len = checkpoint.len() - buffer.len() - varint_len(end_tag as u64);
-                    checkpoint.split_to(field_len)
+                    match consume_group(tag, buffer) {
+                        Ok(()) => {
+                            let end_tag = (tag & !0b111) | (WireType::EndGroup as u32);
+                            let field_len =
+                                checkpoint.len() - buffer.len() - varint_len(end_tag as u64);
+                            (checkpoint.split_to(field_len), None)
+                        }
+                        // Python reads a group as it goes, so an error before
+                        // the missing end tag, such as exceeding the recursion
+                        // limit, takes precedence. Reads the rest of the buffer
+                        // as the group to raise it.
+                        Err(err) => (checkpoint, Some(err)),
+                    }
                 };
                 let marshaler = message_desc.get_marshaler(py)?;
                 let parser = &marshaler.parser;
@@ -597,13 +606,22 @@ impl FieldParser {
                 } else {
                     marshaler.new_empty_message(py, parser.inner.python_type.bind(py))?
                 };
-                parser.merge_from_binary(
+                let merged = parser.merge_from_binary(
                     py,
                     &message_instance,
                     &mut message_buffer,
                     opts,
                     depth + 1,
-                )?;
+                );
+                if let Some(group_error) = group_error {
+                    // Keeps the error about the group unless reading what
+                    // came before it raised a different type of error.
+                    return Err(match merged {
+                        Err(err) if !err.get_type(py).is(py.get_type::<PyValueError>()) => err,
+                        _ => group_error,
+                    });
+                }
+                merged?;
                 message_instance.into_any()
             }
             FieldParserValue::Enum(enum_) => {
@@ -715,9 +733,6 @@ impl MessageParser {
             let checkpoint = buffer.clone();
             let tag = decode_tag(buffer)?;
             let field_number = tag >> 3;
-            if field_number == 0 {
-                return Err(PyValueError::new_err("invalid field number: 0"));
-            }
             let wire_type = WireType::from_tag(tag)?;
             if let Some(field) = self.inner.fields.get(field_number)
                 && field.wire_type_matches(wire_type)
@@ -992,7 +1007,11 @@ const fn decode_zigzag64(value: u64) -> i64 {
 
 fn decode_tag(buffer: &mut Bytes) -> PyResult<u32> {
     let tag = decode_varint(&mut buffer.take(5)).map_err(map_varint_err)?;
-    u32::try_from(tag).map_err(map_varint_err)
+    let tag = u32::try_from(tag).map_err(map_varint_err)?;
+    if tag >> 3 == 0 {
+        return Err(PyValueError::new_err("invalid field number: 0"));
+    }
+    Ok(tag)
 }
 
 /// A lookup table for field parsers. Most messages are small or contiguous, and we can significantly

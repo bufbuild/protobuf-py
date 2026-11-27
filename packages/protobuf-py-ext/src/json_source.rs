@@ -1,9 +1,9 @@
 //! Input abstraction for JSON parsing, to read from either a string or Python object.
 
-use jiter::{Jiter, JiterError, NumberAny, NumberInt, Peek};
+use jiter::{Jiter, JiterError, JiterErrorType, JsonErrorType, NumberAny, NumberInt, Peek};
 use pyo3::{
     Bound, IntoPyObject as _, PyAny, PyErr, PyResult, Python,
-    exceptions::{PyTypeError, PyValueError},
+    exceptions::{PyOverflowError, PyTypeError, PyValueError},
     types::{
         PyAnyMethods as _, PyBool, PyDict, PyFloat, PyInt, PyList, PyString, PyStringMethods as _,
     },
@@ -79,6 +79,38 @@ impl<'a> JiterSource<'a> {
         self.jiter
             .finish()
             .map_err(|err| jiter_decode_error(py, data, &err))
+    }
+}
+
+/// Checks that `data` is a single JSON document, raising the
+/// `json.JSONDecodeError` that parsing it fails with.
+pub(crate) fn check_syntax(py: Python<'_>, data: &[u8]) -> PyResult<()> {
+    let mut jiter = Jiter::new(data);
+    match jiter.next_skip().and_then(|()| jiter.finish()) {
+        Ok(()) => Ok(()),
+        // Python's parsing allows deeper nesting than jiter, so it checks
+        // what is past jiter's limit.
+        Err(JiterError {
+            error_type: JiterErrorType::JsonError(JsonErrorType::RecursionLimitExceeded),
+            ..
+        }) => check_syntax_in_python(py, data),
+        Err(err) => Err(jiter_decode_error(py, data, &err)),
+    }
+}
+
+/// Parses `data` as protobuf-py's Python code does, raising the
+/// `json.JSONDecodeError` that it fails with, if any.
+fn check_syntax_in_python(py: Python<'_>, data: &[u8]) -> PyResult<()> {
+    let Ok(text) = std::str::from_utf8(data) else {
+        return Ok(());
+    };
+    let json_decode_error = py.import("json")?.getattr("JSONDecodeError")?;
+    match py
+        .import("protobuf._from_json")
+        .and_then(|module| module.call_method1("parse_json_text", (text,)))
+    {
+        Err(err) if err.is_instance(py, &json_decode_error) => Err(err),
+        _ => Ok(()),
     }
 }
 
@@ -158,9 +190,25 @@ impl<'py> JsonSource<'py> for JiterSource<'py> {
 
     fn next_float(&mut self) -> PyResult<f64> {
         let (py, data) = (self.py, self.data);
-        self.jiter
+        let start = self.jiter.current_index();
+        let value = self
+            .jiter
             .next_float()
-            .map_err(|err| jiter_decode_error(py, data, &err))
+            .map_err(|err| jiter_decode_error(py, data, &err))?;
+        // Python converts an integer with float(), which raises for one too
+        // large for a double instead of returning infinity.
+        if value.is_infinite()
+            && !self
+                .jiter
+                .slice_to_current(start)
+                .iter()
+                .any(|b| matches!(b, b'.' | b'e' | b'E'))
+        {
+            return Err(PyOverflowError::new_err(
+                "int too large to convert to float",
+            ));
+        }
+        Ok(value)
     }
 
     fn next_py_str(&mut self) -> PyResult<Bound<'py, PyString>> {

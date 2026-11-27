@@ -162,7 +162,9 @@ def write_map_field(
     writer: BinaryWriter,
     opts: ToBinaryOptions,
 ) -> None:
-    for key, value in map_.items():
+    # Writes entries last to first, as the native extension does since it
+    # serializes back to front.
+    for key, value in reversed(map_.items()):
         writer.tag(number, WireType.LENGTH_DELIMITED)
         writer.fork()
 

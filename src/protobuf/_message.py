@@ -679,14 +679,16 @@ class Message(Generic[FieldNamesT], metaclass=MessageMeta):  # noqa: PLW1641
         ignore_unknown_fields: bool = False,
         registry: Registry | None = None,
     ) -> None:
-        from json import loads as parse_json  # noqa: PLC0415
-
         # Needs to be lazy import since JSON specially handles many WKTs.
-        from ._from_json import FromJsonOptions, _read_message  # noqa: PLC0415
+        from ._from_json import FromJsonOptions, _read_message, parse_json_text  # noqa: PLC0415
 
-        json_value = parse_json(json)
+        if not isinstance(json, str):
+            # Decodes strictly as upstream protobuf does, instead of letting
+            # json.loads detect UTF-16 and UTF-32 and pass surrogates through.
+            json = json.decode("utf-8")
+        json_value = parse_json_text(json)
         opts = FromJsonOptions(
-            ignore_unknown_fields=ignore_unknown_fields, registry=registry
+            ignore_unknown_fields=ignore_unknown_fields, registry=registry, text=json
         )
         _read_message(self, json_value, opts)
 

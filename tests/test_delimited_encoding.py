@@ -183,6 +183,19 @@ def test_mismatched_egroup() -> None:
         DelimitedEncoding.from_binary(data)
 
 
+def test_unterminated_group_exceeds_recursion_limit() -> None:
+    # The singular field, with more unknown groups nested in it than the
+    # recursion limit, and no end tags.
+    w = BinaryWriter()
+    w.tag(2, WireType.SGROUP)
+    for _ in range(101):
+        w.tag(9, WireType.SGROUP)
+    data = w.finish()
+
+    with pytest.raises(RecursionError):
+        DelimitedEncoding.from_binary(data)
+
+
 def test_all_fields_roundtrip() -> None:
     msg = DelimitedEncoding(
         name="a",

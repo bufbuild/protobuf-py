@@ -15,9 +15,11 @@
 from __future__ import annotations
 
 import math
+import re
 from base64 import b64decode
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Literal, TypeVar, cast
+from json import JSONDecodeError, loads
+from typing import TYPE_CHECKING, Literal, NoReturn, TypeVar, cast
 
 from typing_extensions import assert_never
 
@@ -55,6 +57,8 @@ from ._wkt_registry import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from ._enum import Enum
     from ._message import Message
     from ._registry import Registry
@@ -70,6 +74,145 @@ class FromJsonOptions:
     registry: Registry | None
     depth: int = 0
     """Current message nesting depth. Mutated during a parse."""
+    text: str | None = None
+    """The JSON text being parsed, if any, for errors about it."""
+
+
+# An escaped UTF-16 surrogate, which must be paired to be valid.
+_SURROGATE_ESCAPE = re.compile(r"\\u[dD][89a-fA-F][0-9a-fA-F]{2}")
+_HIGH_THEN_LOW_ESCAPE = re.compile(
+    r"\\u[dD][89abAB][0-9a-fA-F]{2}\\u[dD][c-fC-F][0-9a-fA-F]{2}"
+)
+_SURROGATE = re.compile("[\ud800-\udfff]")
+# A JSON number that is an integer negative zero.
+_NEGATIVE_ZERO = re.compile(r"-0(?![.eE0-9])")
+
+
+class _NegativeZero(int):
+    """-0, which json.loads reads as the int 0, losing its sign as a float."""
+
+    __slots__ = ()
+
+    def __float__(self) -> float:
+        return -0.0
+
+
+class _DuplicateKeys(dict):
+    """A JSON object with a repeated key, which also keeps every key and value.
+
+    The last value of a key wins, but the native extension reads each value in
+    order, so the earlier ones are read too.
+    """
+
+    __slots__ = ("pairs",)
+
+    def __init__(self, pairs: list[tuple[str, JsonValue]]) -> None:
+        super().__init__(pairs)
+        self.pairs = pairs
+
+
+def _object_from_pairs(pairs: list[tuple[str, JsonValue]]) -> dict[str, JsonValue]:
+    result = dict(pairs)
+    return result if len(result) == len(pairs) else _DuplicateKeys(pairs)
+
+
+def _object_items(json: dict[str, JsonValue]) -> Iterable[tuple[str, JsonValue]]:
+    """The keys and values of a JSON object, including any repeated keys."""
+    return json.pairs if isinstance(json, _DuplicateKeys) else json.items()
+
+
+def without_key(json: dict[str, JsonValue], key: str) -> dict[str, JsonValue]:
+    """A copy of a JSON object without a key, keeping any repeated keys."""
+    if isinstance(json, _DuplicateKeys):
+        return _object_from_pairs([pair for pair in json.pairs if pair[0] != key])
+    return {k: v for k, v in json.items() if k != key}
+
+
+def _parse_json_int(text: str) -> int:
+    return _NegativeZero(0) if text == "-0" else int(text)
+
+
+def parse_json_text(text: str) -> JsonValue:
+    """Parse JSON text, rejecting what JSON does not allow but json.loads does.
+
+    That is the NaN and Infinity constants, and escapes of unpaired UTF-16
+    surrogates. The native extension's parser rejects them. Also keeps the sign
+    of -0 as the native extension does.
+    """
+
+    def reject_constant(name: str) -> NoReturn:
+        msg = f"{name} is not valid JSON, quote it as a string"
+        raise JSONDecodeError(msg, text, _constant_position(text, name))
+
+    # Only parses integers in Python if there may be a negative zero, which is
+    # rare.
+    value = loads(
+        text,
+        object_pairs_hook=_object_from_pairs,
+        parse_constant=reject_constant,
+        parse_int=_parse_json_int if _NEGATIVE_ZERO.search(text) else None,
+    )
+    # Only looks for unpaired surrogates in what was parsed if there are
+    # escaped ones in the text, which is rare.
+    if _SURROGATE_ESCAPE.search(text) and _has_surrogate(value):
+        msg = "unpaired UTF-16 surrogate escape is not valid JSON"
+        raise JSONDecodeError(msg, text, _unpaired_surrogate_position(text))
+    return value
+
+
+def _has_surrogate(value: JsonValue) -> bool:
+    match value:
+        case str():
+            return _SURROGATE.search(value) is not None
+        case list():
+            return any(_has_surrogate(item) for item in value)
+        case dict():
+            return any(
+                _has_surrogate(key) or _has_surrogate(item)
+                for key, item in _object_items(value)
+            )
+        case _:
+            return False
+
+
+def _unpaired_surrogate_position(text: str) -> int:
+    """The position of the first escape of an unpaired surrogate, approximately.
+
+    Does not account for escaped backslashes before it.
+    """
+    paired_end = -1
+    for match in _SURROGATE_ESCAPE.finditer(text):
+        start = match.start()
+        if start < paired_end:
+            continue
+        if _HIGH_THEN_LOW_ESCAPE.match(text, start):
+            paired_end = start + 12
+            continue
+        return start
+    return 0
+
+
+def _constant_position(text: str, name: str) -> int:
+    """The position of the first constant called name outside of a string.
+
+    json.loads only rejects it if everything before it is valid, so this is the
+    one it rejected.
+    """
+    in_string = False
+    escaped = False
+    for i, c in enumerate(text):
+        if in_string:
+            if escaped:
+                escaped = False
+            elif c == "\\":
+                escaped = True
+            elif c == '"':
+                in_string = False
+        elif c == '"':
+            in_string = True
+        elif text.startswith(name, i):
+            return i
+    return 0
 
 
 def _enter_message(opts: FromJsonOptions) -> FromJsonOptions:
@@ -128,11 +271,11 @@ def _read_message_inner(msg: Message, json: JsonValue, opts: FromJsonOptions) ->
         raise TypeError(err)
 
     desc = msg.__class__._desc
-    # A field can be named twice by its proto name and its JSON name (identical
-    # keys are already collapsed to the last value by json.loads). Duplicates
-    # are last-in-wins, so reset the field before applying a later occurrence.
+    # A field can be named twice, by a repeated key or by its proto name and
+    # its JSON name. Duplicates are last-in-wins, so reset the field before
+    # applying a later occurrence.
     seen = set[DescField]()
-    for key, value in json.items():
+    for key, value in _object_items(json):
         field = desc._fields_by_json_name.get(key)
         if field:
             field_value = field.value
@@ -156,11 +299,38 @@ def _read_message_inner(msg: Message, json: JsonValue, opts: FromJsonOptions) ->
                 and extension.extendee.type_name == desc.type_name
             ):
                 _read_extension(msg, extension, value, opts)
-            if not extension and not opts.ignore_unknown_fields:
+            elif extension or opts.ignore_unknown_fields:
+                # Skips the value, which may be an extension of another message.
+                _check_skipped_depth(value, opts)
+            else:
                 err = (
                     f"cannot decode {desc.type_name} from JSON: key: '{key}' is unknown"
                 )
                 raise ValueError(err)
+
+
+# How deeply a value in a skipped JSON value may be nested, scalars included.
+# The native extension's parser limits it to this when skipping text.
+_SKIPPED_DEPTH_LIMIT = 200
+
+
+def _check_skipped_depth(value: JsonValue, opts: FromJsonOptions) -> None:
+    """Raise if a skipped value parsed from text is nested too deeply."""
+    if opts.text is None:
+        return
+    stack = [(value, 0)]
+    while stack:
+        item, depth = stack.pop()
+        if depth > _SKIPPED_DEPTH_LIMIT:
+            msg = "recursion limit exceeded in a skipped value"
+            raise JSONDecodeError(msg, opts.text, 0)
+        match item:
+            case list():
+                stack.extend((child, depth + 1) for child in item)
+            case dict():
+                stack.extend((child, depth + 1) for _, child in _object_items(item))
+            case _:
+                pass
 
 
 def _reset_duplicate_field(msg: Message, field: DescField) -> None:
@@ -320,7 +490,7 @@ def _read_map_field(
         return
     if not isinstance(json, dict):
         raise _field_error(field, f"expected dict got {type(json)}", TypeError)
-    for json_key, json_value in json.items():
+    for json_key, json_value in _object_items(json):
         key = _read_map_key(field, field_value, json_key)
         value = _read_container_item(field, field_value.value, json_value, opts)
         if value is not None:
@@ -514,7 +684,8 @@ def _parse_int(desc: DescField | DescExtension, json: JsonValue) -> int:
     if not isinstance(json, bool) and isinstance(
         json, int
     ):  # isinstance(bool_value, int) is True
-        return json
+        # Not a subclass, such as for -0.
+        return int(json)
 
     if isinstance(json, float):
         f = json
@@ -608,7 +779,7 @@ def _struct_from_json(
     assert isinstance(value_desc, DescMessage)  # noqa: S101
     value_wkt = match_wkt(value_desc)
     assert isinstance(value_wkt, WktValue)  # noqa: S101
-    for k, v in json.items():
+    for k, v in _object_items(json):
         val = cast("Value", value_desc.type())
         _value_from_json(val, v, opts, value_wkt)
         msg.fields[k] = val

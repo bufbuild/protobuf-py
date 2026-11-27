@@ -18,7 +18,7 @@ use pyo3::{
 
 use crate::{
     descriptor::{DescEnum, DescFieldValue, ScalarType},
-    json_source::{JiterSource, JsonKind, JsonSource, PyTreeSource},
+    json_source::{JiterSource, JsonKind, JsonSource, PyTreeSource, check_syntax},
     marshaler::MessageMarshaler,
     nativemessage::NativeMessage,
     oneof::Oneof,
@@ -55,8 +55,13 @@ pub(crate) fn merge_from_json<'py>(
     opts: &FromJsonOpts,
 ) -> PyResult<()> {
     let mut src = JiterSource::new(py, data);
-    read_message(marshaler, message, &mut src, opts, 0)?;
-    src.finish()
+    read_message(marshaler, message, &mut src, opts, 0)
+        .and_then(|()| src.finish())
+        .map_err(|err| {
+            // Python parses the whole document before reading it into the
+            // message, so a syntax error anywhere takes precedence.
+            check_syntax(py, data).err().unwrap_or(err)
+        })
 }
 
 /// Parses a message from a Python JSON tree (`message_from_json_value`).
@@ -500,12 +505,21 @@ fn read_bytes<'py, R: JsonSource<'py>>(
             Exc::Type,
         ));
     }
-    // Autodetect standard vs URL-safe alphabet. The
-    // engines are lenient about padding and non-canonical trailing bits, like
-    // Python's `base64.b64decode(..., validate=True)`.
+    // Accepts the URL-safe alphabet by translating it to the standard one,
+    // as upstream protobuf does, which also accepts the two mixed. The engine
+    // is lenient about padding and non-canonical trailing bits, like Python's
+    // `base64.b64decode(..., validate=True)`.
     let decoded = src.with_next_str(|text| {
-        let decoded = if text.contains('-') || text.contains('_') {
-            base64_url_safe().decode(text)
+        let decoded = if text.contains(['-', '_']) {
+            let standard: String = text
+                .chars()
+                .map(|c| match c {
+                    '-' => '+',
+                    '_' => '/',
+                    c => c,
+                })
+                .collect();
+            base64_standard().decode(standard)
         } else {
             base64_standard().decode(text)
         }
@@ -525,10 +539,6 @@ fn base64_decode_config() -> base64::engine::GeneralPurposeConfig {
 
 fn base64_standard() -> base64::engine::GeneralPurpose {
     base64::engine::GeneralPurpose::new(&base64::alphabet::STANDARD, base64_decode_config())
-}
-
-fn base64_url_safe() -> base64::engine::GeneralPurpose {
-    base64::engine::GeneralPurpose::new(&base64::alphabet::URL_SAFE, base64_decode_config())
 }
 
 /// Parses a float/double.

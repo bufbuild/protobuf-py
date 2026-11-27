@@ -186,10 +186,12 @@ def _message_to_json_value(message: Message, opts: ToJsonOptions) -> JsonValue:
         )
         result[json_key] = json_value
 
-    # Extension fields
-    if opts.registry:
-        for ext_desc in opts.registry.extensions_for(message):
-            if ext_desc.type not in message:
+    # Extension fields, which are stored in the unknown fields, in the order
+    # they were set or parsed.
+    if opts.registry and (unknown_fields := message._unknown_fields):
+        for number in unknown_fields:
+            ext_desc = opts.registry.extension_for(message._desc, number)
+            if ext_desc is None:
                 continue
             value = message[ext_desc.type]
             match field_value := ext_desc.value:
