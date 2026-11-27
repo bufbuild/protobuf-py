@@ -109,9 +109,7 @@ def _enum_to_json_value(
     if opts.print_enums_as_ints:
         return int(value)
     if enum_value := desc_enum._values_by_number.get(value):
-        if enum_value.json_name is not None:
-            return enum_value.json_name
-        return enum_value.name
+        return enum_value.json_name
     if not desc_enum.open:
         msg = f"invalid enum value {value} for enum {desc_enum.type_name}"
         raise ValueError(msg)

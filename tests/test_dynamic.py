@@ -210,6 +210,29 @@ def test_dynamic_default_json_name(protoc: Protoc) -> None:
     assert msg.to_json() == json
 
 
+JSON_ENUM_NAMES_PROTO = """\
+edition = "2026";
+
+import "google/protobuf/json_enumvalue_options.proto";
+
+enum Season {
+  SEASON_UNSPECIFIED = 0;
+  SEASON_SPRING = 1 [(pb.enumvalue.json).string = "primavera"];
+  SEASON_SUMMER = 2 [(pb.enumvalue.json) = {}];
+}
+"""
+
+
+def test_dynamic_enum_value_json_name(protoc: Protoc) -> None:
+    """An enum value's JSON name is its declared name unless a custom one is set."""
+    desc = protoc.compile_enum(JSON_ENUM_NAMES_PROTO)
+    assert [value.json_name for value in desc.values] == [
+        "SEASON_UNSPECIFIED",
+        "primavera",
+        "SEASON_SUMMER",
+    ]
+
+
 WKT_IMPORTS_PROTO = """\
 edition = "2023";
 import "google/protobuf/timestamp.proto";
