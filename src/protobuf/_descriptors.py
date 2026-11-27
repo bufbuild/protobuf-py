@@ -207,8 +207,9 @@ class DescEnumValue:
         local_name: A safe and idiomatic name for the value in Python.
         parent: The enumeration this value belongs to.
         number: The numeric enumeration value, as specified in the protobuf source.
-        json_name: The custom JSON name specified with the `(pb.enumvalue.json)`
-            option, or `None` if the option is not set.
+        json_name: The name of the enumeration value in JSON. This is the custom
+            name specified with the `(pb.enumvalue.json)` option, or `name` if
+            the option is not set.
         deprecated: Marked as deprecated in the protobuf source.
         proto: The compiler-generated descriptor.
     """
@@ -217,7 +218,7 @@ class DescEnumValue:
     local_name: str
     parent: DescEnum
     number: int
-    json_name: str | None
+    json_name: str
     deprecated: bool
     proto: EnumValueDescriptorProto
 
