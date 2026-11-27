@@ -56,6 +56,7 @@ from ._descriptors import (
     ScalarType,
     SupportedFieldPresence,
 )
+from ._names import proto_camel_case
 from ._registry import Registry
 from ._sanitization import escape_class_name, escape_enum_attr, escape_message_attr
 from ._wire._text_format import (
@@ -471,7 +472,9 @@ def _build_field(
         if not in_oneof or proto.proto3_optional
         else proto.name,
         number=proto.number,
-        json_name=proto.json_name,
+        json_name=proto.json_name
+        if proto.has_field("json_name")
+        else proto_camel_case(proto.name),
         deprecated=proto.options.deprecated if proto.options else False,
         presence=_get_field_presence(proto, msg, in_oneof=in_oneof),
         proto=proto,

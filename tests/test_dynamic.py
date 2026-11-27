@@ -184,6 +184,32 @@ def test_file_descriptor_set(protoc: Protoc) -> None:
     assert baz.__qualname__ == "Foo.Baz"
 
 
+JSON_NAMES_PROTO = """\
+edition = "2023";
+
+message Names {
+  string first_name = 1;
+  string last_name = 2 [json_name = "surname"];
+}
+"""
+
+
+def test_dynamic_default_json_name(protoc: Protoc) -> None:
+    """Descriptors embedded by other runtimes omit json_name unless declared."""
+    file_set = protoc.compile_set({"test.proto": JSON_NAMES_PROTO})
+    first_name = file_set.file[0].message_type[0].field[0]
+    assert first_name.json_name == "firstName"
+    first_name.clear_field("json_name")
+
+    desc = file_set.to_registry().message("Names")
+    assert desc is not None
+    assert [field.json_name for field in desc.fields] == ["firstName", "surname"]
+    json = '{"firstName":"Homer","surname":"Simpson"}'
+    msg = desc.type.from_json(json)
+    assert cast("Any", msg).first_name == "Homer"
+    assert msg.to_json() == json
+
+
 JSON_ENUM_NAMES_PROTO = """\
 edition = "2026";
 
